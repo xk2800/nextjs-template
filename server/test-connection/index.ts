@@ -1,3 +1,9 @@
+/**
+ * @use This script is used to test the connection to the database and perform basic CRUD operations.
+ * @description It inserts a new user, retrieves all users, updates the user's age, and deletes the user.
+ * @note Make sure to set the DATABASE_URL environment variable in your .env file.
+ */
+
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
 import { usersTable } from '@/server/db/schema';
@@ -34,8 +40,8 @@ async function main() {
     .where(eq(usersTable.email, user.email));
   console.log('User info updated!')
 
-  // await db.delete(usersTable).where(eq(usersTable.email, user.email));
-  // console.log('User deleted!')
+  await db.delete(usersTable).where(eq(usersTable.email, user.email));
+  console.log('User deleted!')
 }
 
 main();
