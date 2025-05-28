@@ -2,6 +2,24 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 This is a template for Next.js projects using Drizzle ORM, self hosted PostgreSQL for development and Neon DB for production.
 
+## Basic Folder Structure
+
+```plaintext {5}
+📦 <project root>
+├── 📂 server/
+│   ├── 📂 db/
+│   │   ├── 📜 schema.ts
+│   │   └── 📜 index.ts
+│   ├── 📂 drizzle/
+│   └── 📂 test-connection/
+│       └── 📜 index.ts
+├── 📜 .env.production
+├── 📜 .env.development
+├── 📜 drizzle.config.ts
+├── 📜 package.json
+└── 📜 tsconfig.json
+```
+
 ## Getting Started
 
 1. Install the packages:
