@@ -1,36 +1,39 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+This is a template for Next.js projects using Drizzle ORM, self hosted PostgreSQL for development and Neon DB for production.
+
 ## Getting Started
 
-First, run the development server:
+1. Install the packages:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+bun install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Setup the `.env.development` and `.env.production` files based on `.env.development.example` and `.env.production.example` respectively.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Migrating Schema
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Generating schema, running this one command works for development and production modes `bun run generate`
 
-## Learn More
+2. Migrating schema into:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+# development
+bun run migrate:dev
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# production
+bun run migrate:prod
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Testing Connection
 
-## Deploy on Vercel
+1. To test and ensure that the connection and database works, run:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+# development
+bun --env-file=.env.development server/test-connection/index.ts
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# production
+bun --env-file=.env.development server/test-connection/index.ts
+```
