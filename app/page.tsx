@@ -3,7 +3,6 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { auth } from "@/server/auth";
-import { signOut } from "next-auth/react";
 import LogoutButtons from "@/components/auth/logoutButtons";
 
 const Home = async () => {
