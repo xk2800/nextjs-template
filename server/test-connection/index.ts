@@ -6,23 +6,23 @@
 
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
-import { usersTable } from '@/server/db/schema';
+import { users } from '@/server/db/schema';
 
 // const db = drizzle(process.env.DATABASE_URL!);
 import { db } from '@/server/db';
 
 async function main() {
-  const user: typeof usersTable.$inferInsert = {
+  const user: typeof users.$inferInsert = {
     name: 'John',
-    age: 30,
+    password: '123456',
     email: 'john@example.com',
   };
 
-  await db.insert(usersTable).values(user);
+  await db.insert(users).values(user);
   console.log('New user created!')
 
-  const users = await db.select().from(usersTable);
-  console.log('Getting all users from the database: ', users)
+  const selectUser = await db.select().from(users);
+  console.log('Getting all users from the database: ', selectUser)
   /*
   const users: {
     id: number;
@@ -33,14 +33,14 @@ async function main() {
   */
 
   await db
-    .update(usersTable)
+    .update(users)
     .set({
-      age: 31,
+      password: '31',
     })
-    .where(eq(usersTable.email, user.email));
+    .where(eq(users.email, user.email ?? ''));
   console.log('User info updated!')
 
-  await db.delete(usersTable).where(eq(usersTable.email, user.email));
+  await db.delete(users).where(eq(users.email, user.email ?? ''));
   console.log('User deleted!')
 }
 

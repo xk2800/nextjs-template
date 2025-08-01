@@ -14,7 +14,6 @@ export const users = pgTable("user", {
   password: text('password'),
   image: text("image"),
   role: RoleEnum('roles').default('user').notNull(),
-  currency: text("currency").default('USD').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
 

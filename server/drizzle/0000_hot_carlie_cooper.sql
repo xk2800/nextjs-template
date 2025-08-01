@@ -22,7 +22,6 @@ CREATE TABLE "user" (
 	"password" text,
 	"image" text,
 	"roles" "roles" DEFAULT 'user' NOT NULL,
-	"currency" text DEFAULT 'USD' NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
