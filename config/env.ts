@@ -8,11 +8,12 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().transform(Number).default('3000'),
   DATABASE_URL: z.string().default(''),
+  // DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 })
 
 const results = envSchema.safeParse(process.env);
 
-if (results.success && results.data.NODE_ENV === 'development') {
+if (results.success && (results.data.NODE_ENV === 'development' || results.data.NODE_ENV === 'test')) {
   console.log('Environment variables:', results.data);
   // console.log(results);
 }

@@ -34,7 +34,17 @@ if (config.NODE_ENV === 'development') {
 
   console.log('🟡 Using local PostgreSQL (pg) driver IN DEVELOPMENT MODE');
 
-} else if (config.NODE_ENV === 'production') {
+}
+else if (config.NODE_ENV === 'test') {
+  console.log('Database connection established in test mode');
+
+  const sql = neon(process.env.DATABASE_URL!);
+  db = drizzle(sql, { schema, logger: true });
+
+  console.log('🟢 Using Neon (HTTP) driver IN TEST MODE');
+
+}
+else if (config.NODE_ENV === 'production') {
   console.log('Database connection established in production mode');
 
   const sql = neon(process.env.DATABASE_URL!);
