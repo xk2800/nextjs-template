@@ -55,3 +55,11 @@ bun --env-file=.env.development server/test-connection/index.ts
 # production
 bun --env-file=.env.development server/test-connection/index.ts
 ```
+
+## Features
+
+1. Basic Next.js + Tailwind CSS boilerplate
+2. Shadcn/ui
+3. NextAuth with Google OAuth
+4. Basic login flow using NextAuth
+5. Connection template to a postgresql database for development, testing and production
