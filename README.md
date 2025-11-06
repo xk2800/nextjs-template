@@ -63,3 +63,7 @@ bun --env-file=.env.development server/test-connection/index.ts
 3. NextAuth with Google OAuth
 4. Basic login flow using NextAuth
 5. Connection template to a postgresql database for development, testing and production
+
+## WIP
+
+1. Migrating NextAuth to BetterAuth
