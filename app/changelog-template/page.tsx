@@ -1,4 +1,4 @@
-import updatesData from '@/data/changelog.json';
+import updatesData from '@/data/changelog-template.json';
 
 interface Update {
   version: string;
