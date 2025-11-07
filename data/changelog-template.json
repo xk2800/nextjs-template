@@ -1,5 +1,10 @@
 [
   {
+    "version": "0.1.0",
+    "date": "2025-11-8",
+    "changes": ["Migrate to Better-Auth for authentication from NextAuth.js"]
+  },
+  {
     "version": "0.0.3",
     "date": "2025-8-2",
     "changes": ["Add Shacn/UI", "Add Auth.js authentication for Google Auth"]
