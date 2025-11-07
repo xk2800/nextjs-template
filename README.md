@@ -67,63 +67,11 @@ bun --env-file=.env.production server/test-connection/index.ts
 ## Features
 
 1. Basic Next.js + Tailwind CSS boilerplate
-2. Shadcn/ui components
-3. Better-Auth with Google OAuth
-4. Email/password authentication with bcrypt
-5. Database-backed sessions with cookie caching
-6. Connection template to a postgresql database for development, testing and production
+2. Shadcn/ui
+3. NextAuth with Google OAuth
+4. Basic login flow using NextAuth
+5. Connection template to a postgresql database for development, testing and production
 
-## Authentication
+## WIP
 
-This template uses [Better-Auth](https://www.better-auth.com) for authentication with:
-
-- Google OAuth provider
-- Email/password authentication
-- Database-backed sessions (30-day expiration)
-- Bcrypt password hashing
-- Role-based access control (user/admin)
-
-### Auth Setup
-
-1. Configure Google OAuth credentials in your `.env` file:
-   ```
-   AUTH_GOOGLE_ID=your-google-client-id
-   AUTH_GOOGLE_SECRET=your-google-client-secret
-   ```
-
-2. Set the base URL for auth callbacks:
-   ```
-   BETTER_AUTH_URL=http://localhost:3000
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
-   ```
-
-3. Authentication routes are available at `/api/auth/*`
-
-### Usage Examples
-
-**Server-side (Server Components/API Routes):**
-```typescript
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
-
-const session = await auth.api.getSession({
-  headers: await headers()
-})
-```
-
-**Client-side (Client Components):**
-```typescript
-import { authClient, useSession } from "@/lib/auth-client"
-
-// Get session
-const { data: session, isPending } = useSession()
-
-// Sign in with email/password
-await authClient.signIn.email({ email, password })
-
-// Sign in with Google
-await authClient.signIn.social({ provider: "google", callbackURL: "/" })
-
-// Sign out
-await authClient.signOut()
-```
+1. Migrating NextAuth to BetterAuth
