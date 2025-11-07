@@ -1,13 +1,16 @@
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import Link from "next/link";
+import { headers } from "next/headers";
 
 import { auth } from "@/server/auth";
 import LogoutButtons from "@/components/auth/logoutButtons";
 
 const Home = async () => {
 
-  const session = await auth();
+  const session = await auth.api.getSession({
+    headers: await headers()
+  });
 
 
   return (
@@ -27,14 +30,14 @@ const Home = async () => {
           <ol className="list-inside list-decimal">
             <li>Basic Next.js + Tailwind CSS boilerplate</li>
             <li>Shadcn/ui</li>
-            <li>NextAuth with Google OAuth</li>
-            <li>Basic login flow using NextAuth</li>
+            <li>Better-Auth with Google OAuth</li>
+            <li>Basic login flow using Better-Auth</li>
             <li>Connection template to a postgresql database for development, testing and production</li>
           </ol>
         </div>
-        {session ? (
+        {session?.user ? (
           <div>
-            <h1>Welcome {session.user?.name}</h1>
+            <h1>Welcome {session.user.name}</h1>
             <LogoutButtons />
           </div>
         ) : (
