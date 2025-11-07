@@ -8,6 +8,7 @@ export const users = pgTable("user", {
   id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
   name: text('name').notNull(),
   email: text('email').notNull().unique(),
+  password: text('password'),
   emailVerified: boolean("emailVerified").notNull().default(false),
   image: text("image"),
   role: RoleEnum('roles').default('user').notNull(),
@@ -41,7 +42,7 @@ export const accounts = pgTable("account", {
   accessTokenExpiresAt: timestamp("accessTokenExpiresAt"),
   refreshTokenExpiresAt: timestamp("refreshTokenExpiresAt"),
   scope: text("scope"),
-  password: text("password"),
+  // password: text("password"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
 });
