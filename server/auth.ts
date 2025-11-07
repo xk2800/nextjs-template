@@ -30,10 +30,10 @@ export const auth = betterAuth({
     enabled: true,
     requireEmailVerification: false,
     // Use bcrypt to maintain compatibility with existing user passwords
-    async hash(password) {
+    async hash(password: string) {
       return await bcrypt.hash(password, 10);
     },
-    async verify({ hash, password }) {
+    async verify({ hash, password }: { hash: string, password: string }) {
       return await bcrypt.compare(password, hash);
     }
   },
