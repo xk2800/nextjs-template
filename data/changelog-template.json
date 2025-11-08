@@ -1,0 +1,22 @@
+[
+  {
+    "version": "0.1.0",
+    "date": "2025-11-8",
+    "changes": ["Migrate to Better-Auth for authentication from NextAuth.js"]
+  },
+  {
+    "version": "0.0.3",
+    "date": "2025-8-2",
+    "changes": ["Add Shacn/UI", "Add Auth.js authentication for Google Auth"]
+  },
+  {
+    "version": "0.0.2",
+    "date": "2025-7-31",
+    "changes": ["Bump Next version from 15.3.2 to 15.3.3"]
+  },
+  {
+    "version": "0.0.1",
+    "date": "2025-5-28",
+    "changes": ["Add Tailwind CSS", "Add Drizzle ORM", "Add Zod validation"]
+  }
+]

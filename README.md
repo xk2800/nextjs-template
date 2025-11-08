@@ -11,8 +11,11 @@ This is a template for Next.js projects using Drizzle ORM, self hosted PostgreSQ
 │   │   ├── 📜 schema.ts
 │   │   └── 📜 index.ts
 │   ├── 📂 drizzle/
+│   ├── 📜 auth.ts
 │   └── 📂 test-connection/
 │       └── 📜 index.ts
+├── 📂 scripts/
+│   └── 📜 migrate-passwords.ts
 ├── 📜 .env.production
 ├── 📜 .env.development
 ├── 📜 drizzle.config.ts
@@ -29,6 +32,11 @@ bun install
 ```
 
 2. Setup the `.env.development` and `.env.production` files based on `.env.development.example` and `.env.production.example` respectively.
+
+   **Important:** Generate an `AUTH_SECRET` using:
+   ```bash
+   openssl rand -base64 32
+   ```
 
 ## Migrating Schema
 
@@ -53,7 +61,7 @@ bun run migrate:prod
 bun --env-file=.env.development server/test-connection/index.ts
 
 # production
-bun --env-file=.env.development server/test-connection/index.ts
+bun --env-file=.env.production server/test-connection/index.ts
 ```
 
 ## Features
@@ -63,3 +71,7 @@ bun --env-file=.env.development server/test-connection/index.ts
 3. NextAuth with Google OAuth
 4. Basic login flow using NextAuth
 5. Connection template to a postgresql database for development, testing and production
+
+## WIP
+
+1. Migrating NextAuth to BetterAuth

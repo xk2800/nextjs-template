@@ -1,85 +1,71 @@
-import NextAuth from "next-auth"
-import Google from "next-auth/providers/google"
-import Credentials from "next-auth/providers/credentials"
-import { DrizzleAdapter } from "@auth/drizzle-adapter"
+import { betterAuth } from "better-auth"
+import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { db } from "./db"
-import { LoginSchema } from "@/types/(auth)/loginSchema"
-import { accounts, users } from "./db/schema"
-import { eq } from "drizzle-orm"
+import { users, accounts, sessions, verifications } from "./db/schema"
 import bcrypt from 'bcrypt'
 
-export const { handlers, signIn, signOut, auth } = NextAuth({
-  adapter: DrizzleAdapter(db),
-  secret: process.env.AUTH_SECRET!,
-  session: { strategy: 'jwt', maxAge: 2592000 },
-  callbacks: {
-    async session({ session, token }) {
-      if (session && token.sub) {
-        session.user.id = token.sub
-      }
-
-      if (session.user && token.role) {
-        session.user.role = token.role as string
-      }
-
-      if (session.user) {
-        session.user.isTwoFactorEnabled = token.isTwoFactorEnabled as boolean
-        session.user.name = token.name
-        session.user.email = token.email as string
-        session.user.isOAuth = token.isOAuth as boolean
-        session.user.image = token.image as string
-      }
-
-      return session
+export const auth = betterAuth({
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: {
+      user: users,
+      account: accounts,
+      session: sessions,
+      verification: verifications,
     },
-    async jwt({ token }) {
-      if (!token.sub) return token
-      const existingUser = await db.query.users.findFirst({
-        where: eq(users.id, token.sub)
-      })
+  }),
 
-      if (!existingUser) return token
-      const existingAccount = await db.query.accounts.findFirst({
-        where: eq(accounts.userId, existingUser.id)
-      })
-
-      token.isOAuth = !!existingAccount
-      token.name = existingUser.name
-      token.email = existingUser.email
-      token.role = existingUser.role
-      // token.currency = existingUser.currency
-      // token.isTwoFactorEnabled = existingUser.twoFactorEnabled
-      token.image = existingUser.image
-
-      return token
+  // Session configuration (30 days expiration matching previous NextAuth setup)
+  session: {
+    expiresIn: 60 * 60 * 24 * 30, // 30 days
+    updateAge: 60 * 60 * 24, // Update session every 24 hours
+    cookieCache: {
+      enabled: true, // Enable hybrid session caching for performance
+      maxAge: 5 * 60, // 5 minutes
     }
   },
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      allowDangerousEmailAccountLinking: true,
-    }),
-    Credentials({
-      authorize: async (credentials) => {
-        const validatedFields = LoginSchema.safeParse(credentials)
 
+  // Email & Password Authentication (replaces Credentials provider)
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: false,
+    // Use bcrypt to maintain compatibility with existing user passwords
+    async hash(password: string) {
+      return await bcrypt.hash(password, 10);
+    },
+    async verify({ hash, password }: { hash: string, password: string }) {
+      return await bcrypt.compare(password, hash);
+    }
+  },
 
-        if (validatedFields.success) {
-          const { email, password } = validatedFields.data
+  // Social Providers
+  socialProviders: {
+    google: {
+      clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "",
+    },
+  },
 
-          const user = await db.query.users.findFirst({
-            where: eq(users.email, email)
-          })
+  // User schema configuration
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        required: false,
+        defaultValue: "user",
+        input: false, // Prevent users from setting their own role
+      },
+    },
+  },
 
-          if (!user || !user.password) return null
+  // Advanced options
+  advanced: {
+    generateId: () => require('@paralleldrive/cuid2').createId(),
+  },
 
-          const passwordMatch = await bcrypt.compare(password, user.password)
-          if (passwordMatch) return user
-        }
+  // Base URL for callbacks
+  baseURL: process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000",
 
-        return null
-      }
-    })
-  ],
+  // Secret for signing cookies and tokens
+  secret: process.env.AUTH_SECRET!,
 })
