@@ -1,0 +1,25 @@
+# .github/dependabot.yml
+
+version: 2
+updates:
+  # Configuration for your Next.js project using Bun's lockfile/packages
+  - package-ecosystem: "npm"
+    # Look for package.json and lock files in the root directory
+    directory: "/"
+    # Check for updates daily, weekly, etc.
+    schedule:
+      interval: "weekly"
+    # *** THIS IS THE KEY SETTING ***
+    # Raise pull requests for version updates against the 'dev' branch
+    target-branch: "dev"
+    # Optional: Enable Bun support (may not be strictly necessary as 'npm' often works,
+    # but good practice for modern node ecosystems if available)
+    # The 'npm' ecosystem in Dependabot is often used for Node-based projects,
+    # and it typically works with bun's package.json/bun.lockb.
+    # If Dependabot officially supports a 'bun' ecosystem, you'd use that instead,
+    # but 'npm' is the standard fallback for many Node-based projects.
+
+    # Optional: Add a label to easily identify Dependabot PRs
+    labels:
+      - "dependencies"
+      - "dependabot"
