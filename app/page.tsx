@@ -9,7 +9,7 @@ import LogoutButtons from "@/components/auth/logoutButtons";
 const Home = async () => {
 
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await (await headers())
   });
 
 
