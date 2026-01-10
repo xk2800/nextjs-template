@@ -1,4 +1,6 @@
 import { EmailTemplate } from '@/components/email/email-template';
+import { EmailTemplate2 } from '@/components/email/email-template-2';
+import { EmailTemplateWelcome } from '@/components/email/email-template-welcome';
 import { config } from '@/config/env';
 import { Resend } from 'resend';
 import { auth } from '@/server/auth';
@@ -6,7 +8,7 @@ import { headers } from 'next/headers';
 
 const resend = new Resend(config.RESEND_API_KEY);
 
-export async function POST() {
+export async function POST(request: Request) {
   const session = await auth.api.getSession({
     headers: await headers()
   });
@@ -19,11 +21,22 @@ export async function POST() {
   }
 
   try {
+    const { template = '1' } = await request.json().catch(() => ({}));
+
+    let emailTemplate;
+    if (template === '2') {
+      emailTemplate = EmailTemplate2({ firstName: session.user.name || 'User' });
+    } else if (template === 'welcome') {
+      emailTemplate = EmailTemplateWelcome({ firstName: session.user.name || 'User' });
+    } else {
+      emailTemplate = EmailTemplate({ firstName: session.user.name || 'User' });
+    }
+
     const { data, error } = await resend.emails.send({
       from: 'Acme <onboarding@xavierkhew.com>',
       to: [session.user.email],
       subject: 'Hello world',
-      react: EmailTemplate({ firstName: session.user.name || 'User' }),
+      react: emailTemplate,
     });
 
     if (error) {
