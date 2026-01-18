@@ -1,5 +1,7 @@
+import Link from "next/link"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
 import { sql } from "drizzle-orm"
@@ -71,9 +73,9 @@ export default async function AdminSection() {
           </div>
         </div>
 
-        <p className="text-sm text-gray-600 mt-4">
-          Future: Full user management interface will be added here
-        </p>
+        <Link href="/dashboard/admin/users" className="block mt-4">
+          <Button className="w-full">Manage Users</Button>
+        </Link>
       </CardContent>
     </Card>
   )

@@ -1,6 +1,9 @@
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
+import { db } from "@/server/db"
+import { users } from "@/server/db/schema"
+import { eq } from "drizzle-orm"
 
 /**
  * Get current session (server-side only)
@@ -23,6 +26,21 @@ export async function requireAuth() {
 
   if (!session?.user) {
     redirect('/login')
+  }
+
+  // Check if user is banned
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1)
+
+  if (user[0]?.banned) {
+    // Sign out the user
+    await auth.api.signOut({
+      headers: await headers()
+    })
+    redirect('/login?error=account_banned')
   }
 
   return session
@@ -55,38 +73,3 @@ export async function requireRole(requiredRole: 'user' | 'admin') {
   return session
 }
 
-/**
- * Format date consistently across dashboard
- */
-export function formatDate(date: Date | string): string {
-  return new Date(date).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-}
-
-/**
- * Format date and time
- */
-export function formatDateTime(date: Date | string): string {
-  return new Date(date).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-/**
- * Get user initials for avatar fallback
- */
-export function getUserInitials(name: string | null | undefined): string {
-  if (!name) return 'U'
-
-  const parts = name.trim().split(' ')
-  if (parts.length === 1) return parts[0].charAt(0).toUpperCase()
-
-  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase()
-}

@@ -1,14 +1,11 @@
-import * as dotenv from 'dotenv';
 import { z } from 'zod';
-
-dotenv.config();
-
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   PORT: z.string().default('3000').transform(Number),
   DATABASE_URL: z.string().default(''),
   RESEND_API_KEY: z.string().default(''),
+  ENABLE_SESSION_REVOCATION: z.string().default('true').transform(val => val === 'true'),
   // DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 })
 

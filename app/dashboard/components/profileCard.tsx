@@ -1,7 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
-import { getUserInitials, hasRole } from "@/lib/auth-helpers"
+import { hasRole } from "@/lib/auth-helpers"
+import { getUserInitials } from "@/lib/formatters"
 
 type User = {
   id: string
