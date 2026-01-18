@@ -4,7 +4,7 @@ import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth-helpers"
 import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
-import { like, desc, or, and } from "drizzle-orm"
+import { like, desc, or, sql } from "drizzle-orm"
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count
-    const countResult = await db.select({ count: db.sql`count(*)` })
+    const countResult = await db.select({ count: sql`count(*)` })
       .from(users)
       .where(
         search.trim() ?
