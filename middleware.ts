@@ -4,20 +4,19 @@ import type { NextRequest } from 'next/server'
 export async function middleware(request: NextRequest) {
   const { pathname, origin } = request.nextUrl
 
-  // Check if accessing protected dashboard routes
   if (pathname.startsWith('/dashboard')) {
-    // Get session cookie (lightweight check for UX optimization)
-    const sessionCookie = request.cookies.get('better-auth.session_token')
+    // Check for both the standard and the __Secure- prefixed cookie
+    const sessionToken =
+      request.cookies.get('better-auth.session_token') ||
+      request.cookies.get('__Secure-better-auth.session_token')
 
-    // If no session cookie exists, redirect to login
-    if (!sessionCookie) {
+    if (!sessionToken) {
       const callbackUrl = encodeURIComponent(pathname)
       return NextResponse.redirect(
         new URL(`/login?callbackUrl=${callbackUrl}`, origin)
       )
     }
 
-    // Cookie exists - allow through (full validation happens in layout)
     return NextResponse.next()
   }
 
