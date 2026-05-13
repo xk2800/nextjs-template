@@ -15,9 +15,10 @@ type Props = {
   authCardDescription: string
   authCardAction: string
   showSocials: boolean
+  callbackUrl?: string
 }
 
-const authCard = ({ authCardTitle, authCardDescription, showSocials }: Props) => {
+const authCard = ({ authCardTitle, authCardDescription, showSocials, callbackUrl }: Props) => {
   return (
     <Card>
       <CardHeader>
@@ -27,7 +28,7 @@ const authCard = ({ authCardTitle, authCardDescription, showSocials }: Props) =>
       <CardContent>
         {showSocials && (
           <div>
-            <SocialLogin />
+            <SocialLogin callbackUrl={callbackUrl} />
           </div>
         )}
       </CardContent>

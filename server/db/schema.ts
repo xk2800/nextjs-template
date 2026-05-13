@@ -3,6 +3,19 @@ import { createId } from '@paralleldrive/cuid2'
 
 export const RoleEnum = pgEnum('roles', ['user', 'admin'])
 
+export const ActivityActionEnum = pgEnum('activity_actions', [
+  'login',
+  'logout',
+  'login_failed',
+  'password_changed',
+  'email_changed',
+  'profile_updated',
+  'session_revoked',
+  'user_deleted',
+  'user_banned',
+  'user_unbanned',
+  'role_changed',
+])
 
 export const users = pgTable("user", {
   id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
@@ -12,6 +25,9 @@ export const users = pgTable("user", {
   emailVerified: boolean("emailVerified").notNull().default(false),
   image: text("image"),
   role: RoleEnum('roles').default('user').notNull(),
+  banned: boolean('banned').default(false).notNull(),
+  bannedAt: timestamp('bannedAt'),
+  bannedReason: text('bannedReason'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
@@ -54,4 +70,17 @@ export const verifications = pgTable("verification", {
   expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const activityLogs = pgTable("activity_log", {
+  id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  action: ActivityActionEnum('action').notNull(),
+  description: text('description').notNull(),
+  ipAddress: text('ipAddress'),
+  userAgent: text('userAgent'),
+  metadata: text('metadata'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
 });

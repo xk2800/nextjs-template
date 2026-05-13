@@ -46,12 +46,26 @@ const Home = async () => {
             <Link href="/login">Login</Link>
           </Button>
         )}
-        {session?.user?.email === 'xavier.khew.dev@gmail.com' || session?.user?.email === 'xavier.khew.work@gmail.com' && (
+        {session?.user?.email === 'xavier.khew.dev@gmail.com' && (
           <div className="border-t pt-8 mt-8">
-            <h2 className="font-semibold text-xl mb-4">Test Email Functionality</h2>
+            <h2 className="font-semibold text-xl mb-4">Test Email Template 1 Functionality</h2>
             <SendEmailButton />
           </div>
         )}
+        {session?.user?.email === 'xavier.khew.work@gmail.com' && (
+          <div className="border-t pt-8 mt-8">
+            <h2 className="font-semibold text-xl mb-4">Test Email Template 1 Functionality</h2>
+            <SendEmailButton />
+          </div>
+        )}
+
+        {session?.user?.email === 'xavier.khew.work@gmail.com' && (
+          <div className="border-t pt-8 mt-8">
+            <h2 className="font-semibold text-xl mb-4">Test Email Template 2 Functionality</h2>
+            <SendEmailButton />
+          </div>
+        )}
+
       </main>
       <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
         <Link href={"/changelog"}>Changelog</Link>

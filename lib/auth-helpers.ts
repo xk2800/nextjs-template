@@ -1,0 +1,75 @@
+import { auth } from "@/server/auth"
+import { headers } from "next/headers"
+import { redirect } from "next/navigation"
+import { db } from "@/server/db"
+import { users } from "@/server/db/schema"
+import { eq } from "drizzle-orm"
+
+/**
+ * Get current session (server-side only)
+ * Returns session data or null if not authenticated
+ */
+export async function getCurrentSession() {
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
+
+  return session
+}
+
+/**
+ * Require authentication - redirect to login if not authenticated
+ * Use in server components/layouts that need protection
+ */
+export async function requireAuth() {
+  const session = await getCurrentSession()
+
+  if (!session?.user) {
+    redirect('/login')
+  }
+
+  // Check if user is banned
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, session.user.id))
+    .limit(1)
+
+  if (user[0]?.banned) {
+    // Sign out the user
+    await auth.api.signOut({
+      headers: await headers()
+    })
+    redirect('/login?error=account_banned')
+  }
+
+  return session
+}
+
+/**
+ * Check if user has specific role
+ */
+export function hasRole(userRole: string | null | undefined, requiredRole: 'user' | 'admin'): boolean {
+  if (!userRole) return false
+
+  if (requiredRole === 'admin') {
+    return userRole === 'admin'
+  }
+
+  // 'user' role check - both 'user' and 'admin' have access
+  return userRole === 'user' || userRole === 'admin'
+}
+
+/**
+ * Require specific role - throw error if user doesn't have it
+ */
+export async function requireRole(requiredRole: 'user' | 'admin') {
+  const session = await requireAuth()
+
+  if (!hasRole(session.user.role, requiredRole)) {
+    redirect('/dashboard')
+  }
+
+  return session
+}
+
