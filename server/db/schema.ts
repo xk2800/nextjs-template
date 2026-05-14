@@ -1,4 +1,4 @@
-import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, integer, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 import { createId } from '@paralleldrive/cuid2'
 
 export const RoleEnum = pgEnum('roles', ['user', 'admin'])
@@ -70,6 +70,22 @@ export const verifications = pgTable("verification", {
   expiresAt: timestamp("expiresAt").notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+export const passkeys = pgTable("passkey", {
+  id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
+  name: text("name"),
+  publicKey: text("publicKey").notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  credentialID: text("credentialID").notNull().unique(),
+  counter: integer("counter").notNull(),
+  deviceType: text("deviceType").notNull(),
+  backedUp: boolean("backedUp").notNull(),
+  transports: text("transports"),
+  aaguid: text("aaguid"),
+  createdAt: timestamp("createdAt").defaultNow(),
 });
 
 export const activityLogs = pgTable("activity_log", {

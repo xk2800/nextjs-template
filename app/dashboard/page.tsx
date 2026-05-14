@@ -4,6 +4,7 @@ import { getUserSessions } from "@/lib/session-queries"
 import ProfileCard from "./components/profileCard"
 import SessionsCard from "./components/sessionsCard"
 import AccountDetailsCard from "./components/accountDetailsCard"
+import PasskeysCard from "./components/passkeysCard"
 import AdminSection from "./components/adminSection"
 import ActivityLogsCard from "./components/activityLogsCard"
 
@@ -34,6 +35,9 @@ export default async function DashboardPage() {
         {/* Account Details */}
         <AccountDetailsCard user={session.user} />
       </div>
+
+      {/* Passkeys Section (Full Width) */}
+      <PasskeysCard />
 
       {/* Sessions Section (Full Width) */}
       <SessionsCard
