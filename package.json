@@ -12,7 +12,8 @@
     "migrate:prod": "bun --env-file=.env.production drizzle-kit migrate",
     "migrate:test": "bun --env-file=.env.test drizzle-kit migrate",
     "studio:dev": "bun --env-file=.env.development drizzle-kit studio",
-    "studio:prod": "bun --env-file=.env.production drizzle-kit studio"
+    "studio:prod": "bun --env-file=.env.production drizzle-kit studio",
+    "docs:dev": "cd docs && bun run dev"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",

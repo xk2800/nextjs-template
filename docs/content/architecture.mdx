@@ -1,0 +1,130 @@
+# Architecture
+
+## Directory Structure
+
+```
+nextjs-template/
+├── app/                        # Next.js App Router
+│   ├── (auth)/login/           # Login page (route group)
+│   ├── api/
+│   │   ├── auth/[...all]/      # Better-Auth catch-all handler
+│   │   ├── admin/users/        # Admin user management endpoints
+│   │   ├── sessions/revoke/    # Session revocation endpoint
+│   │   ├── activity-logs/      # Activity log endpoint
+│   │   └── send/               # Email sending endpoint
+│   ├── dashboard/
+│   │   ├── admin/users/        # Admin user management UI
+│   │   ├── settings/           # User settings page
+│   │   ├── components/         # Dashboard-specific components
+│   │   ├── layout.tsx          # Protected layout with nav
+│   │   └── page.tsx            # Dashboard home
+│   ├── changelog/              # Changelog pages
+│   ├── layout.tsx              # Root layout
+│   └── page.tsx                # Home page
+├── server/
+│   ├── auth.ts                 # Better-Auth configuration
+│   ├── db/
+│   │   ├── schema.ts           # Drizzle ORM schema definitions
+│   │   └── index.ts            # Database connection setup
+│   ├── drizzle/                # Generated migration files
+│   └── test-connection/        # DB connection test scripts
+├── components/
+│   ├── auth/                   # Authentication UI components
+│   ├── email/                  # React Email templates
+│   ├── theme/                  # Theme toggle component
+│   ├── providers/              # Context providers
+│   ├── Updates/                # Update notification modal
+│   └── ui/                     # shadcn/ui components
+├── lib/
+│   ├── auth-client.ts          # Better-Auth React client
+│   ├── auth-helpers.ts         # Server-side auth utilities
+│   ├── activity-logger.ts      # Activity logging function
+│   ├── session-queries.ts      # Session database queries
+│   ├── activity-queries.ts     # Activity log queries
+│   ├── formatters.ts           # Date and display formatters
+│   └── utils.ts                # Tailwind CN utility
+├── config/
+│   └── env.ts                  # Zod environment validation
+├── types/
+│   └── (auth)/loginSchema.ts   # Login form Zod schema
+├── data/
+│   └── changelog.json          # Changelog data
+├── middleware.ts               # Route protection middleware
+├── better-auth.d.ts            # Better-Auth type extensions
+└── drizzle.config.ts           # Drizzle ORM configuration
+```
+
+## App Router
+
+### Route Groups
+
+The `(auth)` route group contains the login page without adding `/auth` to the URL path. The login page is accessible at `/login`.
+
+### API Routes
+
+| Route | Method | Purpose |
+|---|---|---|
+| `/api/auth/[...all]` | ALL | Better-Auth catch-all handler |
+| `/api/admin/users` | GET | Paginated user list (admin only) |
+| `/api/admin/users/[userId]` | GET/PATCH | User details and modification |
+| `/api/admin/users/[userId]/ban` | POST | Ban/unban user |
+| `/api/admin/users/[userId]/sessions` | GET | User's sessions |
+| `/api/sessions/revoke` | POST | Revoke a session |
+| `/api/activity-logs` | GET | Fetch activity logs |
+| `/api/send` | POST | Send email via Resend |
+
+### Dashboard
+
+The dashboard is a protected area with its own layout (`app/dashboard/layout.tsx`). It uses `requireAuth()` from `lib/auth-helpers.ts` to enforce authentication and includes:
+
+- Navigation header with links to Dashboard, Settings, and Home
+- Theme toggle and user display
+- Logout button
+- Admin section (conditionally rendered for admin users)
+
+## Middleware
+
+The middleware (`middleware.ts`) protects all `/dashboard` routes:
+
+1. Checks for the `better-auth.session_token` cookie (also checks `__Secure-` prefix variant for HTTPS)
+2. If no session cookie is found, redirects to `/login?callbackUrl=<original-url>`
+3. If authenticated, allows the request through
+
+This provides a fast, edge-compatible authentication check before the page even starts rendering.
+
+## Environment Configuration
+
+Environment variables are validated at runtime using Zod in `config/env.ts`:
+
+| Variable | Type | Default | Description |
+|---|---|---|---|
+| `NODE_ENV` | `development` \| `production` \| `test` | `development` | Runtime environment |
+| `PORT` | number | `3000` | Server port |
+| `DATABASE_URL` | string | — | PostgreSQL connection string |
+| `RESEND_API_KEY` | string | — | Resend email API key |
+| `ENABLE_SESSION_REVOCATION` | boolean | `true` | Enable/disable session revocation |
+
+### Auth Environment Variables
+
+| Variable | Description |
+|---|---|
+| `AUTH_SECRET` | Secret for signing cookies and tokens |
+| `AUTH_GOOGLE_ID` | Google OAuth client ID |
+| `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
+| `BETTER_AUTH_URL` | Base URL for auth callbacks |
+| `NEXT_PUBLIC_APP_URL` | Client-side base URL |
+
+### Environment Files
+
+- `.env.development` — Local PostgreSQL
+- `.env.production` — Neon DB (serverless)
+- `.env.test` — Test database
+
+Example files (`.env.*.example`) are provided as templates.
+
+## TypeScript
+
+- **Path alias:** `@/*` maps to the project root
+- **Target:** ES2017
+- **Module resolution:** Bundler (Next.js style)
+- **Strict mode:** Enabled
