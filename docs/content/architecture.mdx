@@ -1,58 +1,70 @@
+{/* prettier-ignore */}
+import { FileTree } from 'nextra/components'
+
 # Architecture
 
 ## Directory Structure
 
-```
-nextjs-template/
-├── app/                        # Next.js App Router
-│   ├── (auth)/login/           # Login page (route group)
-│   ├── api/
-│   │   ├── auth/[...all]/      # Better-Auth catch-all handler
-│   │   ├── admin/users/        # Admin user management endpoints
-│   │   ├── sessions/revoke/    # Session revocation endpoint
-│   │   ├── activity-logs/      # Activity log endpoint
-│   │   └── send/               # Email sending endpoint
-│   ├── dashboard/
-│   │   ├── admin/users/        # Admin user management UI
-│   │   ├── settings/           # User settings page
-│   │   ├── components/         # Dashboard-specific components
-│   │   ├── layout.tsx          # Protected layout with nav
-│   │   └── page.tsx            # Dashboard home
-│   ├── changelog/              # Changelog pages
-│   ├── layout.tsx              # Root layout
-│   └── page.tsx                # Home page
-├── server/
-│   ├── auth.ts                 # Better-Auth configuration
-│   ├── db/
-│   │   ├── schema.ts           # Drizzle ORM schema definitions
-│   │   └── index.ts            # Database connection setup
-│   ├── drizzle/                # Generated migration files
-│   └── test-connection/        # DB connection test scripts
-├── components/
-│   ├── auth/                   # Authentication UI components
-│   ├── email/                  # React Email templates
-│   ├── theme/                  # Theme toggle component
-│   ├── providers/              # Context providers
-│   ├── Updates/                # Update notification modal
-│   └── ui/                     # shadcn/ui components
-├── lib/
-│   ├── auth-client.ts          # Better-Auth React client
-│   ├── auth-helpers.ts         # Server-side auth utilities
-│   ├── activity-logger.ts      # Activity logging function
-│   ├── session-queries.ts      # Session database queries
-│   ├── activity-queries.ts     # Activity log queries
-│   ├── formatters.ts           # Date and display formatters
-│   └── utils.ts                # Tailwind CN utility
-├── config/
-│   └── env.ts                  # Zod environment validation
-├── types/
-│   └── (auth)/loginSchema.ts   # Login form Zod schema
-├── data/
-│   └── changelog.json          # Changelog data
-├── middleware.ts               # Route protection middleware
-├── better-auth.d.ts            # Better-Auth type extensions
-└── drizzle.config.ts           # Drizzle ORM configuration
-```
+<FileTree>
+  <FileTree.Folder name="app — Next.js App Router" defaultOpen>
+    <FileTree.Folder name="(auth)/login — Login page" />
+    <FileTree.Folder name="api" defaultOpen>
+      <FileTree.Folder name="auth/[...all] — Better-Auth handler" />
+      <FileTree.Folder name="admin/users — User management endpoints" />
+      <FileTree.Folder name="sessions/revoke" />
+      <FileTree.Folder name="activity-logs" />
+      <FileTree.Folder name="send — Email endpoint" />
+    </FileTree.Folder>
+    <FileTree.Folder name="dashboard" defaultOpen>
+      <FileTree.Folder name="admin/users — Admin UI" />
+      <FileTree.Folder name="settings" />
+      <FileTree.Folder name="components" />
+      <FileTree.File name="layout.tsx — Protected layout with nav" />
+      <FileTree.File name="page.tsx — Dashboard home" />
+    </FileTree.Folder>
+    <FileTree.Folder name="changelog" />
+    <FileTree.File name="layout.tsx — Root layout" />
+    <FileTree.File name="page.tsx — Home page" />
+  </FileTree.Folder>
+  <FileTree.Folder name="server" defaultOpen>
+    <FileTree.File name="auth.ts — Better-Auth configuration" />
+    <FileTree.Folder name="db" defaultOpen>
+      <FileTree.File name="schema.ts — Drizzle ORM schema" />
+      <FileTree.File name="index.ts — Database connection" />
+    </FileTree.Folder>
+    <FileTree.Folder name="drizzle — Generated migrations" />
+    <FileTree.Folder name="test-connection" />
+  </FileTree.Folder>
+  <FileTree.Folder name="components" defaultOpen>
+    <FileTree.Folder name="auth — Authentication UI" />
+    <FileTree.Folder name="email — React Email templates" />
+    <FileTree.Folder name="theme — Theme toggle" />
+    <FileTree.Folder name="providers — Context providers" />
+    <FileTree.Folder name="Updates — Update notification modal" />
+    <FileTree.Folder name="ui — shadcn/ui components" />
+  </FileTree.Folder>
+  <FileTree.Folder name="lib" defaultOpen>
+    <FileTree.File name="auth-client.ts — Better-Auth React client" />
+    <FileTree.File name="auth-helpers.ts — Server-side auth utilities" />
+    <FileTree.File name="activity-logger.ts — Activity logging" />
+    <FileTree.File name="session-queries.ts — Session DB queries" />
+    <FileTree.File name="activity-queries.ts — Activity log queries" />
+    <FileTree.File name="formatters.ts — Date and display formatters" />
+    <FileTree.File name="utils.ts — Tailwind CN utility" />
+  </FileTree.Folder>
+  <FileTree.Folder name="config">
+    <FileTree.File name="env.ts — Zod environment validation" />
+  </FileTree.Folder>
+  <FileTree.Folder name="types">
+    <FileTree.File name="(auth)/loginSchema.ts — Login form schema" />
+  </FileTree.Folder>
+  <FileTree.Folder name="data">
+    <FileTree.File name="changelog.json" />
+  </FileTree.Folder>
+  <FileTree.File name="middleware.ts — Route protection" />
+  <FileTree.File name="better-auth.d.ts — Type extensions" />
+  <FileTree.File name="drizzle.config.ts — Drizzle ORM config" />
+</FileTree>
 
 ## App Router
 
