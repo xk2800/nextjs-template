@@ -19,42 +19,26 @@ type DrizzlePg = PostgresJsDatabase<typeof schema>;
 let db: DrizzleNeon | DrizzlePg
 
 
-if (config.NODE_ENV === 'development' || config.NODE_ENV === 'test') {
-  // console.log('Database connection established with schema:', schema);
-
-  // Local PostgreSQL using pg Pool
+if (config.DB_DRIVER === 'pg') {
   const pool = new Pool({
     connectionString: config.DATABASE_URL!,
-    ssl: (config.NODE_ENV as string) === "production" ? { rejectUnauthorized: false } : undefined,
+    ssl: config.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
   });
   db = drizzlePg(pool, {
     schema,
     logger: true,
   });
 
-  console.log('🟡 Using local PostgreSQL (pg) driver IN DEVELOPMENT MODE');
+  console.log('🟡 Using PostgreSQL (pg) driver');
 
-}
-// else if (config.NODE_ENV === 'test') {
-//   console.log('Database connection established in test mode');
-
-//   const sql = neon(config.DATABASE_URL!);
-//   db = drizzle(sql, { schema, logger: true });
-
-//   console.log('🟢 Using Neon (HTTP) driver IN TEST MODE');
-
-// }
-else if (config.NODE_ENV === 'production') {
-  console.log('Database connection established in production mode');
-
+} else if (config.DB_DRIVER === 'neon') {
   const sql = neon(config.DATABASE_URL!);
   db = drizzle(sql, { schema, logger: true });
 
-  console.log('🟢 Using Neon (HTTP) driver IN PRODUCTION MODE');
+  console.log('🟢 Using Neon (HTTP) driver');
 
-}
-else {
-  console.log('Database connection not established, unknown environment:', config.NODE_ENV);
+} else {
+  console.log('Database connection not established, unknown DB_DRIVER:', config.DB_DRIVER);
 }
 // Note: In production, you might want to disable logging or use a more sophisticated logger.
 
