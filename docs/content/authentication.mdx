@@ -1,0 +1,172 @@
+# Authentication
+
+## Overview
+
+Authentication is powered by [Better-Auth](https://better-auth.com) (v1.3.34) with a Drizzle ORM adapter. Sessions are stored in the database (not JWT-only), providing full session management capabilities including revocation.
+
+The configuration lives in `server/auth.ts`.
+
+## Providers
+
+### Email & Password
+
+- Passwords hashed with **bcrypt** (10 rounds)
+- Stored in the `users.password` column
+- Email verification is not currently required (`requireEmailVerification: false`)
+
+```typescript
+emailAndPassword: {
+  enabled: true,
+  requireEmailVerification: false,
+  async hash(password: string) {
+    return await bcrypt.hash(password, 10);
+  },
+  async verify({ hash, password }) {
+    return await bcrypt.compare(password, hash);
+  },
+}
+```
+
+### Google OAuth
+
+Configured via environment variables:
+
+```typescript
+socialProviders: {
+  google: {
+    clientId: process.env.AUTH_GOOGLE_ID || "",
+    clientSecret: process.env.AUTH_GOOGLE_SECRET || "",
+  },
+}
+```
+
+## Session Management
+
+| Setting | Value | Description |
+|---|---|---|
+| `expiresIn` | 30 days | Session lifetime |
+| `updateAge` | 24 hours | How often session is refreshed in the database |
+| `cookieCache.enabled` | `true` | Hybrid cookie caching for performance |
+| `cookieCache.maxAge` | 5 minutes | Cookie cache duration |
+
+Sessions are database-backed, meaning you can:
+- List all active sessions for a user
+- Revoke individual sessions
+- Track IP address and user agent per session
+
+The session revocation endpoint is at `POST /api/sessions/revoke`.
+
+## Server-Side Usage
+
+Access the current session in server components or API routes:
+
+```typescript
+import { auth } from "@/server/auth"
+import { headers } from "next/headers"
+
+const session = await auth.api.getSession({
+  headers: await headers()
+})
+
+if (session) {
+  const { user } = session
+  console.log(user.name, user.email, user.role)
+}
+```
+
+### Auth Helper Functions
+
+The `lib/auth-helpers.ts` module provides convenience functions:
+
+```typescript
+import { getCurrentSession, requireAuth, requireRole } from "@/lib/auth-helpers"
+
+// Get session (returns null if not authenticated)
+const session = await getCurrentSession()
+
+// Require authentication (redirects to /login if not authenticated)
+const session = await requireAuth()
+
+// Require a specific role (redirects if unauthorized)
+const session = await requireRole("admin")
+```
+
+## Client-Side Usage
+
+The auth client is configured in `lib/auth-client.ts`:
+
+```typescript
+import { authClient, useSession } from "@/lib/auth-client"
+
+// In React components — get current session
+const { data: session, isPending } = useSession()
+
+// Sign in with email/password
+await authClient.signIn.email({
+  email: "user@example.com",
+  password: "password123",
+})
+
+// Sign in with Google
+await authClient.signIn.social({
+  provider: "google",
+  callbackURL: "/",
+})
+
+// Sign out
+await authClient.signOut()
+```
+
+## Role-Based Access Control
+
+Users have a `role` field with two possible values: `user` (default) and `admin`.
+
+- The `role` field has `input: false` in the Better-Auth config, preventing users from setting their own role
+- Roles can only be changed by administrators via the admin API
+- Server-side enforcement uses `requireRole("admin")` from `lib/auth-helpers.ts`
+- Admin routes are at `/dashboard/admin/users` and `/api/admin/users`
+
+## Middleware Protection
+
+The Next.js middleware (`middleware.ts`) protects all `/dashboard/*` routes:
+
+1. Checks for `better-auth.session_token` cookie (and `__Secure-` variant)
+2. Redirects unauthenticated users to `/login?callbackUrl=<original-url>`
+
+This runs at the edge before any page rendering begins.
+
+## Custom Type Extensions
+
+The `better-auth.d.ts` file extends Better-Auth's default types:
+
+```typescript
+declare module "better-auth" {
+  interface User {
+    role: string
+    isTwoFactorEnabled?: boolean
+  }
+  interface Session {
+    user: User & { /* full user fields */ }
+  }
+}
+```
+
+## API Route
+
+All Better-Auth endpoints are handled by a single catch-all route:
+
+```
+app/api/auth/[...all]/route.ts
+```
+
+This exposes endpoints like `/api/auth/sign-in/email`, `/api/auth/sign-in/social`, `/api/auth/sign-out`, `/api/auth/session`, and more.
+
+## Required Environment Variables
+
+| Variable | Description | Example |
+|---|---|---|
+| `AUTH_SECRET` | Secret for signing cookies/tokens | `openssl rand -base64 32` |
+| `AUTH_GOOGLE_ID` | Google OAuth client ID | From Google Cloud Console |
+| `AUTH_GOOGLE_SECRET` | Google OAuth client secret | From Google Cloud Console |
+| `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
+| `NEXT_PUBLIC_APP_URL` | Client-side base URL | `http://localhost:3000` |

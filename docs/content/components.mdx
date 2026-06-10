@@ -1,0 +1,106 @@
+# Components
+
+## UI Components (shadcn/ui)
+
+The project uses [shadcn/ui](https://ui.shadcn.com) with the **new-york** style variant. Components are located in `components/ui/` and built on [Radix UI](https://radix-ui.com) primitives with Tailwind CSS styling.
+
+| Component | File | Description |
+|---|---|---|
+| AlertDialog | `components/ui/alert-dialog.tsx` | Confirmation dialogs with cancel/confirm actions |
+| Avatar | `components/ui/avatar.tsx` | User avatar with image and fallback initials |
+| Badge | `components/ui/badge.tsx` | Status labels and tags |
+| Button | `components/ui/button.tsx` | Clickable buttons with variants (default, destructive, outline, etc.) |
+| Card | `components/ui/card.tsx` | Content containers with header, content, and footer sections |
+| Dialog | `components/ui/dialog.tsx` | Modal dialogs |
+| DropdownMenu | `components/ui/dropdown-menu.tsx` | Dropdown menus with items, separators, and sub-menus |
+| Input | `components/ui/input.tsx` | Text input fields |
+| Label | `components/ui/label.tsx` | Form labels |
+| Separator | `components/ui/separator.tsx` | Visual dividers |
+| Skeleton | `components/ui/skeleton.tsx` | Loading placeholder animations |
+| Table | `components/ui/table.tsx` | Data tables with header, body, rows, and cells |
+
+### Import Pattern
+
+```typescript
+import { Button } from "@/components/ui/button"
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+```
+
+### Adding New Components
+
+Install additional shadcn/ui components with:
+
+```bash
+bunx shadcn@latest add <component-name>
+```
+
+For example:
+
+```bash
+bunx shadcn@latest add tooltip
+bunx shadcn@latest add tabs
+bunx shadcn@latest add select
+```
+
+The configuration is in `components.json` at the project root.
+
+## Auth Components
+
+Located in `components/auth/`:
+
+| Component | File | Description |
+|---|---|---|
+| AuthCard | `components/auth/components/authCard.tsx` | Login/signup card wrapper with title and description |
+| SocialLogin | `components/auth/components/socialLogin.tsx` | Google OAuth sign-in button |
+| LogoutButtons | `components/auth/logoutButtons.tsx` | Sign-out button that redirects to home |
+
+### SocialLogin Usage
+
+```tsx
+<SocialLogin callbackURL="/dashboard" />
+```
+
+Uses `authClient.signIn.social({ provider: "google" })` under the hood.
+
+## Email Components
+
+Located in `components/email/`, built with [@react-email](https://react.email):
+
+| Component | File | Description |
+|---|---|---|
+| EmailTemplate | `components/email/email-template.tsx` | Base email template |
+| EmailTemplate2 | `components/email/email-template-2.tsx` | Alternative email template |
+| WelcomeEmail | `components/email/email-template-welcome.tsx` | Welcome email for new users |
+| SendEmailButton | `components/email/send-email-button.tsx` | Button to trigger email sending |
+
+Emails are sent via [Resend](https://resend.com) through the `/api/send` endpoint.
+
+## Theme Components
+
+| Component | File | Description |
+|---|---|---|
+| ThemeToggle | `components/theme/theme-toggle.tsx` | Dark/light mode toggle button |
+| ThemeProvider | `components/providers/theme-provider.tsx` | next-themes provider wrapper |
+
+The `ThemeProvider` is mounted in the root layout (`app/layout.tsx`) with `attribute="class"` and system theme detection enabled.
+
+## Dashboard Components
+
+Located in `app/dashboard/components/`, these are specific to the dashboard pages:
+
+| Component | File | Description |
+|---|---|---|
+| ProfileCard | `app/dashboard/components/profileCard.tsx` | Displays user profile information |
+| AccountDetailsCard | `app/dashboard/components/accountDetailsCard.tsx` | Shows account details |
+| SessionsCard | `app/dashboard/components/sessionsCard.tsx` | Lists active sessions with revoke functionality |
+| ActivityLogsCard | `app/dashboard/components/activityLogsCard.tsx` | Displays user activity history |
+| AdminSection | `app/dashboard/components/adminSection.tsx` | Admin-only panel (user management) |
+
+## Update Modal
+
+| Component | File | Description |
+|---|---|---|
+| UpdateModal | `components/Updates/UpdateModal.tsx` | Changelog/update notification modal |
+| ModalProvider | `components/Updates/modal-provider.tsx` | Modal context provider |
+
+The modal provider is mounted in the root layout and shows update notifications based on changelog data from `data/changelog.json`.

@@ -1,0 +1,71 @@
+# Next.js Template
+
+A production-ready Next.js starter template with authentication, database management, and a complete UI component library — built for rapid application development.
+
+## Tech Stack
+
+| Technology | Version | Purpose |
+|---|---|---|
+| [Next.js](https://nextjs.org) | 16.2.6 | React framework (App Router) |
+| [React](https://react.dev) | 19 | UI library |
+| [TypeScript](https://typescriptlang.org) | 6 | Type safety |
+| [Drizzle ORM](https://orm.drizzle.team) | 0.45.0 | Database ORM |
+| [PostgreSQL](https://postgresql.org) | — | Database (pg for dev, Neon for prod) |
+| [Better-Auth](https://better-auth.com) | 1.3.34 | Authentication |
+| [Tailwind CSS](https://tailwindcss.com) | 4 | Styling |
+| [shadcn/ui](https://ui.shadcn.com) | — | Component library (new-york style) |
+| [Bun](https://bun.sh) | — | Package manager & runtime |
+| [Resend](https://resend.com) | 6.4.2 | Email delivery |
+
+## Quick Start
+
+```bash
+# 1. Clone the repository
+git clone https://github.com/xk2800/nextjs-template.git
+cd nextjs-template
+
+# 2. Install dependencies
+bun install
+
+# 3. Set up environment variables
+cp .env.development.example .env.development
+
+# 4. Generate an auth secret
+openssl rand -base64 32
+# Paste the output as AUTH_SECRET in your .env.development file
+
+# 5. Run database migrations
+bun run migrate:dev
+
+# 6. Start the development server
+bun dev
+```
+
+The app will be available at `http://localhost:3000`.
+
+## Available Scripts
+
+| Script | Command | Description |
+|---|---|---|
+| `bun dev` | `next dev --turbopack` | Start dev server with Turbopack |
+| `bun run build` | `next build` | Build for production |
+| `bun start` | `next start` | Start production server |
+| `bun run lint` | `next lint` | Run ESLint |
+| `bun run generate` | `drizzle-kit generate` | Generate Drizzle migrations from schema |
+| `bun run migrate:dev` | `drizzle-kit migrate` | Run migrations (development DB) |
+| `bun run migrate:prod` | `drizzle-kit migrate` | Run migrations (production DB) |
+| `bun run migrate:test` | `drizzle-kit migrate` | Run migrations (test DB) |
+| `bun run studio:dev` | `drizzle-kit studio` | Open Drizzle Studio (development) |
+| `bun run studio:prod` | `drizzle-kit studio` | Open Drizzle Studio (production) |
+| `bun run docs:dev` | `cd docs && bun run dev` | Start documentation site on port 3001 |
+
+## Key Features
+
+- **Authentication** — Email/password and Google OAuth via Better-Auth with database-backed sessions
+- **Role-Based Access** — User and admin roles with server-side enforcement
+- **Admin Panel** — User management, banning, session viewing at `/dashboard/admin/users`
+- **Activity Logging** — Tracks logins, logouts, password changes, role changes, and more
+- **Session Management** — View and revoke active sessions from the dashboard
+- **Email Support** — React Email templates with Resend integration
+- **Dark Mode** — Theme toggle with system preference detection via next-themes
+- **Middleware Protection** — Dashboard routes protected at the middleware level

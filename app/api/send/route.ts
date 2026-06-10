@@ -6,7 +6,11 @@ import { Resend } from 'resend';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
 
-const resend = new Resend(config.RESEND_API_KEY);
+let resend: Resend;
+function getResend() {
+  if (!resend) resend = new Resend(config.RESEND_API_KEY);
+  return resend;
+}
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({
@@ -32,7 +36,7 @@ export async function POST(request: Request) {
       emailTemplate = EmailTemplate({ firstName: session.user.name || 'User' });
     }
 
-    const { data, error } = await resend.emails.send({
+    const { data, error } = await getResend().emails.send({
       from: 'Acme <onboarding@xavierkhew.com>',
       to: [session.user.email],
       subject: 'Hello world',

@@ -1,0 +1,159 @@
+# Database
+
+## Overview
+
+The project uses [Drizzle ORM](https://orm.drizzle.team) (v0.45.0) with PostgreSQL. The database connection uses a **dual-driver setup**:
+
+- **Development/Test:** Standard `pg` driver with connection pooling — connects to a self-hosted PostgreSQL instance
+- **Production:** `@neondatabase/serverless` HTTP driver — optimized for serverless and edge environments via Neon DB
+
+The connection setup is in `server/db/index.ts`. The driver is selected based on `NODE_ENV` at startup.
+
+## Schema
+
+All tables are defined in `server/db/schema.ts`. Every table uses CUID2 for primary key generation and includes timestamp columns.
+
+### Enums
+
+```sql
+-- roles enum
+CREATE TYPE roles AS ENUM ('user', 'admin');
+
+-- activity_actions enum
+CREATE TYPE activity_actions AS ENUM (
+  'login', 'logout', 'login_failed', 'password_changed',
+  'email_changed', 'profile_updated', 'session_revoked',
+  'user_deleted', 'user_banned', 'user_unbanned', 'role_changed'
+);
+```
+
+### users
+
+The main user table. Stores profile information and role.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | text | PK, CUID2 | Unique identifier |
+| `name` | text | NOT NULL | Display name |
+| `email` | text | NOT NULL, UNIQUE | Email address |
+| `password` | text | nullable | Hashed password (bcrypt) |
+| `emailVerified` | boolean | NOT NULL, default `false` | Email verification status |
+| `image` | text | nullable | Profile image URL |
+| `role` | roles enum | NOT NULL, default `'user'` | User role (`user` or `admin`) |
+| `banned` | boolean | NOT NULL, default `false` | Ban status |
+| `bannedAt` | timestamp | nullable | When the user was banned |
+| `bannedReason` | text | nullable | Reason for banning |
+| `createdAt` | timestamp | NOT NULL, default `now()` | Creation timestamp |
+| `updatedAt` | timestamp | NOT NULL, default `now()` | Last update timestamp |
+
+### sessions
+
+Database-backed sessions. Each session is tied to a user and includes client metadata.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | text | PK, CUID2 | Unique identifier |
+| `token` | text | NOT NULL, UNIQUE | Session token |
+| `expiresAt` | timestamp | NOT NULL | Expiration time |
+| `userId` | text | NOT NULL, FK → users (cascade) | Owning user |
+| `ipAddress` | text | nullable | Client IP address |
+| `userAgent` | text | nullable | Client user agent |
+| `createdAt` | timestamp | NOT NULL, default `now()` | Creation timestamp |
+| `updatedAt` | timestamp | NOT NULL, default `now()` | Last update timestamp |
+
+### accounts
+
+Stores OAuth provider accounts and credential-based accounts. Multiple accounts can link to a single user.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | text | PK, CUID2 | Unique identifier |
+| `accountId` | text | NOT NULL | Provider-specific account ID |
+| `providerId` | text | NOT NULL | Provider name (e.g., `google`, `credential`) |
+| `userId` | text | NOT NULL, FK → users (cascade) | Linked user |
+| `accessToken` | text | nullable | OAuth access token |
+| `refreshToken` | text | nullable | OAuth refresh token |
+| `idToken` | text | nullable | OAuth ID token |
+| `accessTokenExpiresAt` | timestamp | nullable | Access token expiry |
+| `refreshTokenExpiresAt` | timestamp | nullable | Refresh token expiry |
+| `scope` | text | nullable | OAuth scope |
+| `createdAt` | timestamp | NOT NULL, default `now()` | Creation timestamp |
+| `updatedAt` | timestamp | NOT NULL, default `now()` | Last update timestamp |
+
+### verifications
+
+Stores verification tokens for email verification and password resets.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | text | PK, CUID2 | Unique identifier |
+| `identifier` | text | NOT NULL | What is being verified (e.g., email) |
+| `value` | text | NOT NULL | Token value |
+| `expiresAt` | timestamp | NOT NULL | Expiration time |
+| `createdAt` | timestamp | NOT NULL, default `now()` | Creation timestamp |
+| `updatedAt` | timestamp | NOT NULL, default `now()` | Last update timestamp |
+
+### activityLogs
+
+Audit trail for user actions. Tracks logins, logouts, profile changes, admin actions, and more.
+
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | text | PK, CUID2 | Unique identifier |
+| `userId` | text | NOT NULL, FK → users (cascade) | Acting user |
+| `action` | activity_actions enum | NOT NULL | Action type |
+| `description` | text | NOT NULL | Human-readable description |
+| `ipAddress` | text | nullable | Client IP address |
+| `userAgent` | text | nullable | Client user agent |
+| `metadata` | text | nullable | Additional data (JSON string) |
+| `createdAt` | timestamp | NOT NULL, default `now()` | When the action occurred |
+
+## Drizzle Configuration
+
+The Drizzle config is in `drizzle.config.ts`:
+
+```typescript
+import { defineConfig } from 'drizzle-kit'
+import { env } from './config/env'
+
+export default defineConfig({
+  dialect: 'postgresql',
+  schema: './server/db/schema.ts',
+  out: './server/drizzle',
+  dbCredentials: {
+    url: env.DATABASE_URL,
+  },
+})
+```
+
+## Migration Workflow
+
+1. **Edit the schema** in `server/db/schema.ts`
+2. **Generate a migration:**
+   ```bash
+   bun run generate
+   ```
+   This creates SQL migration files in `server/drizzle/`.
+3. **Apply the migration** to your target environment:
+   ```bash
+   bun run migrate:dev    # Development database
+   bun run migrate:prod   # Production database
+   bun run migrate:test   # Test database
+   ```
+
+## Drizzle Studio
+
+Use Drizzle Studio for a visual database browser:
+
+```bash
+bun run studio:dev    # Browse development database
+bun run studio:prod   # Browse production database
+```
+
+## Testing the Connection
+
+Verify your database connection with the test script:
+
+```bash
+bun --env-file=.env.development server/test-connection/index.ts
+```
