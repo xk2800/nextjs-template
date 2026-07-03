@@ -8,8 +8,17 @@ export interface DashboardNavLink {
 }
 
 export interface DashboardHeaderProps {
-  userName: string
-  brandName?: string
+  /**
+   * Omit on screens with no session (e.g. a public/marketing page) — the
+   * user name and LogoutButtons are only rendered when this is provided.
+   */
+  userName?: string
+  /**
+   * Plain text (default: "Template") or any node — e.g. an `<img>`/`<Image>`
+   * logo, an inline SVG, or a logo+text combo. Rendered inside a `<Link>`,
+   * so avoid nesting another interactive/anchor element inside it.
+   */
+  brandName?: React.ReactNode
   brandHref?: string
   navLinks?: DashboardNavLink[]
   /**
@@ -60,10 +69,14 @@ export default function DashboardHeader({
 
           <div className="flex items-center gap-4">
             {actions}
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {userName}
-            </span>
-            <LogoutButtons />
+            {userName && (
+              <>
+                <span className="text-sm text-gray-600 dark:text-gray-400">
+                  {userName}
+                </span>
+                <LogoutButtons />
+              </>
+            )}
           </div>
         </div>
       </div>
