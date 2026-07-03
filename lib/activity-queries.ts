@@ -1,5 +1,6 @@
-import { db } from "@/server/db"
-import { activityLogs, users } from "@/server/db/schema"
+import "server-only"
+import { db } from "../server/db"
+import { activityLogs, users } from "../server/db/schema"
 import { eq, desc } from "drizzle-orm"
 
 export async function getUserActivityLogs(userId: string, limit = 50) {

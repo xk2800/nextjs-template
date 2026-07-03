@@ -8,14 +8,24 @@
     "./dist/db/index.js",
     "./dist/db/index.mjs",
     "./dist/auth/index.js",
-    "./dist/auth/index.mjs"
+    "./dist/auth/index.mjs",
+    "./dist/activity/logger.js",
+    "./dist/activity/logger.mjs",
+    "./dist/activity/queries.js",
+    "./dist/activity/queries.mjs",
+    "./dist/sessions/queries.js",
+    "./dist/sessions/queries.mjs"
   ],
   "files": [
     "dist",
     "components/ui",
     "components/auth",
+    "components/theme",
+    "components/providers",
+    "components/email",
     "lib/utils.ts",
     "lib/auth-client.ts",
+    "lib/formatters.ts",
     "styles/theme.css",
     "README.md"
   ],
@@ -56,10 +66,25 @@
       "import": "./dist/types/auth/loginSchema.mjs",
       "require": "./dist/types/auth/loginSchema.js"
     },
+    "./activity/logger": {
+      "types": "./dist/activity/logger.d.ts",
+      "import": "./dist/activity/logger.mjs",
+      "require": "./dist/activity/logger.js"
+    },
+    "./activity/queries": {
+      "types": "./dist/activity/queries.d.ts",
+      "import": "./dist/activity/queries.mjs",
+      "require": "./dist/activity/queries.js"
+    },
+    "./sessions/queries": {
+      "types": "./dist/sessions/queries.d.ts",
+      "import": "./dist/sessions/queries.mjs",
+      "require": "./dist/sessions/queries.js"
+    },
     "./lib/utils": "./lib/utils.ts",
+    "./lib/formatters": "./lib/formatters.ts",
     "./styles/theme.css": "./styles/theme.css",
-    "./components/ui/*": "./components/ui/*.tsx",
-    "./components/auth/*": "./components/auth/*.tsx"
+    "./components/*": "./components/*.tsx"
   },
   "typesVersions": {
     "*": {
@@ -83,6 +108,15 @@
       ],
       "types/auth/loginSchema": [
         "dist/types/auth/loginSchema.d.ts"
+      ],
+      "activity/logger": [
+        "dist/activity/logger.d.ts"
+      ],
+      "activity/queries": [
+        "dist/activity/queries.d.ts"
+      ],
+      "sessions/queries": [
+        "dist/sessions/queries.d.ts"
       ]
     }
   },
@@ -127,7 +161,17 @@
     "clsx": "^2.1.0",
     "tailwind-merge": "^3.3.0",
     "lucide-react": "^1.16.0",
-    "react-icons": "^5.5.0"
+    "react-icons": "^5.5.0",
+    "next-themes": "^0.4.0",
+    "@react-email/components": "^1.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-email/components": {
+      "optional": true
+    },
+    "next-themes": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
