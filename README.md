@@ -107,7 +107,19 @@ const nextConfig: NextConfig = {
 }
 ```
 
-### 4. Import what you need
+### 4. Tailwind theme + content scanning
+
+The UI components use shadcn's CSS variable-based theme (`bg-primary`, `border-input`, etc.) and Tailwind v4 doesn't scan `node_modules` for class names by default. Add both to your `app/globals.css`, after the existing `@import "tailwindcss";`:
+
+```css
+@import "tailwindcss";
+@import "@xk2800/nextjs-template/styles/theme.css";
+@source "../node_modules/@xk2800/nextjs-template";
+```
+
+If you use `Dialog`, `AlertDialog`, or `DropdownMenu`, also install and import `tw-animate-css` for their open/close transitions — without it they still work, just without animation.
+
+### 5. Import what you need
 
 ```ts
 import { auth } from "@xk2800/nextjs-template/auth"
@@ -121,7 +133,7 @@ import { Button } from "@xk2800/nextjs-template/components/ui/button"
 import AuthCard from "@xk2800/nextjs-template/components/auth/authCard"
 ```
 
-### 5. Not importable — copy these patterns instead
+### 6. Not importable — copy these patterns instead
 
 `app/api/auth/[...all]/route.ts` and `middleware.ts` are Next.js file-convention code, not library exports. Copy the pattern into your own project:
 
@@ -133,7 +145,7 @@ import { toNextJsHandler } from "better-auth/next-js"
 export const { GET, POST } = toNextJsHandler(auth)
 ```
 
-### 6. Database migrations
+### 7. Database migrations
 
 The package does not ship migrations. drizzle-kit needs a local file it can import directly (it can't resolve package `exports` subpaths reliably), so add a one-line re-export in your own project:
 

@@ -16,6 +16,7 @@
     "components/auth",
     "lib/utils.ts",
     "lib/auth-client.ts",
+    "styles/theme.css",
     "README.md"
   ],
   "exports": {
@@ -56,6 +57,7 @@
       "require": "./dist/types/auth/loginSchema.js"
     },
     "./lib/utils": "./lib/utils.ts",
+    "./styles/theme.css": "./styles/theme.css",
     "./components/ui/*": "./components/ui/*.tsx",
     "./components/auth/*": "./components/auth/*.tsx"
   },
