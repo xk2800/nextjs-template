@@ -35,6 +35,20 @@ bun run studio:dev        # Open Drizzle Studio for development database
 bun run studio:prod       # Open Drizzle Studio for production database
 ```
 
+### Secrets via Doppler (optional alternative to `.env.*` files)
+
+```bash
+doppler login && doppler setup   # one-time, per machine
+bun run dev:doppler
+bun run build:doppler
+bun run start:doppler
+bun run generate:doppler
+bun run migrate:doppler
+bun run studio:doppler
+```
+
+`doppler run --` injects secrets into `process.env` before the command starts — no code changes needed, `config/env.ts` and `drizzle.config.ts` just read `process.env` regardless of source. See README's "Secrets management with Doppler" section for setup details.
+
 ### Testing Database Connection
 ```bash
 bun --env-file=.env.development server/test-connection/index.ts

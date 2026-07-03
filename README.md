@@ -50,6 +50,31 @@ bun run migrate:dev
 bun run migrate:prod
 ```
 
+## Secrets management with Doppler (optional)
+
+`.env.*` files work as described above by default. If you'd rather manage secrets in [Doppler](https://doppler.com) instead of local `.env` files, that's supported as an opt-in alternative — every `*:doppler` script does the same thing as its `.env`-based counterpart, just sourcing secrets from Doppler instead:
+
+```bash
+bun run dev:doppler        # instead of bun run dev
+bun run build:doppler       # instead of bun run build
+bun run start:doppler       # instead of bun run start
+bun run generate:doppler    # instead of bun run generate
+bun run migrate:doppler     # instead of bun run migrate:dev / migrate:prod / migrate:test
+bun run studio:doppler      # instead of bun run studio:dev / studio:prod
+```
+
+Setup (one-time, per machine):
+
+```bash
+brew install dopplerhq/cli/doppler   # or see https://docs.doppler.com/docs/install-cli
+doppler login
+doppler setup                        # run in the project root; select your Doppler project + config
+```
+
+`doppler setup` writes a `doppler.yaml` that maps this directory to a Doppler project/config — it holds no secrets itself, so it's safe to commit. `doppler run -- <command>` injects your Doppler secrets into `process.env` before the command starts; nothing in `config/env.ts` or `drizzle.config.ts` needed to change, since they just read `process.env` regardless of where it came from. Both Next.js and Bun treat already-set `process.env` values as higher priority than `.env` file values, so this layers safely even if `.env.development` is also present.
+
+To target a specific Doppler config without re-running `doppler setup` (e.g. in CI), pass `--config`: `doppler run --config prd -- bun run migrate:doppler`.
+
 ## Testing Connection
 
 1. To test and ensure that the connection and database works, run:
@@ -95,7 +120,7 @@ Export a `GITHUB_TOKEN` with `read:packages` scope in your shell environment (do
 bun add @xk2800/nextjs-template
 ```
 
-This has peer dependencies on `next`, `react`, `react-dom`, and the Radix/shadcn packages the UI components use (`@radix-ui/react-*`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`). If your project already uses shadcn/ui, these are typically already installed.
+This has peer dependencies on `next`, `react`, `react-dom`, and the Radix/shadcn packages the UI components use (`@radix-ui/react-*`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`). If your project already uses shadcn/ui, these are typically already installed. Three more peer deps are optional, only needed if you use the specific feature: `next-themes` (theme toggle/provider), `sonner` (dashboard session-revoke toasts), `@react-email/components` (email templates).
 
 ### 3. Enable `transpilePackages`
 
@@ -119,21 +144,109 @@ The UI components use shadcn's CSS variable-based theme (`bg-primary`, `border-i
 
 If you use `Dialog`, `AlertDialog`, or `DropdownMenu`, also install and import `tw-animate-css` for their open/close transitions — without it they still work, just without animation.
 
-### 5. Import what you need
+### 5. Adding a social provider (e.g. Apple) in one project only
+
+`auth` is the package's default instance (Google + email/password). To add another provider in a specific project — without forking the template — use the `createAuth` factory. This needs three changes, all in your own project, none in the package.
+
+**a. Create your own `server/auth.ts`** that wraps the factory:
 
 ```ts
+// server/auth.ts (your project, not the package)
+import { createAuth } from "@xk2800/nextjs-template/auth"
+
+export const auth = createAuth({
+  socialProviders: {
+    apple: {
+      clientId: process.env.APPLE_CLIENT_ID!,           // your Apple Services ID
+      clientSecret: process.env.APPLE_CLIENT_SECRET!,   // generated signed JWT, not a static secret
+      appBundleIdentifier: process.env.APPLE_APP_BUNDLE_IDENTIFIER!, // only if you also support native/iOS sign-in
+    },
+  },
+})
+```
+
+The `socialProviders` you pass are **merged** with the default `google` provider, not a replacement — `auth.socialProviders` ends up as `{ google, apple }`. Other config (session policy, password hashing, schema wiring) isn't exposed as an override; those stay fixed since they're shared assumptions, not per-project knobs.
+
+**b. Point your API route at your own `auth`, not the package's:**
+
+```ts
+// app/api/auth/[...all]/route.ts
+import { auth } from "@/server/auth"   // your local file from step a — not "@xk2800/nextjs-template/auth"
+import { toNextJsHandler } from "better-auth/next-js"
+
+export const { GET, POST } = toNextJsHandler(auth)
+```
+
+If you skip this and leave the route importing the package's `auth` directly, the server will never see your `apple` provider — the route handler is what actually serves the OAuth callback, so it has to be backed by the instance you customized.
+
+**c. Trigger it client-side.** The shipped `components/auth/socialLogin.tsx` is hardcoded to Google only (it's meant as a starting point, not a generic multi-provider switcher) — it won't grow an Apple button on its own. Add your own trigger using the same `authClient` the package already exports:
+
+```tsx
+'use client'
+import { Button } from "@xk2800/nextjs-template/components/ui/button"
+import { authClient } from "@xk2800/nextjs-template/auth-client"
+
+export function AppleSignInButton({ callbackUrl }: { callbackUrl?: string }) {
+  return (
+    <Button
+      variant="outline"
+      className="w-full"
+      onClick={() => authClient.signIn.social({ provider: "apple", callbackURL: callbackUrl || "/dashboard" })}
+    >
+      Sign in with Apple
+    </Button>
+  )
+}
+```
+
+Nothing else needs to change — `middleware.ts`, `auth/helpers` (`requireAuth`, `hasRole`), and `auth-client`'s `useSession` are all provider-agnostic; they work off the session cookie/token, not which provider created it.
+
+### 6. Import what you need
+
+```ts
+// auth
 import { auth } from "@xk2800/nextjs-template/auth"
 import { requireAuth, hasRole } from "@xk2800/nextjs-template/auth/helpers"
 import { authClient, useSession } from "@xk2800/nextjs-template/auth-client"
+
+// db
 import { db } from "@xk2800/nextjs-template/db"
 import { users, sessions } from "@xk2800/nextjs-template/db/schema"
+
+// server-only query helpers (each throws if imported into a Client Component)
+import { getAdminStats } from "@xk2800/nextjs-template/admin/queries"
+import { getUserSessions } from "@xk2800/nextjs-template/sessions/queries"
+import { logActivity } from "@xk2800/nextjs-template/activity/logger"
+import { getUserActivityLogs, getAllActivityLogs } from "@xk2800/nextjs-template/activity/queries"
+
+// config, types, isomorphic helpers
 import { config } from "@xk2800/nextjs-template/config/env"
 import { LoginSchema } from "@xk2800/nextjs-template/types/auth/loginSchema"
+import { formatDate, formatDateTime, getUserInitials } from "@xk2800/nextjs-template/lib/formatters"
+
+// ui primitives (raw source, any file under components/ui)
 import { Button } from "@xk2800/nextjs-template/components/ui/button"
+
+// auth UI
 import AuthCard from "@xk2800/nextjs-template/components/auth/authCard"
+import LogoutButtons from "@xk2800/nextjs-template/components/auth/logoutButtons"
+
+// dashboard UI (each takes data as props — fetch with the helpers above in your page, then pass down)
+import ProfileCard from "@xk2800/nextjs-template/components/dashboard/profileCard"
+import AccountDetailsCard from "@xk2800/nextjs-template/components/dashboard/accountDetailsCard"
+import SessionsCard from "@xk2800/nextjs-template/components/dashboard/sessionsCard"
+import AdminSection, { type AdminStats } from "@xk2800/nextjs-template/components/dashboard/adminSection"
+import ActivityLogsCard from "@xk2800/nextjs-template/components/dashboard/activityLogsCard"
+import DashboardHeader, { type DashboardNavLink } from "@xk2800/nextjs-template/components/dashboard/dashboardHeader" // brandName, brandHref, navLinks are optional props
+
+// optional feature UI (needs the matching optional peer dep)
+import { ThemeProvider } from "@xk2800/nextjs-template/components/providers/theme-provider" // next-themes
+import { ThemeToggle } from "@xk2800/nextjs-template/components/theme/theme-toggle"         // next-themes
+import { SendEmailButton } from "@xk2800/nextjs-template/components/email/send-email-button"
+import { EmailTemplate } from "@xk2800/nextjs-template/components/email/email-template"     // @react-email/components
 ```
 
-### 6. Not importable — copy these patterns instead
+### 7. Not importable — copy these patterns instead
 
 `app/api/auth/[...all]/route.ts` and `middleware.ts` are Next.js file-convention code, not library exports. Copy the pattern into your own project:
 
@@ -145,7 +258,7 @@ import { toNextJsHandler } from "better-auth/next-js"
 export const { GET, POST } = toNextJsHandler(auth)
 ```
 
-### 7. Database migrations
+### 8. Database migrations
 
 The package does not ship migrations. drizzle-kit needs a local file it can import directly (it can't resolve package `exports` subpaths reliably), so add a one-line re-export in your own project:
 
@@ -167,3 +280,23 @@ export default defineConfig({
   dbCredentials: { url: process.env.DATABASE_URL! },
 })
 ```
+
+### 9. Secrets management with Doppler (optional)
+
+The package's `config/env.ts` and every server-only module just read `process.env.*` — they don't care whether values came from `.env` files or were injected by Doppler, so using Doppler in a consuming project needs zero changes to `@xk2800/nextjs-template` itself. Set it up the same way as in the template repo:
+
+```bash
+doppler login
+doppler setup   # in your project root, select/create a Doppler project + config
+```
+
+Then wrap any command that needs your env vars with `doppler run --`, instead of relying on `.env.development`/`.env.local`:
+
+```bash
+doppler run -- bun dev
+doppler run -- bun run generate   # drizzle-kit generate
+doppler run -- bun run migrate    # drizzle-kit migrate
+doppler run -- next build
+```
+
+Since `doppler run` injects secrets into `process.env` before the command starts, and both Next.js and Bun treat already-set `process.env` values as higher priority than `.env` file values, you can even keep `.env.development` around as a local fallback without conflict — Doppler's values win when present.

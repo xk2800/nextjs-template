@@ -145,6 +145,12 @@
     "migrate:test": "bun --env-file=.env.test drizzle-kit migrate",
     "studio:dev": "bun --env-file=.env.development drizzle-kit studio",
     "studio:prod": "bun --env-file=.env.production drizzle-kit studio",
+    "dev:doppler": "doppler run -- next dev --turbopack",
+    "build:doppler": "doppler run -- next build",
+    "start:doppler": "doppler run -- next start",
+    "generate:doppler": "doppler run -- drizzle-kit generate",
+    "migrate:doppler": "doppler run -- drizzle-kit migrate",
+    "studio:doppler": "doppler run -- drizzle-kit studio",
     "docs:dev": "cd docs && bun run dev"
   },
   "dependencies": {
