@@ -12,6 +12,7 @@ export default defineConfig({
     "activity/logger": "lib/activity-logger.ts",
     "activity/queries": "lib/activity-queries.ts",
     "sessions/queries": "lib/session-queries.ts",
+    "admin/queries": "lib/admin-queries.ts",
   },
   format: ["cjs", "esm"],
   dts: true,

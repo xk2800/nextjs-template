@@ -1,12 +1,13 @@
 import { requireAuth, hasRole } from "@/lib/auth-helpers"
 import { cookies } from "next/headers"
 import { getUserSessions } from "@/lib/session-queries"
+import { getAdminStats } from "@/lib/admin-queries"
 import { config } from "@/config/env"
-import ProfileCard from "./components/profileCard"
-import SessionsCard from "./components/sessionsCard"
-import AccountDetailsCard from "./components/accountDetailsCard"
-import AdminSection from "./components/adminSection"
-import ActivityLogsCard from "./components/activityLogsCard"
+import ProfileCard from "@/components/dashboard/profileCard"
+import SessionsCard from "@/components/dashboard/sessionsCard"
+import AccountDetailsCard from "@/components/dashboard/accountDetailsCard"
+import AdminSection from "@/components/dashboard/adminSection"
+import ActivityLogsCard from "@/components/dashboard/activityLogsCard"
 
 export default async function DashboardPage() {
   const session = await requireAuth()
@@ -30,7 +31,7 @@ export default async function DashboardPage() {
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Profile Card */}
-        <ProfileCard user={session.user} />
+        <ProfileCard user={session.user} isAdmin={isAdmin} />
 
         {/* Account Details */}
         <AccountDetailsCard user={session.user} />
@@ -45,7 +46,7 @@ export default async function DashboardPage() {
       />
 
       {/* Admin-Only Section */}
-      {isAdmin && <AdminSection />}
+      {isAdmin && <AdminSection stats={await getAdminStats()} />}
 
       {/* Activity Logs Section */}
       <ActivityLogsCard isAdmin={isAdmin} />

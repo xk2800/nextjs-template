@@ -1,8 +1,8 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
+import { Badge } from "../ui/badge"
+import { Button } from "../ui/button"
 import {
   Table,
   TableBody,
@@ -10,7 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "../ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,8 +20,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { formatDateTime } from "@/lib/formatters"
+} from "../ui/alert-dialog"
+import { formatDateTime } from "../../lib/formatters"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"

@@ -14,7 +14,9 @@
     "./dist/activity/queries.js",
     "./dist/activity/queries.mjs",
     "./dist/sessions/queries.js",
-    "./dist/sessions/queries.mjs"
+    "./dist/sessions/queries.mjs",
+    "./dist/admin/queries.js",
+    "./dist/admin/queries.mjs"
   ],
   "files": [
     "dist",
@@ -23,6 +25,7 @@
     "components/theme",
     "components/providers",
     "components/email",
+    "components/dashboard",
     "lib/utils.ts",
     "lib/auth-client.ts",
     "lib/formatters.ts",
@@ -81,6 +84,11 @@
       "import": "./dist/sessions/queries.mjs",
       "require": "./dist/sessions/queries.js"
     },
+    "./admin/queries": {
+      "types": "./dist/admin/queries.d.ts",
+      "import": "./dist/admin/queries.mjs",
+      "require": "./dist/admin/queries.js"
+    },
     "./lib/utils": "./lib/utils.ts",
     "./lib/formatters": "./lib/formatters.ts",
     "./styles/theme.css": "./styles/theme.css",
@@ -117,6 +125,9 @@
       ],
       "sessions/queries": [
         "dist/sessions/queries.d.ts"
+      ],
+      "admin/queries": [
+        "dist/admin/queries.d.ts"
       ]
     }
   },
@@ -163,13 +174,17 @@
     "lucide-react": "^1.16.0",
     "react-icons": "^5.5.0",
     "next-themes": "^0.4.0",
-    "@react-email/components": "^1.0.0"
+    "@react-email/components": "^1.0.0",
+    "sonner": "^2.0.0"
   },
   "peerDependenciesMeta": {
     "@react-email/components": {
       "optional": true
     },
     "next-themes": {
+      "optional": true
+    },
+    "sonner": {
       "optional": true
     }
   },

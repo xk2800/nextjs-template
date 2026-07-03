@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card'
+import { Badge } from '../ui/badge'
+import { Skeleton } from '../ui/skeleton'
 import {
   Table,
   TableBody,
@@ -11,8 +11,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { formatDateTime } from '@/lib/formatters'
+} from '../ui/table'
+import { formatDateTime } from '../../lib/formatters'
 
 interface ActivityLog {
   id: string

@@ -1,7 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { formatDate } from "@/lib/formatters"
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
+import { Badge } from "../ui/badge"
+import { Separator } from "../ui/separator"
+import { formatDate } from "../../lib/formatters"
 
 type User = {
   id: string

@@ -1,44 +1,16 @@
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { db } from "@/server/db"
-import { users, sessions } from "@/server/db/schema"
-import { sql } from "drizzle-orm"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
+import { Badge } from "../ui/badge"
+import { Button } from "../ui/button"
 
-async function getAdminStats() {
-  // Get total users
-  const totalUsersResult = await db
-    .select({ count: sql<number>`cast(count(*) as integer)` })
-    .from(users)
-  const totalUsers = totalUsersResult[0]?.count || 0
-
-  // Get total active sessions
-  const now = new Date()
-  const activeSessionsResult = await db
-    .select({ count: sql<number>`cast(count(*) as integer)` })
-    .from(sessions)
-    .where(sql`${sessions.expiresAt} > ${now}`)
-  const activeSessions = activeSessionsResult[0]?.count || 0
-
-  // Get admin count
-  const adminCountResult = await db
-    .select({ count: sql<number>`cast(count(*) as integer)` })
-    .from(users)
-    .where(sql`${users.role} = 'admin'`)
-  const adminCount = adminCountResult[0]?.count || 0
-
-  return {
-    totalUsers,
-    activeSessions,
-    adminCount,
-    regularUsers: totalUsers - adminCount,
-  }
+export interface AdminStats {
+  totalUsers: number
+  activeSessions: number
+  adminCount: number
+  regularUsers: number
 }
 
-export default async function AdminSection() {
-  const stats = await getAdminStats()
-
+export default function AdminSection({ stats }: { stats: AdminStats }) {
   return (
     <Card className="border-orange-200 bg-orange-50/50">
       <CardHeader>
