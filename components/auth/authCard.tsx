@@ -7,7 +7,7 @@ import {
   // CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from "../ui/card"
 import SocialLogin from './socialLogin'
 
 type Props = {

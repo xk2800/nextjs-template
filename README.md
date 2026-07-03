@@ -14,8 +14,6 @@ This is a template for Next.js projects using Drizzle ORM, self hosted PostgreSQ
 │   ├── 📜 auth.ts
 │   └── 📂 test-connection/
 │       └── 📜 index.ts
-├── 📂 scripts/
-│   └── 📜 migrate-passwords.ts
 ├── 📜 .env.production
 ├── 📜 .env.development
 ├── 📜 drizzle.config.ts
@@ -75,3 +73,66 @@ bun --env-file=.env.production server/test-connection/index.ts
 ## WIP
 
 1. Migrating NextAuth to BetterAuth
+
+## Using this as a package
+
+This repo also publishes its reusable auth/db/UI pieces as a private npm package, `@xk2800/nextjs-template`, to GitHub Packages. Use this in new projects instead of copy-pasting the whole template.
+
+### 1. Registry auth
+
+Create a `.npmrc` in your new project:
+
+```ini
+@xk2800:registry=https://npm.pkg.github.com
+//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
+```
+
+Export a `GITHUB_TOKEN` with `read:packages` scope in your shell environment (do not hardcode it in `.npmrc`).
+
+### 2. Install
+
+```bash
+bun add @xk2800/nextjs-template
+```
+
+This has peer dependencies on `next`, `react`, `react-dom`, and the Radix/shadcn packages the UI components use (`@radix-ui/react-*`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`). If your project already uses shadcn/ui, these are typically already installed.
+
+### 3. Enable `transpilePackages`
+
+UI components ship as raw `.tsx` source so `'use client'` boundaries survive. Add this to your `next.config.ts`:
+
+```ts
+const nextConfig: NextConfig = {
+  transpilePackages: ["@xk2800/nextjs-template"],
+}
+```
+
+### 4. Import what you need
+
+```ts
+import { auth } from "@xk2800/nextjs-template/auth"
+import { requireAuth, hasRole } from "@xk2800/nextjs-template/auth/helpers"
+import { authClient, useSession } from "@xk2800/nextjs-template/auth-client"
+import { db } from "@xk2800/nextjs-template/db"
+import { users, sessions } from "@xk2800/nextjs-template/db/schema"
+import { config } from "@xk2800/nextjs-template/config/env"
+import { LoginSchema } from "@xk2800/nextjs-template/types/auth/loginSchema"
+import { Button } from "@xk2800/nextjs-template/components/ui/button"
+import AuthCard from "@xk2800/nextjs-template/components/auth/authCard"
+```
+
+### 5. Not importable — copy these patterns instead
+
+`app/api/auth/[...all]/route.ts` and `middleware.ts` are Next.js file-convention code, not library exports. Copy the pattern into your own project:
+
+```ts
+// app/api/auth/[...all]/route.ts
+import { auth } from "@xk2800/nextjs-template/auth"
+import { toNextJsHandler } from "better-auth/next-js"
+
+export const { GET, POST } = toNextJsHandler(auth)
+```
+
+### 6. Database migrations
+
+The package does not ship migrations. Add your own `drizzle.config.ts` and run `drizzle-kit generate`/`migrate` against the schema imported from `@xk2800/nextjs-template/db/schema`.

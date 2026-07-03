@@ -1,3 +1,5 @@
+import 'server-only';
+
 // neon-http driver for production
 import { neon } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
@@ -6,8 +8,8 @@ import { drizzle } from 'drizzle-orm/neon-http';
 import { drizzle as drizzlePg } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-import * as schema from '@/server/db/schema';
-import { config } from '@/config/env';
+import * as schema from './schema';
+import { config } from '../../config/env';
 
 // Import the query builder
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';

@@ -1,8 +1,9 @@
-import { auth } from "@/server/auth"
+import "server-only"
+import { auth } from "../server/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
-import { db } from "@/server/db"
-import { users } from "@/server/db/schema"
+import { db } from "../server/db"
+import { users } from "../server/db/schema"
 import { eq } from "drizzle-orm"
 
 /**

@@ -1,3 +1,4 @@
+import "server-only";
 import { z } from 'zod';
 
 const envSchema = z.object({
@@ -13,8 +14,7 @@ const envSchema = z.object({
 const results = envSchema.safeParse(process.env);
 
 if (results.success && (results.data.NODE_ENV === 'development')) {
-  console.log('Environment variables:', results.data);
-  // console.log(results);
+  console.log('Environment variables loaded:', Object.keys(results.data));
 }
 
 if (!results.success) {

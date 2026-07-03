@@ -1,6 +1,7 @@
 import { requireAuth, hasRole } from "@/lib/auth-helpers"
 import { cookies } from "next/headers"
 import { getUserSessions } from "@/lib/session-queries"
+import { config } from "@/config/env"
 import ProfileCard from "./components/profileCard"
 import SessionsCard from "./components/sessionsCard"
 import AccountDetailsCard from "./components/accountDetailsCard"
@@ -40,6 +41,7 @@ export default async function DashboardPage() {
         userId={session.user.id}
         initialSessions={allSessions}
         currentSessionToken={currentSessionToken}
+        enableSessionRevocation={config.ENABLE_SESSION_REVOCATION}
       />
 
       {/* Admin-Only Section */}

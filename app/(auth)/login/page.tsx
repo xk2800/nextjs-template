@@ -1,4 +1,4 @@
-import AuthCard from '@/components/auth/components/authCard'
+import AuthCard from '@/components/auth/authCard'
 import React from 'react'
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"

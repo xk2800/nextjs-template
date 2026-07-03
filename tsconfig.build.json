@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "plugins": [],
+    "paths": {},
+    "incremental": false,
+    "ignoreDeprecations": "6.0"
+  },
+  "include": ["server/auth.ts", "server/db/index.ts", "server/db/schema.ts", "lib/auth-client.ts", "lib/auth-helpers.ts", "config/env.ts", "types/auth/loginSchema.ts"],
+  "exclude": ["node_modules", "docs", "app", ".next"]
+}

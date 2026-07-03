@@ -25,7 +25,6 @@ import { formatDateTime } from "@/lib/formatters"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { config } from "@/config/env"
 
 interface Session {
   id: string
@@ -40,12 +39,14 @@ interface SessionsCardProps {
   userId: string
   initialSessions: Session[]
   currentSessionToken: string
+  enableSessionRevocation: boolean
 }
 
 export default function SessionsCard({
   userId,
   initialSessions,
-  currentSessionToken
+  currentSessionToken,
+  enableSessionRevocation
 }: SessionsCardProps) {
   const router = useRouter()
   const [sessions, setSessions] = useState(initialSessions)
@@ -107,7 +108,7 @@ export default function SessionsCard({
                     <TableHead>Expires</TableHead>
                     <TableHead>IP Address</TableHead>
                     <TableHead>User Agent</TableHead>
-                    {config.ENABLE_SESSION_REVOCATION && (
+                    {enableSessionRevocation && (
                       <TableHead>Actions</TableHead>
                     )}
                   </TableRow>
@@ -134,7 +135,7 @@ export default function SessionsCard({
                         <TableCell className="text-sm max-w-xs truncate">
                           {session.userAgent || 'N/A'}
                         </TableCell>
-                        {config.ENABLE_SESSION_REVOCATION && (
+                        {enableSessionRevocation && (
                           <TableCell>
                             {!isCurrent && (
                               <Button
