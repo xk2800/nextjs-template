@@ -1,6 +1,6 @@
 {
   "name": "@xk2800/nextjs-template",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": false,
   "sideEffects": [
     "./dist/config/env.js",
@@ -59,13 +59,27 @@
   },
   "typesVersions": {
     "*": {
-      "auth": ["dist/auth/index.d.ts"],
-      "auth/helpers": ["dist/auth/helpers.d.ts"],
-      "auth-client": ["dist/auth-client/index.d.ts"],
-      "db": ["dist/db/index.d.ts"],
-      "db/schema": ["dist/db/schema.d.ts"],
-      "config/env": ["dist/config/env.d.ts"],
-      "types/auth/loginSchema": ["dist/types/auth/loginSchema.d.ts"]
+      "auth": [
+        "dist/auth/index.d.ts"
+      ],
+      "auth/helpers": [
+        "dist/auth/helpers.d.ts"
+      ],
+      "auth-client": [
+        "dist/auth-client/index.d.ts"
+      ],
+      "db": [
+        "dist/db/index.d.ts"
+      ],
+      "db/schema": [
+        "dist/db/schema.d.ts"
+      ],
+      "config/env": [
+        "dist/config/env.d.ts"
+      ],
+      "types/auth/loginSchema": [
+        "dist/types/auth/loginSchema.d.ts"
+      ]
     }
   },
   "scripts": {
