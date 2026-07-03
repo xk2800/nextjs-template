@@ -1,6 +1,6 @@
 {
   "name": "@xk2800/nextjs-template",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "sideEffects": [
     "./dist/config/env.js",
