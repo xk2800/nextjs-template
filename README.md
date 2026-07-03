@@ -135,4 +135,23 @@ export const { GET, POST } = toNextJsHandler(auth)
 
 ### 6. Database migrations
 
-The package does not ship migrations. Add your own `drizzle.config.ts` and run `drizzle-kit generate`/`migrate` against the schema imported from `@xk2800/nextjs-template/db/schema`.
+The package does not ship migrations. drizzle-kit needs a local file it can import directly (it can't resolve package `exports` subpaths reliably), so add a one-line re-export in your own project:
+
+```ts
+// server/db/schema.ts
+export * from "@xk2800/nextjs-template/db/schema"
+```
+
+Then point `drizzle.config.ts` at it, reading `DATABASE_URL` from `process.env` directly rather than importing `@xk2800/nextjs-template/config/env` — that module is guarded with `server-only`, which throws when resolved outside Next.js's own bundler (drizzle-kit runs via plain Node/esbuild, so the guard fires unconditionally there):
+
+```ts
+// drizzle.config.ts
+import { defineConfig } from 'drizzle-kit'
+
+export default defineConfig({
+  out: './server/drizzle',
+  schema: './server/db/schema.ts',
+  dialect: 'postgresql',
+  dbCredentials: { url: process.env.DATABASE_URL! },
+})
+```
