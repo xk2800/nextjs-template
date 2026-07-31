@@ -76,6 +76,11 @@
       "import": "./dist/types/auth/loginSchema.mjs",
       "require": "./dist/types/auth/loginSchema.js"
     },
+    "./types/auth/signupSchema": {
+      "types": "./dist/types/auth/signupSchema.d.ts",
+      "import": "./dist/types/auth/signupSchema.mjs",
+      "require": "./dist/types/auth/signupSchema.js"
+    },
     "./activity/logger": {
       "types": "./dist/activity/logger.d.ts",
       "import": "./dist/activity/logger.mjs",
@@ -123,6 +128,9 @@
       ],
       "types/auth/loginSchema": [
         "dist/types/auth/loginSchema.d.ts"
+      ],
+      "types/auth/signupSchema": [
+        "dist/types/auth/signupSchema.d.ts"
       ],
       "activity/logger": [
         "dist/activity/logger.d.ts"

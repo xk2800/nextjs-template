@@ -5,7 +5,7 @@ import { config } from "@/config/env"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
-const LoginPage = async ({
+const SignupPage = async ({
   searchParams,
 }: {
   searchParams: Promise<{ callbackUrl?: string }>
@@ -22,19 +22,25 @@ const LoginPage = async ({
     redirect(callbackUrl)
   }
 
+  // Signup only makes sense for the email/password provider — if it's
+  // disabled in this project, there's nothing to render here.
+  if (!config.AUTH_ENABLE_EMAIL_PASSWORD) {
+    redirect('/login')
+  }
+
   return (
     <div className="max-w-4xl mx-auto mt-12">
       <AuthCard
-        authCardTitle="Login"
-        authCardDescription="Login to your account"
-        authCardAction="Login"
+        authCardTitle="Sign up"
+        authCardDescription="Create a new account"
+        authCardAction="Sign up"
         showSocials={config.AUTH_ENABLE_GOOGLE}
         showEmailPassword={config.AUTH_ENABLE_EMAIL_PASSWORD}
-        variant="login"
+        variant="signup"
         callbackUrl={params.callbackUrl}
       />
     </div>
   )
 }
 
-export default LoginPage
+export default SignupPage

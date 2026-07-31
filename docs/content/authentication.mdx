@@ -13,10 +13,11 @@ The configuration lives in `server/auth.ts`.
 - Passwords hashed with **bcrypt** (10 rounds)
 - Stored in the `users.password` column
 - Email verification is not currently required (`requireEmailVerification: false`)
+- Set `AUTH_ENABLE_EMAIL_PASSWORD=false` in a consuming project's `.env.*` to disable this provider
 
 ```typescript
 emailAndPassword: {
-  enabled: true,
+  enabled: config.AUTH_ENABLE_EMAIL_PASSWORD,
   requireEmailVerification: false,
   async hash(password: string) {
     return await bcrypt.hash(password, 10);
@@ -29,16 +30,20 @@ emailAndPassword: {
 
 ### Google OAuth
 
-Configured via environment variables:
+Configured via environment variables, and included by default. Set `AUTH_ENABLE_GOOGLE=false` in a consuming project's `.env.*` to disable it — the provider is omitted from the Better-Auth config entirely, not just hidden in the UI:
 
 ```typescript
 socialProviders: {
-  google: {
-    clientId: process.env.AUTH_GOOGLE_ID || "",
-    clientSecret: process.env.AUTH_GOOGLE_SECRET || "",
-  },
+  ...(config.AUTH_ENABLE_GOOGLE ? {
+    google: {
+      clientId: process.env.AUTH_GOOGLE_ID || "",
+      clientSecret: process.env.AUTH_GOOGLE_SECRET || "",
+    },
+  } : {}),
 }
 ```
+
+Both toggles default to `true`, so existing projects and the package's own app see no change unless they opt out. The `app/(auth)/login/page.tsx` and `app/(auth)/signup/page.tsx` pages read the same `config/env.ts` flags to decide which login methods to render.
 
 ## Session Management
 
@@ -168,5 +173,7 @@ This exposes endpoints like `/api/auth/sign-in/email`, `/api/auth/sign-in/social
 | `AUTH_SECRET` | Secret for signing cookies/tokens | `openssl rand -base64 32` |
 | `AUTH_GOOGLE_ID` | Google OAuth client ID | From Google Cloud Console |
 | `AUTH_GOOGLE_SECRET` | Google OAuth client secret | From Google Cloud Console |
+| `AUTH_ENABLE_GOOGLE` | Disable Google login for this project (default `true`) | `false` |
+| `AUTH_ENABLE_EMAIL_PASSWORD` | Disable email/password login for this project (default `true`) | `false` |
 | `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL | `http://localhost:3000` |

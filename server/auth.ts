@@ -3,6 +3,7 @@ import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { db } from "./db"
 import { users, accounts, sessions, verifications } from "./db/schema"
+import { config } from "../config/env"
 import bcrypt from 'bcrypt'
 
 type AuthOverrides = {
@@ -34,8 +35,9 @@ export function createAuth(overrides: AuthOverrides = {}) {
     },
 
     // Email & Password Authentication (replaces Credentials provider)
+    // Toggle per-project via AUTH_ENABLE_EMAIL_PASSWORD in that project's own .env.*
     emailAndPassword: {
-      enabled: true,
+      enabled: config.AUTH_ENABLE_EMAIL_PASSWORD,
       requireEmailVerification: false,
       // Use bcrypt to maintain compatibility with existing user passwords
       async hash(password: string) {
@@ -46,12 +48,15 @@ export function createAuth(overrides: AuthOverrides = {}) {
       }
     },
 
-    // Social Providers — google is always on; overrides.socialProviders can add more
+    // Social Providers — google is included by default; toggle per-project via
+    // AUTH_ENABLE_GOOGLE. overrides.socialProviders can still add more (or replace it).
     socialProviders: {
-      google: {
-        clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "",
-        clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "",
-      },
+      ...(config.AUTH_ENABLE_GOOGLE ? {
+        google: {
+          clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "",
+          clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "",
+        },
+      } : {}),
       ...overrides.socialProviders,
     },
 

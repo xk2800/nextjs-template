@@ -201,6 +201,18 @@ export function AppleSignInButton({ callbackUrl }: { callbackUrl?: string }) {
 
 Nothing else needs to change — `middleware.ts`, `auth/helpers` (`requireAuth`, `hasRole`), and `auth-client`'s `useSession` are all provider-agnostic; they work off the session cookie/token, not which provider created it.
 
+#### Disabling Google or email/password instead
+
+Going the other way — turning **off** Google or email/password in one project — doesn't need `createAuth()` at all. Both providers are gated by env vars read from `config/env.ts`, which the package's `auth` singleton, the shipped `/login` and `/signup` pages, and any project that imports `@xk2800/nextjs-template/config/env` all read from the same place:
+
+```bash
+# .env.* in your project (not the package) — either or both, default is true
+AUTH_ENABLE_GOOGLE=false
+AUTH_ENABLE_EMAIL_PASSWORD=false
+```
+
+Setting one to `false` removes it from the Better-Auth config server-side (not just from the UI) — a disabled provider's endpoints won't authenticate anyone, even if called directly. The shipped login/signup pages hide the corresponding button/form automatically since they read the same flags.
+
 ### 6. Import what you need
 
 ```ts
@@ -222,6 +234,7 @@ import { getUserActivityLogs, getAllActivityLogs } from "@xk2800/nextjs-template
 // config, types, isomorphic helpers
 import { config } from "@xk2800/nextjs-template/config/env"
 import { LoginSchema } from "@xk2800/nextjs-template/types/auth/loginSchema"
+import { SignupSchema } from "@xk2800/nextjs-template/types/auth/signupSchema"
 import { formatDate, formatDateTime, getUserInitials } from "@xk2800/nextjs-template/lib/formatters"
 
 // ui primitives (raw source, any file under components/ui)
@@ -230,6 +243,8 @@ import { Button } from "@xk2800/nextjs-template/components/ui/button"
 // auth UI
 import AuthCard from "@xk2800/nextjs-template/components/auth/authCard"
 import LogoutButtons from "@xk2800/nextjs-template/components/auth/logoutButtons"
+import EmailPasswordLogin from "@xk2800/nextjs-template/components/auth/emailPasswordLogin"
+import EmailPasswordSignup from "@xk2800/nextjs-template/components/auth/emailPasswordSignup"
 
 // dashboard UI (each takes data as props — fetch with the helpers above in your page, then pass down)
 import ProfileCard from "@xk2800/nextjs-template/components/dashboard/profileCard"

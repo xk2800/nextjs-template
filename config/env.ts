@@ -7,6 +7,8 @@ const envSchema = z.object({
   DATABASE_URL: z.string().default(''),
   RESEND_API_KEY: z.string().default(''),
   ENABLE_SESSION_REVOCATION: z.string().default('true').transform(val => val === 'true'),
+  AUTH_ENABLE_GOOGLE: z.string().default('true').transform(val => val === 'true'),
+  AUTH_ENABLE_EMAIL_PASSWORD: z.string().default('true').transform(val => val === 'true'),
   DB_DRIVER: z.enum(['pg', 'neon']).default('pg'),
   // DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
 })
