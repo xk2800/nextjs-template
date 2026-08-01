@@ -137,17 +137,21 @@ async function main() {
     console.log('\nSkipped push. Run when ready:\n  git push && git push --tags')
   }
 
+  const notes = generateReleaseNotes(previousTag, newTag)
+  const notesFile = join(tmpdir(), `release-notes-${newTag}.md`)
+  writeFileSync(notesFile, notes)
+
   // A pushed git tag alone does NOT create a GitHub Release — that's a separate
   // object gh release create publishes, referencing the tag.
   if (!isGhAvailable()) {
     console.log(
       `\nGitHub CLI ('gh') not found — skipping release creation. Install it or run manually:\n` +
-      `  gh release create ${newTag} --title ${newTag} --notes-file <file>`
+      `  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"`
     )
   } else if (!pushed) {
     console.log(
       `\nSkipped release creation — ${newTag} isn't on origin yet. Push it first, then run:\n` +
-      `  gh release create ${newTag} --title ${newTag} --notes-file <file>`
+      `  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"`
     )
   } else {
     const doRelease = await confirm({
@@ -155,12 +159,9 @@ async function main() {
       default: true,
     })
     if (doRelease) {
-      const notes = generateReleaseNotes(previousTag, newTag)
-      const notesFile = join(tmpdir(), `release-notes-${newTag}.md`)
-      writeFileSync(notesFile, notes)
       run(`gh release create ${newTag} --title "${newTag}" --notes-file "${notesFile}"`)
     } else {
-      console.log(`\nSkipped release. Run when ready:\n  gh release create ${newTag} --title ${newTag} --notes-file <file>`)
+      console.log(`\nSkipped release. Run when ready:\n  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"`)
     }
   }
 }
