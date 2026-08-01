@@ -47,12 +47,24 @@ Both toggles default to `true`, so existing projects and the package's own app s
 
 ### Guarding against zero enabled providers
 
-Setting both `AUTH_ENABLE_GOOGLE=false` and `AUTH_ENABLE_EMAIL_PASSWORD=false` is treated as a misconfiguration and throws, via two independent checks:
+`createAuth()` checks the *final* merged provider list — `socialProviders` after `overrides.socialProviders` is applied, plus `emailAndPassword.enabled` — and throws only if that combination is genuinely empty:
 
-1. **`config/env.ts`** — a Zod `.refine()` throws at import time if both flags are `false`. This is a fast, unconditional check; it doesn't know about `createAuth()` overrides, so it fires even if a project has added another provider (e.g. Apple) via `socialProviders`.
-2. **`server/auth.ts`'s `createAuth()`** — throws separately if the _final_ merged provider list (after `overrides.socialProviders` is applied) is empty and email/password is off.
+```typescript
+const hasEnabledSocialProvider = Object.values(socialProviders).some(Boolean)
 
-Both are intentionally hard failures, not warnings — a project with both toggles off and no replacement provider would otherwise ship with an unusable, silent login page. Check 1 is unconditional, so there is no supported way to run a fully custom-provider-only setup: **at least one of `AUTH_ENABLE_GOOGLE` / `AUTH_ENABLE_EMAIL_PASSWORD` must stay `true`**, even if you've added a different provider (e.g. Apple) via `createAuth()` overrides. If you want a custom provider to be the *only one your UI shows*, leave one flag at its default `true` so startup succeeds, and simply don't render the built-in form/button in your own login/signup pages — its endpoints stay technically live server-side, which is the tradeoff for passing the startup guard.
+if (!hasEnabledSocialProvider && !emailAndPasswordEnabled) {
+  throw new Error("No auth provider is enabled — ...")
+}
+```
+
+This means:
+
+- `AUTH_ENABLE_GOOGLE=false` + `AUTH_ENABLE_EMAIL_PASSWORD=false`, no override → throws. There'd be zero ways to sign in.
+- Same two flags `false`, but `createAuth({ socialProviders: { apple: {...} } })` → works. Apple is a valid replacement provider.
+
+The check is intentionally scoped to `createAuth()`, not `config/env.ts` — `config/env.ts` is evaluated before any `createAuth()` overrides exist, so it has no way to know whether a project plans to add its own provider. It cannot gate this safely, so it doesn't try.
+
+The package's own default `export const auth` (used by the shipped `/login`, `/signup`, and `app/api/auth/[...all]/route.ts`) is built lazily via `createAuth()` with no overrides — so if *that* combination has nothing enabled, the throw fires the first time `auth` is actually used (not merely imported), which is exactly the "you didn't enable any built-in provider and didn't add your own" case.
 
 ## Session Management
 

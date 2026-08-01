@@ -24,15 +24,16 @@ export function createAuth(overrides: AuthOverrides = {}) {
   }
   const emailAndPasswordEnabled = config.AUTH_ENABLE_EMAIL_PASSWORD
 
-  // Belt-and-suspenders check on the *final* merged config (accounts for
-  // overrides.socialProviders too — config/env.ts's own check can't see those,
-  // since overrides are only known here at createAuth() call time).
+  // Guard on the *final* merged config, after overrides.socialProviders is applied —
+  // this only fails when there's truly no way to sign in. A project that disables both
+  // built-ins via AUTH_ENABLE_GOOGLE=false / AUTH_ENABLE_EMAIL_PASSWORD=false but adds
+  // its own provider (e.g. apple) here is a valid config and won't trip this.
   const hasEnabledSocialProvider = Object.values(socialProviders).some(Boolean)
 
   if (!hasEnabledSocialProvider && !emailAndPasswordEnabled) {
     throw new Error(
       "No auth provider is enabled — every social provider is off and emailAndPassword.enabled is false. " +
-      "At least one sign-in method must stay enabled or no one could log in."
+      "Enable AUTH_ENABLE_GOOGLE / AUTH_ENABLE_EMAIL_PASSWORD, or pass your own provider via createAuth({ socialProviders: {...} })."
     )
   }
 
@@ -100,4 +101,36 @@ export function createAuth(overrides: AuthOverrides = {}) {
   })
 }
 
-export const auth = createAuth()
+// Lazy: constructing the default instance validates config and throws if no
+// provider is enabled (see the guard above). Building it eagerly at module
+// load would mean a downstream project that only imports `createAuth` to
+// build its *own* customized instance (README §5) still pays that throw —
+// merely importing this module would run it, regardless of whether the
+// consuming project ever touches this default export. Deferring construction
+// to first property access means the throw only fires for code that actually
+// uses the package's own unconfigured `auth` singleton.
+let _auth: ReturnType<typeof createAuth> | undefined
+function getDefaultAuth() {
+  if (!_auth) _auth = createAuth()
+  return _auth
+}
+
+export const auth = new Proxy({} as ReturnType<typeof createAuth>, {
+  get(_target, prop) {
+    const instance = getDefaultAuth()
+    const value = Reflect.get(instance, prop)
+    return typeof value === "function" ? value.bind(instance) : value
+  },
+  // "prop" in auth (e.g. better-auth's toNextJsHandler does `"handler" in auth`)
+  // must also see the real instance — without this it checks the empty
+  // placeholder target and always reports false.
+  has(_target, prop) {
+    return Reflect.has(getDefaultAuth(), prop)
+  },
+  ownKeys(_target) {
+    return Reflect.ownKeys(getDefaultAuth())
+  },
+  getOwnPropertyDescriptor(_target, prop) {
+    return Reflect.getOwnPropertyDescriptor(getDefaultAuth(), prop)
+  },
+})

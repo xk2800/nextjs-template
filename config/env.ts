@@ -10,13 +10,12 @@ const envSchema = z.object({
   AUTH_ENABLE_GOOGLE: z.string().default('true').transform(val => val === 'true'),
   AUTH_ENABLE_EMAIL_PASSWORD: z.string().default('true').transform(val => val === 'true'),
   DB_DRIVER: z.enum(['pg', 'neon']).default('pg'),
-}).refine(
-  data => data.AUTH_ENABLE_GOOGLE || data.AUTH_ENABLE_EMAIL_PASSWORD,
-  {
-    message: 'At least one auth provider must stay enabled — AUTH_ENABLE_GOOGLE and AUTH_ENABLE_EMAIL_PASSWORD cannot both be false, or no one could sign in.',
-    path: ['AUTH_ENABLE_GOOGLE'],
-  }
-)
+})
+// No refine() gating "at least one of AUTH_ENABLE_GOOGLE / AUTH_ENABLE_EMAIL_PASSWORD"
+// here — this module can't see createAuth() overrides, so it can't tell a genuinely
+// broken config (both off, no replacement) apart from a valid custom-provider-only
+// setup (both off, e.g. Apple added via createAuth()). That check lives in
+// server/auth.ts's createAuth(), which evaluates the *final* merged provider list.
 
 const results = envSchema.safeParse(process.env);
 

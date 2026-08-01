@@ -210,7 +210,12 @@ AUTH_ENABLE_EMAIL_PASSWORD=false
 
 Setting one to `false` removes it from the Better-Auth config server-side (not just from the UI) — a disabled provider's endpoints won't authenticate anyone, even if called directly. The shipped login/signup pages hide the corresponding button/form automatically since they read the same flags.
 
-**`AUTH_ENABLE_GOOGLE=false` and `AUTH_ENABLE_EMAIL_PASSWORD=false` together always fail at startup, with no exception** — `config/env.ts` throws before `createAuth()` even runs, as a fast, hard guard against ending up with zero sign-in methods. This check is unconditional: it doesn't know about `createAuth()` overrides, so it throws even if you've also added a different provider (e.g. Apple, per the section above) via `socialProviders`. There is no supported way to run a fully custom-provider-only setup — **at least one of the two flags must stay `true`**. If you want Apple (or another custom provider) to be the *only one your UI shows*, leave one flag (say `AUTH_ENABLE_EMAIL_PASSWORD`) at its default `true` so startup succeeds, and simply don't render the built-in email/password form in your own login/signup pages — the flag stays functionally unused, but its endpoints being technically live server-side is the tradeoff for passing the startup guard.
+**Setting both `AUTH_ENABLE_GOOGLE=false` and `AUTH_ENABLE_EMAIL_PASSWORD=false` only fails if you haven't added a replacement provider.** `createAuth()` checks the *final* merged provider list — after your own `overrides.socialProviders` (per the section above) is applied — and throws only if that list is genuinely empty and email/password is also off. So:
+
+- Both flags `false`, no override → throws. There would be zero ways to sign in.
+- Both flags `false`, `createAuth({ socialProviders: { apple: {...} } })` → works fine. Apple is your only provider, and that's a valid config.
+
+This check lives in `createAuth()`, not `config/env.ts` — `config/env.ts` can't see overrides (they're only known at `createAuth()` call time), so it doesn't gate this at all. It only throws for the package's own default `auth` export (used by the shipped `/login`, `/signup`, and `app/api/auth/[...all]/route.ts`) if *that* ends up providerless, since that instance never has overrides.
 
 ### 6. Import what you need
 
