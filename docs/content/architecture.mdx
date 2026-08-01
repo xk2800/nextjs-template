@@ -115,6 +115,8 @@ Environment variables are validated at runtime using Zod in `config/env.ts`:
 | `DATABASE_URL` | string | — | PostgreSQL connection string |
 | `RESEND_API_KEY` | string | — | Resend email API key |
 | `ENABLE_SESSION_REVOCATION` | boolean | `true` | Enable/disable session revocation |
+| `AUTH_ENABLE_GOOGLE` | boolean | `true` | Enable/disable the Google OAuth provider (server and login/signup UI) |
+| `AUTH_ENABLE_EMAIL_PASSWORD` | boolean | `true` | Enable/disable the email/password provider (server and login/signup UI) |
 
 ### Auth Environment Variables
 
@@ -123,6 +125,8 @@ Environment variables are validated at runtime using Zod in `config/env.ts`:
 | `AUTH_SECRET` | Secret for signing cookies and tokens |
 | `AUTH_GOOGLE_ID` | Google OAuth client ID |
 | `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
+| `AUTH_ENABLE_GOOGLE` | Set to `false` in a consuming project's `.env.*` to disable Google login without forking `server/auth.ts` |
+| `AUTH_ENABLE_EMAIL_PASSWORD` | Set to `false` in a consuming project's `.env.*` to disable email/password login without forking `server/auth.ts` |
 | `BETTER_AUTH_URL` | Base URL for auth callbacks |
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL |
 

@@ -1,5 +1,6 @@
-import { db } from "@/server/db"
-import { sessions } from "@/server/db/schema"
+import "server-only"
+import { db } from "../server/db"
+import { sessions } from "../server/db/schema"
 import { eq, desc } from "drizzle-orm"
 
 /**

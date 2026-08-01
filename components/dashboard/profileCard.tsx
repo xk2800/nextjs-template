@@ -1,8 +1,7 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { hasRole } from "@/lib/auth-helpers"
-import { getUserInitials } from "@/lib/formatters"
+import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
+import { Badge } from "../ui/badge"
+import { getUserInitials } from "../../lib/formatters"
 
 type User = {
   id: string
@@ -12,7 +11,7 @@ type User = {
   role: string | null | undefined
 }
 
-export default function ProfileCard({ user }: { user: User }) {
+export default function ProfileCard({ user, isAdmin }: { user: User; isAdmin: boolean }) {
   return (
     <Card>
       <CardHeader>
@@ -30,7 +29,7 @@ export default function ProfileCard({ user }: { user: User }) {
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1">
               <h3 className="text-xl font-semibold">{user.name}</h3>
-              <Badge variant={hasRole(user.role, 'admin') ? 'default' : 'secondary'}>
+              <Badge variant={isAdmin ? 'default' : 'secondary'}>
                 {user.role}
               </Badge>
             </div>

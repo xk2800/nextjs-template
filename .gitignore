@@ -45,3 +45,7 @@ yarn-error.log*
 next-env.d.ts
 .env.test
 .env
+.npmrc
+
+# library build output (npm package)
+/dist

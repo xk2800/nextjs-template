@@ -1,5 +1,6 @@
-import { db } from "@/server/db"
-import { activityLogs } from "@/server/db/schema"
+import "server-only"
+import { db } from "../server/db"
+import { activityLogs } from "../server/db/schema"
 
 export type ActivityAction =
   | 'login'

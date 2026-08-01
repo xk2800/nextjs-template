@@ -1,9 +1,9 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import { Button } from '../ui/button'
 import { FcGoogle } from "react-icons/fc";
 import React from 'react'
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "../../lib/auth-client";
 
 type Props = {
   callbackUrl?: string

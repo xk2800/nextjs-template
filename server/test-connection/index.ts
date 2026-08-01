@@ -7,9 +7,15 @@
 import 'dotenv/config';
 import { eq } from 'drizzle-orm';
 import { users } from '@/server/db/schema';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 
-// const db = drizzle(process.env.DATABASE_URL!);
-import { db } from '@/server/db';
+// Builds its own connection instead of importing the shared `@/server/db`
+// singleton, since that module is guarded with "server-only" (to keep it out
+// of client bundles) and this script runs via plain bun/node outside Next.js's
+// bundler, where that guard throws unconditionally.
+const pool = new Pool({ connectionString: process.env.DATABASE_URL! });
+const db = drizzle(pool);
 
 async function main() {
   const user: typeof users.$inferInsert = {

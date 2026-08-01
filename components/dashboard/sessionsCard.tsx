@@ -1,8 +1,8 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
+import { Badge } from "../ui/badge"
+import { Button } from "../ui/button"
 import {
   Table,
   TableBody,
@@ -10,7 +10,7 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "../ui/table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,12 +20,11 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { formatDateTime } from "@/lib/formatters"
+} from "../ui/alert-dialog"
+import { formatDateTime } from "../../lib/formatters"
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { config } from "@/config/env"
 
 interface Session {
   id: string
@@ -40,12 +39,14 @@ interface SessionsCardProps {
   userId: string
   initialSessions: Session[]
   currentSessionToken: string
+  enableSessionRevocation: boolean
 }
 
 export default function SessionsCard({
   userId,
   initialSessions,
-  currentSessionToken
+  currentSessionToken,
+  enableSessionRevocation
 }: SessionsCardProps) {
   const router = useRouter()
   const [sessions, setSessions] = useState(initialSessions)
@@ -107,7 +108,7 @@ export default function SessionsCard({
                     <TableHead>Expires</TableHead>
                     <TableHead>IP Address</TableHead>
                     <TableHead>User Agent</TableHead>
-                    {config.ENABLE_SESSION_REVOCATION && (
+                    {enableSessionRevocation && (
                       <TableHead>Actions</TableHead>
                     )}
                   </TableRow>
@@ -134,7 +135,7 @@ export default function SessionsCard({
                         <TableCell className="text-sm max-w-xs truncate">
                           {session.userAgent || 'N/A'}
                         </TableCell>
-                        {config.ENABLE_SESSION_REVOCATION && (
+                        {enableSessionRevocation && (
                           <TableCell>
                             {!isCurrent && (
                               <Button

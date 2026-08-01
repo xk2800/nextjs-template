@@ -1,23 +1,218 @@
 {
-  "name": "nextjs-template",
-  "version": "0.1.0",
-  "private": true,
+  "name": "@xk2800/nextjs-template",
+  "version": "0.1.11",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xk2800/nextjs-template.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "sideEffects": [
+    "./dist/config/env.js",
+    "./dist/config/env.mjs",
+    "./dist/db/index.js",
+    "./dist/db/index.mjs",
+    "./dist/auth/index.js",
+    "./dist/auth/index.mjs",
+    "./dist/activity/logger.js",
+    "./dist/activity/logger.mjs",
+    "./dist/activity/queries.js",
+    "./dist/activity/queries.mjs",
+    "./dist/sessions/queries.js",
+    "./dist/sessions/queries.mjs",
+    "./dist/admin/queries.js",
+    "./dist/admin/queries.mjs"
+  ],
+  "files": [
+    "dist",
+    "components/ui",
+    "components/auth",
+    "components/theme",
+    "components/providers",
+    "components/email",
+    "components/dashboard",
+    "lib/utils.ts",
+    "lib/auth-client.ts",
+    "lib/formatters.ts",
+    "styles/theme.css",
+    "README.md"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    "./auth": {
+      "types": "./dist/auth/index.d.ts",
+      "import": "./dist/auth/index.mjs",
+      "require": "./dist/auth/index.js"
+    },
+    "./auth/helpers": {
+      "types": "./dist/auth/helpers.d.ts",
+      "import": "./dist/auth/helpers.mjs",
+      "require": "./dist/auth/helpers.js"
+    },
+    "./auth-client": {
+      "types": "./dist/auth-client/index.d.ts",
+      "import": "./dist/auth-client/index.mjs",
+      "require": "./dist/auth-client/index.js"
+    },
+    "./db": {
+      "types": "./dist/db/index.d.ts",
+      "import": "./dist/db/index.mjs",
+      "require": "./dist/db/index.js"
+    },
+    "./db/schema": {
+      "types": "./dist/db/schema.d.ts",
+      "import": "./dist/db/schema.mjs",
+      "require": "./dist/db/schema.js"
+    },
+    "./config/env": {
+      "types": "./dist/config/env.d.ts",
+      "import": "./dist/config/env.mjs",
+      "require": "./dist/config/env.js"
+    },
+    "./types/auth/loginSchema": {
+      "types": "./dist/types/auth/loginSchema.d.ts",
+      "import": "./dist/types/auth/loginSchema.mjs",
+      "require": "./dist/types/auth/loginSchema.js"
+    },
+    "./types/auth/signupSchema": {
+      "types": "./dist/types/auth/signupSchema.d.ts",
+      "import": "./dist/types/auth/signupSchema.mjs",
+      "require": "./dist/types/auth/signupSchema.js"
+    },
+    "./activity/logger": {
+      "types": "./dist/activity/logger.d.ts",
+      "import": "./dist/activity/logger.mjs",
+      "require": "./dist/activity/logger.js"
+    },
+    "./activity/queries": {
+      "types": "./dist/activity/queries.d.ts",
+      "import": "./dist/activity/queries.mjs",
+      "require": "./dist/activity/queries.js"
+    },
+    "./sessions/queries": {
+      "types": "./dist/sessions/queries.d.ts",
+      "import": "./dist/sessions/queries.mjs",
+      "require": "./dist/sessions/queries.js"
+    },
+    "./admin/queries": {
+      "types": "./dist/admin/queries.d.ts",
+      "import": "./dist/admin/queries.mjs",
+      "require": "./dist/admin/queries.js"
+    },
+    "./lib/utils": "./lib/utils.ts",
+    "./lib/formatters": "./lib/formatters.ts",
+    "./styles/theme.css": "./styles/theme.css",
+    "./components/*": "./components/*.tsx"
+  },
+  "typesVersions": {
+    "*": {
+      "auth": [
+        "dist/auth/index.d.ts"
+      ],
+      "auth/helpers": [
+        "dist/auth/helpers.d.ts"
+      ],
+      "auth-client": [
+        "dist/auth-client/index.d.ts"
+      ],
+      "db": [
+        "dist/db/index.d.ts"
+      ],
+      "db/schema": [
+        "dist/db/schema.d.ts"
+      ],
+      "config/env": [
+        "dist/config/env.d.ts"
+      ],
+      "types/auth/loginSchema": [
+        "dist/types/auth/loginSchema.d.ts"
+      ],
+      "types/auth/signupSchema": [
+        "dist/types/auth/signupSchema.d.ts"
+      ],
+      "activity/logger": [
+        "dist/activity/logger.d.ts"
+      ],
+      "activity/queries": [
+        "dist/activity/queries.d.ts"
+      ],
+      "sessions/queries": [
+        "dist/sessions/queries.d.ts"
+      ],
+      "admin/queries": [
+        "dist/admin/queries.d.ts"
+      ]
+    }
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "build:lib": "tsup",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
+    "prepublishOnly": "bun run typecheck && bun run build:lib",
+    "bump-version": "bun scripts/bump-version.ts",
     "generate": "bun drizzle-kit generate",
     "migrate:dev": "bun --env-file=.env.development drizzle-kit migrate",
     "migrate:prod": "bun --env-file=.env.production drizzle-kit migrate",
     "migrate:test": "bun --env-file=.env.test drizzle-kit migrate",
     "studio:dev": "bun --env-file=.env.development drizzle-kit studio",
     "studio:prod": "bun --env-file=.env.production drizzle-kit studio",
+    "dev:doppler": "doppler run -- next dev --turbopack",
+    "build:doppler": "doppler run -- next build",
+    "start:doppler": "doppler run -- next start",
+    "generate:doppler": "doppler run -- drizzle-kit generate",
+    "migrate:doppler": "doppler run -- drizzle-kit migrate",
+    "studio:doppler": "doppler run -- drizzle-kit studio",
     "docs:dev": "cd docs && bun run dev"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.0.0",
     "@paralleldrive/cuid2": "^3.0.4",
+    "bcrypt": "^6.0.0",
+    "better-auth": "^1.3.34",
+    "drizzle-orm": "^0.45.0",
+    "pg": "^8.16.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.1.12"
+  },
+  "peerDependencies": {
+    "next": "^15.0.0 || ^16.0.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "@radix-ui/react-alert-dialog": "^1.1.0",
+    "@radix-ui/react-avatar": "^1.1.0",
+    "@radix-ui/react-dialog": "^1.1.0",
+    "@radix-ui/react-dropdown-menu": "^2.1.0",
+    "@radix-ui/react-label": "^2.1.0",
+    "@radix-ui/react-separator": "^1.1.0",
+    "@radix-ui/react-slot": "^1.2.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.0",
+    "tailwind-merge": "^3.3.0",
+    "lucide-react": "^1.16.0",
+    "react-icons": "^5.5.0",
+    "next-themes": "^0.4.0",
+    "@react-email/components": "^1.0.0",
+    "sonner": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@react-email/components": {
+      "optional": true
+    },
+    "next-themes": {
+      "optional": true
+    },
+    "sonner": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@inquirer/prompts": "^8.5.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -26,38 +221,32 @@
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
     "@react-email/components": "^1.0.1",
-    "bcrypt": "^6.0.0",
-    "better-auth": "^1.3.34",
+    "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^26.1.0",
+    "@types/pg": "^8.15.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
-    "drizzle-orm": "^0.45.0",
+    "drizzle-kit": "^0.31.1",
+    "eslint": "^10",
+    "eslint-config-next": "16.2.12",
     "lucide-react": "^1.16.0",
-    "next": "16.2.7",
+    "next": "16.2.12",
     "next-themes": "^0.4.6",
-    "pg": "^8.16.0",
+    "playwright": "^1.62.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
     "resend": "^6.4.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
-    "zod": "^4.1.12"
-  },
-  "devDependencies": {
-    "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
-    "@types/bcrypt": "^6.0.0",
-    "@types/node": "^25",
-    "@types/pg": "^8.15.2",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "drizzle-kit": "^0.31.1",
-    "eslint": "^10",
-    "eslint-config-next": "16.2.7",
     "tailwindcss": "^4",
+    "tsup": "^8.5.1",
     "tsx": "^4.19.4",
     "tw-animate-css": "^1.3.6",
-    "typescript": "^6"
+    "typescript": "^6.0.3"
   }
 }
