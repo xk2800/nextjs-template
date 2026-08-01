@@ -27,7 +27,9 @@ export function createAuth(overrides: AuthOverrides = {}) {
   // Belt-and-suspenders check on the *final* merged config (accounts for
   // overrides.socialProviders too — config/env.ts's own check can't see those,
   // since overrides are only known here at createAuth() call time).
-  if (Object.keys(socialProviders).length === 0 && !emailAndPasswordEnabled) {
+  const hasEnabledSocialProvider = Object.values(socialProviders).some(Boolean)
+
+  if (!hasEnabledSocialProvider && !emailAndPasswordEnabled) {
     throw new Error(
       "No auth provider is enabled — every social provider is off and emailAndPassword.enabled is false. " +
       "At least one sign-in method must stay enabled or no one could log in."

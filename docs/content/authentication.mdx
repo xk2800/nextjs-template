@@ -50,20 +50,21 @@ Both toggles default to `true`, so existing projects and the package's own app s
 Setting both `AUTH_ENABLE_GOOGLE=false` and `AUTH_ENABLE_EMAIL_PASSWORD=false` is treated as a misconfiguration and throws, via two independent checks:
 
 1. **`config/env.ts`** — a Zod `.refine()` throws at import time if both flags are `false`. This is a fast, unconditional check; it doesn't know about `createAuth()` overrides, so it fires even if a project has added another provider (e.g. Apple) via `socialProviders`.
-2. **`server/auth.ts`'s `createAuth()`** — throws separately if the *final* merged provider list (after `overrides.socialProviders` is applied) is empty and email/password is off.
+2. **`server/auth.ts`'s `createAuth()`** — throws separately if the _final_ merged provider list (after `overrides.socialProviders` is applied) is empty and email/password is off.
 
-Both are intentionally hard failures, not warnings — a project with both toggles off and no replacement provider would otherwise ship with an unusable, silent login page. If you want Google and email/password both off in favor of a different provider, leave at least one of the two flags unset (or `true`); it'll be present in the Better-Auth config but simply unused by your login UI.
+Both are intentionally hard failures, not warnings — a project with both toggles off and no replacement provider would otherwise ship with an unusable, silent login page. If you want Google and email/password both off in favor of a different provider, you must also disable or remove the built-in provider from the shipped auth UI and server config; the current validation and supplied login pages keep that built-in sign-in method active whenever either toggle remains enabled.
 
 ## Session Management
 
-| Setting | Value | Description |
-|---|---|---|
-| `expiresIn` | 30 days | Session lifetime |
-| `updateAge` | 24 hours | How often session is refreshed in the database |
-| `cookieCache.enabled` | `true` | Hybrid cookie caching for performance |
-| `cookieCache.maxAge` | 5 minutes | Cookie cache duration |
+| Setting               | Value     | Description                                    |
+| --------------------- | --------- | ---------------------------------------------- |
+| `expiresIn`           | 30 days   | Session lifetime                               |
+| `updateAge`           | 24 hours  | How often session is refreshed in the database |
+| `cookieCache.enabled` | `true`    | Hybrid cookie caching for performance          |
+| `cookieCache.maxAge`  | 5 minutes | Cookie cache duration                          |
 
 Sessions are database-backed, meaning you can:
+
 - List all active sessions for a user
 - Revoke individual sessions
 - Track IP address and user agent per session
@@ -75,16 +76,16 @@ The session revocation endpoint is at `POST /api/sessions/revoke`.
 Access the current session in server components or API routes:
 
 ```typescript
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
+import { auth } from "@/server/auth";
+import { headers } from "next/headers";
 
 const session = await auth.api.getSession({
-  headers: await headers()
-})
+  headers: await headers(),
+});
 
 if (session) {
-  const { user } = session
-  console.log(user.name, user.email, user.role)
+  const { user } = session;
+  console.log(user.name, user.email, user.role);
 }
 ```
 
@@ -93,16 +94,16 @@ if (session) {
 The `lib/auth-helpers.ts` module provides convenience functions:
 
 ```typescript
-import { getCurrentSession, requireAuth, requireRole } from "@/lib/auth-helpers"
+import { getCurrentSession, requireAuth, requireRole } from "@/lib/auth-helpers";
 
 // Get session (returns null if not authenticated)
-const session = await getCurrentSession()
+const session = await getCurrentSession();
 
 // Require authentication (redirects to /login if not authenticated)
-const session = await requireAuth()
+const session = await requireAuth();
 
 // Require a specific role (redirects if unauthorized)
-const session = await requireRole("admin")
+const session = await requireRole("admin");
 ```
 
 ## Client-Side Usage
@@ -110,25 +111,25 @@ const session = await requireRole("admin")
 The auth client is configured in `lib/auth-client.ts`:
 
 ```typescript
-import { authClient, useSession } from "@/lib/auth-client"
+import { authClient, useSession } from "@/lib/auth-client";
 
 // In React components — get current session
-const { data: session, isPending } = useSession()
+const { data: session, isPending } = useSession();
 
 // Sign in with email/password
 await authClient.signIn.email({
   email: "user@example.com",
   password: "password123",
-})
+});
 
 // Sign in with Google
 await authClient.signIn.social({
   provider: "google",
   callbackURL: "/",
-})
+});
 
 // Sign out
-await authClient.signOut()
+await authClient.signOut();
 ```
 
 ## Role-Based Access Control
@@ -156,11 +157,13 @@ The `better-auth.d.ts` file extends Better-Auth's default types:
 ```typescript
 declare module "better-auth" {
   interface User {
-    role: string
-    isTwoFactorEnabled?: boolean
+    role: string;
+    isTwoFactorEnabled?: boolean;
   }
   interface Session {
-    user: User & { /* full user fields */ }
+    user: User & {
+      /* full user fields */
+    };
   }
 }
 ```
@@ -177,12 +180,12 @@ This exposes endpoints like `/api/auth/sign-in/email`, `/api/auth/sign-in/social
 
 ## Required Environment Variables
 
-| Variable | Description | Example |
-|---|---|---|
-| `AUTH_SECRET` | Secret for signing cookies/tokens | `openssl rand -base64 32` |
-| `AUTH_GOOGLE_ID` | Google OAuth client ID | From Google Cloud Console |
-| `AUTH_GOOGLE_SECRET` | Google OAuth client secret | From Google Cloud Console |
-| `AUTH_ENABLE_GOOGLE` | Disable Google login for this project (default `true`) | `false` |
-| `AUTH_ENABLE_EMAIL_PASSWORD` | Disable email/password login for this project (default `true`) | `false` |
-| `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
-| `NEXT_PUBLIC_APP_URL` | Client-side base URL | `http://localhost:3000` |
+| Variable                     | Description                                                    | Example                   |
+| ---------------------------- | -------------------------------------------------------------- | ------------------------- |
+| `AUTH_SECRET`                | Secret for signing cookies/tokens                              | `openssl rand -base64 32` |
+| `AUTH_GOOGLE_ID`             | Google OAuth client ID                                         | From Google Cloud Console |
+| `AUTH_GOOGLE_SECRET`         | Google OAuth client secret                                     | From Google Cloud Console |
+| `AUTH_ENABLE_GOOGLE`         | Disable Google login for this project (default `true`)         | `false`                   |
+| `AUTH_ENABLE_EMAIL_PASSWORD` | Disable email/password login for this project (default `true`) | `false`                   |
+| `BETTER_AUTH_URL`            | Base URL for auth callbacks                                    | `http://localhost:3000`   |
+| `NEXT_PUBLIC_APP_URL`        | Client-side base URL                                           | `http://localhost:3000`   |

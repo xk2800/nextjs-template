@@ -51,7 +51,7 @@ You need a **classic Personal Access Token** (GitHub Packages does not support f
    # should print: xk2800
    ```
 
-> **Tip:** create a **second, read-only token** with the smallest scope that works for your package permissions (`read:packages` only when allowed; add `repo` only if GitHub explicitly requires it for this package). Keep it separate from the publish-capable token so a VPS compromise cannot publish or push code.
+> **Tip:** reserve **read-only** for credentials that use `read:packages` by itself. If GitHub requires `repo` for this package, that credential is effectively a repo-scoped token with full repository read/write access, so a VPS compromise could push code. Keep it separate from the publish-capable token and use the smallest scope that still works.
 
 ---
 
@@ -87,7 +87,7 @@ Assumes a Next.js 15/16 + Tailwind 4 app (e.g. `bunx create-next-app@latest`).
 @xk2800:registry=https://npm.pkg.github.com
 ```
 
-There is no secret here — the token comes from your environment. Before telling consumers to install it, verify on the release date that the package is private in GitHub Packages and that the intended repo-linked access is active; do not assume that a private repo alone guarantees package access. Since `GITHUB_TOKEN` is already exported in your shell (Step 2 above), installs just work.
+There is no secret here — the `.npmrc` file only references `GITHUB_TOKEN`; it does not define or provide the token value. Before telling consumers to install it, verify on the release date that the package is private in GitHub Packages and that the intended repo-linked access is active; do not assume that a private repo alone guarantees package access. Export `GITHUB_TOKEN` in the shell first, following Section 2, step 3, then `bun add` will work.
 
 ### Step 2 — Install
 
@@ -163,7 +163,7 @@ const result = SignupSchema.safeParse({
 if (!result.success) {
   console.error(result.error.issues);
 } else {
-  console.log("valid signup payload", result.data);
+  console.log("valid signup payload");
 }
 ```
 
@@ -185,7 +185,7 @@ This installs the exact tarball a publish would produce — the most faithful pr
 
 ## 5. Installing on the VPS / Docker
 
-The consumer repo already commits `.npmrc`, so the server only needs a dedicated install token in its environment at **install time**. Use the read-only token from Section 2, kept separate from the publish-capable credential and scoped to `read:packages` unless GitHub explicitly requires more for this package.
+The consumer repo already commits `.npmrc`, so the server only needs a dedicated install token in its environment at **install time**. Use a dedicated install credential scoped to `read:packages` when that is sufficient; if GitHub requires `repo` for this package, that token has full repository read/write access and should be treated as a privileged server secret. Keep it separate from the publish-capable token.
 
 ### Bare VPS (bun/npm install runs directly on the machine)
 
@@ -195,7 +195,7 @@ Add to the deploy user's `~/.profile` (or the systemd service / deploy script en
 export GITHUB_TOKEN=ghp_readonly_xxxxxxxx
 ```
 
-This should be a dedicated install token with the least privilege your org allows (`read:packages` only when supported); do not reuse the publish token here.
+This should be a dedicated install token with the least privilege your org allows (`read:packages` only when supported); if `repo` is required, treat that token as a full repository read/write credential and do not reuse the publish token here.
 
 Then `bun install` in the consumer app works exactly as it does locally.
 
@@ -233,15 +233,15 @@ cd /path/to/consumer-app && bun install            # should pull @xk2800/nextjs-
 
 ## 6. Troubleshooting
 
-| Symptom                                                                                                             | Cause / fix                                                                                                                                                                                                                                                                                                           |
-| ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `401 Unauthorized` from `npm.pkg.github.com`                                                                        | `GITHUB_TOKEN` not set in the environment running the install, or the token expired. `echo $GITHUB_TOKEN` to check.                                                                                                                                                                                                   |
-| `403 Permission denied`                                                                                             | Token is missing required scopes — read-only installs generally need `read:packages`, and `repo` only if GitHub explicitly requires it for this package's visibility/access model. Publishing needs `write:packages` and should use a separate credential. Must be a **classic** PAT.                                 |
-| `404 Not Found` on install                                                                                          | Package not published yet, version doesn't exist, or the token's account can't see the repo.                                                                                                                                                                                                                          |
-| Components render completely unstyled                                                                               | Missing `@source "../node_modules/@xk2800/nextjs-template";` in globals.css (Tailwind 4 skips node_modules), or `theme.css` not imported.                                                                                                                                                                             |
-| `Module parse failed` / JSX syntax error from the package                                                           | Missing `transpilePackages: ["@xk2800/nextjs-template"]` in the consumer's next.config.                                                                                                                                                                                                                               |
-| Consumer gets old code after you pushed changes                                                                     | You must `npm version patch && npm publish` here, then `bun update @xk2800/nextjs-template` in the consumer. Installs pull from the registry, not from git.                                                                                                                                                           |
-| Publish rejected: "version already exists"                                                                          | GitHub Packages versions are immutable. Bump with `npm version patch` and publish again.                                                                                                                                                                                                                              |
-| `next build` crashes with `The "id" argument must be of type string` and appears to run a package install mid-build | Next 16's TypeScript auto-setup can't resolve **TypeScript 7** (the native Go rewrite) and loops trying to reinstall it every build. Pin `typescript@^5` in the consumer app (`bun add -d typescript@^5.9.0`), delete `node_modules` + any stray `yarn.lock`, and reinstall. (Hit and confirmed during verification.) |
-| Peer deps vanish after a build that printed yarn output (`Done in Xs`, "unmet peer dependency" warnings)            | Next's auto-installer shelled out to globally-installed yarn v1, which prunes peers bun had auto-installed. Fix the root cause above, remove `yarn.lock`/`.yarn-integrity`, and reinstall with bun.                                                                                                                   |
-| Theme colors look right but you can't find `oklch(...)` in the built CSS                                            | Not a bug — Tailwind 4's Lightning CSS transpiles `oklch()` to hex/`lab()` fallbacks. Check for `.dark` rules and `--background:` definitions instead.                                                                                                                                                                |
+| Symptom                                                                                                             | Cause / fix                                                                                                                                                                                                                                                                                                             |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | --------------------------------- |
+| `401 Unauthorized` from `npm.pkg.github.com`                                                                        | `GITHUB_TOKEN` is not set in the environment running the install, or the token expired. Check whether the variable exists without printing its value (for example: `[[-n "${GITHUB_TOKEN:-}"]] && echo "GITHUB_TOKEN is set"                                                                                            |     | echo "GITHUB_TOKEN is not set"`). |
+| `403 Permission denied`                                                                                             | Token is missing required scopes — use `read:packages` for read-only installs when allowed; if `repo` is required, that token effectively has full repository read/write access and should be treated as privileged. Publishing needs `write:packages` and should use a separate credential. Must be a **classic** PAT. |
+| `404 Not Found` on install                                                                                          | Package not published yet, version doesn't exist, or the token's account can't see the repo.                                                                                                                                                                                                                            |
+| Components render completely unstyled                                                                               | Missing `@source "../node_modules/@xk2800/nextjs-template";` in globals.css (Tailwind 4 skips node_modules), or `theme.css` not imported.                                                                                                                                                                               |
+| `Module parse failed` / JSX syntax error from the package                                                           | Missing `transpilePackages: ["@xk2800/nextjs-template"]` in the consumer's next.config.                                                                                                                                                                                                                                 |
+| Consumer gets old code after you pushed changes                                                                     | You must `npm version patch && npm publish` here, then `bun update @xk2800/nextjs-template` in the consumer. Installs pull from the registry, not from git.                                                                                                                                                             |
+| Publish rejected: "version already exists"                                                                          | GitHub Packages versions are immutable. Bump with `npm version patch` and publish again.                                                                                                                                                                                                                                |
+| `next build` crashes with `The "id" argument must be of type string` and appears to run a package install mid-build | Next 16's TypeScript auto-setup can't resolve **TypeScript 7** (the native Go rewrite) and loops trying to reinstall it every build. Pin `typescript@^5` in the consumer app (`bun add -d typescript@^5.9.0`), delete `node_modules` + any stray `yarn.lock`, and reinstall. (Hit and confirmed during verification.)   |
+| Peer deps vanish after a build that printed yarn output (`Done in Xs`, "unmet peer dependency" warnings)            | Next's auto-installer shelled out to globally-installed yarn v1, which prunes peers bun had auto-installed. Fix the root cause above, remove `yarn.lock`/`.yarn-integrity`, and reinstall with bun.                                                                                                                     |
+| Theme colors look right but you can't find `oklch(...)` in the built CSS                                            | Not a bug — Tailwind 4's Lightning CSS transpiles `oklch()` to hex/`lab()` fallbacks. Check for `.dark` rules and `--background:` definitions instead.                                                                                                                                                                  |
