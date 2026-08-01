@@ -101,15 +101,18 @@ export function createAuth(overrides: AuthOverrides = {}) {
       session: {
         create: {
           async after(session) {
-            await db
-              .update(users)
-              .set({ lastLoginAt: new Date() })
-              .where(eq(users.id, session.userId))
+            try {
+              await db
+                .update(users)
+                .set({ lastLoginAt: new Date() })
+                .where(eq(users.id, session.userId))
+            } catch (error) {
+              console.error("Failed to update lastLoginAt", error)
+            }
           },
         },
       },
     },
-
     // Base URL for callbacks
     baseURL: process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000",
 

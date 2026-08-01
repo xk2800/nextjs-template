@@ -35,21 +35,20 @@ function isGhAvailable(): boolean {
 // that push directly to a branch instead of merging PRs (this one does) — so
 // build notes from the actual commit log between tags instead.
 function generateReleaseNotes(fromTag: string, toTag: string): string {
+  const formatCommitLog = (log: string) =>
+    log
+      .split('\n')
+      .map((line) => `- ${line.replace(/^[0-9a-f]+\s+/, '')}`)
+      .join('\n')
+
   try {
     const log = execSync(`git log ${fromTag}..${toTag} --oneline --no-merges`).toString().trim()
     if (!log) return `No changes since ${fromTag}.`
-    return log
-      .split('\n')
-      .map((line) => `- ${line.replace(/^[0-9a-f]+\s+/, '')}`)
-      .join('\n')
+    return formatCommitLog(log)
   } catch {
+    console.warn(`Could not diff ${fromTag}..${toTag} — falling back to full history for ${toTag}.`)
     // fromTag doesn't exist locally (e.g. first-ever release) — fall back to full log.
-    return execSync(`git log ${toTag} --oneline --no-merges`)
-      .toString()
-      .trim()
-      .split('\n')
-      .map((line) => `- ${line.replace(/^[0-9a-f]+\s+/, '')}`)
-      .join('\n')
+    return formatCommitLog(execSync(`git log ${toTag} --oneline --no-merges`).toString().trim())
   }
 }
 
@@ -161,7 +160,7 @@ async function main() {
       writeFileSync(notesFile, notes)
       run(`gh release create ${newTag} --title "${newTag}" --notes-file "${notesFile}"`)
     } else {
-      console.log(`\nSkipped release. Run when ready:\n  gh release create ${newTag} --title ${newTag} --generate-notes`)
+      console.log(`\nSkipped release. Run when ready:\n  gh release create ${newTag} --title ${newTag} --notes-file <file>`)
     }
   }
 }
