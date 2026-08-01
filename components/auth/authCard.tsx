@@ -8,11 +8,11 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "../ui/card"
-import { Separator } from "../ui/separator"
-import SocialLogin from './socialLogin'
-import EmailPasswordLogin from './emailPasswordLogin'
-import EmailPasswordSignup from './emailPasswordSignup'
+} from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
+import SocialLogin from '@/components/auth/socialLogin'
+import EmailPasswordLogin from '@/components/auth/emailPasswordLogin'
+import EmailPasswordSignup from '@/components/auth/emailPasswordSignup'
 
 type Props = {
   authCardTitle: string
@@ -25,6 +25,12 @@ type Props = {
 }
 
 const authCard = ({ authCardTitle, authCardDescription, showSocials, showEmailPassword, variant = 'login', callbackUrl }: Props) => {
+  const toggleHref = callbackUrl
+    ? `${variant === 'signup' ? '/login' : '/signup'}?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    : variant === 'signup'
+      ? '/login'
+      : '/signup'
+
   return (
     <Card>
       <CardHeader>
@@ -54,11 +60,11 @@ const authCard = ({ authCardTitle, authCardDescription, showSocials, showEmailPa
         <CardFooter className="justify-center text-sm text-muted-foreground">
           {variant === 'signup' ? (
             <p>Already have an account?{' '}
-              <Link href="/login" className="underline underline-offset-4">Log in</Link>
+              <Link href={toggleHref} className="underline underline-offset-4">Log in</Link>
             </p>
           ) : (
             <p>Don&apos;t have an account?{' '}
-              <Link href="/signup" className="underline underline-offset-4">Sign up</Link>
+              <Link href={toggleHref} className="underline underline-offset-4">Sign up</Link>
             </p>
           )}
         </CardFooter>

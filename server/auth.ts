@@ -3,7 +3,7 @@ import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { db } from "./db"
 import { users, accounts, sessions, verifications } from "./db/schema"
-import { config } from "../config/env"
+import { config } from "@/config/env"
 import bcrypt from 'bcrypt'
 
 type AuthOverrides = {
@@ -13,6 +13,27 @@ type AuthOverrides = {
 }
 
 export function createAuth(overrides: AuthOverrides = {}) {
+  const socialProviders: NonNullable<BetterAuthOptions["socialProviders"]> = {
+    ...(config.AUTH_ENABLE_GOOGLE ? {
+      google: {
+        clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "",
+        clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "",
+      },
+    } : {}),
+    ...overrides.socialProviders,
+  }
+  const emailAndPasswordEnabled = config.AUTH_ENABLE_EMAIL_PASSWORD
+
+  // Belt-and-suspenders check on the *final* merged config (accounts for
+  // overrides.socialProviders too — config/env.ts's own check can't see those,
+  // since overrides are only known here at createAuth() call time).
+  if (Object.keys(socialProviders).length === 0 && !emailAndPasswordEnabled) {
+    throw new Error(
+      "No auth provider is enabled — every social provider is off and emailAndPassword.enabled is false. " +
+      "At least one sign-in method must stay enabled or no one could log in."
+    )
+  }
+
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: "pg",
@@ -37,7 +58,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
     // Email & Password Authentication (replaces Credentials provider)
     // Toggle per-project via AUTH_ENABLE_EMAIL_PASSWORD in that project's own .env.*
     emailAndPassword: {
-      enabled: config.AUTH_ENABLE_EMAIL_PASSWORD,
+      enabled: emailAndPasswordEnabled,
       requireEmailVerification: false,
       // Use bcrypt to maintain compatibility with existing user passwords
       async hash(password: string) {
@@ -50,15 +71,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
 
     // Social Providers — google is included by default; toggle per-project via
     // AUTH_ENABLE_GOOGLE. overrides.socialProviders can still add more (or replace it).
-    socialProviders: {
-      ...(config.AUTH_ENABLE_GOOGLE ? {
-        google: {
-          clientId: process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID || "",
-          clientSecret: process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET || "",
-        },
-      } : {}),
-      ...overrides.socialProviders,
-    },
+    socialProviders,
 
     // User schema configuration
     user: {

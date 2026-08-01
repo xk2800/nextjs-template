@@ -17,8 +17,25 @@ const SignupPage = async ({
 
   const params = await searchParams
 
+  const normalizeCallbackUrl = (value?: string) => {
+    if (!value) return '/dashboard'
+
+    if (value.startsWith('/')) return value
+
+    try {
+      const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000').origin
+      const callbackUrl = new URL(value)
+      return callbackUrl.origin === appOrigin
+        ? `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}`
+        : '/dashboard'
+    } catch {
+      return '/dashboard'
+    }
+  }
+
+  const callbackUrl = normalizeCallbackUrl(params.callbackUrl)
+
   if (session?.user) {
-    const callbackUrl = params.callbackUrl || '/dashboard'
     redirect(callbackUrl)
   }
 
@@ -37,7 +54,7 @@ const SignupPage = async ({
         showSocials={config.AUTH_ENABLE_GOOGLE}
         showEmailPassword={config.AUTH_ENABLE_EMAIL_PASSWORD}
         variant="signup"
-        callbackUrl={params.callbackUrl}
+        callbackUrl={callbackUrl}
       />
     </div>
   )

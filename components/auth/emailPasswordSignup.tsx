@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button } from '../ui/button'
-import { Input } from '../ui/input'
-import { Label } from '../ui/label'
-import { authClient } from '../../lib/auth-client'
-import { SignupSchema } from '../../types/auth/signupSchema'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { authClient } from '@/lib/auth-client'
+import { SignupSchema } from '@/types/auth/signupSchema'
 import { toast } from 'sonner'
 
 type Props = {
@@ -28,16 +28,22 @@ const EmailPasswordSignup = ({ callbackUrl }: Props) => {
     }
 
     setIsSubmitting(true)
-    const { error } = await authClient.signUp.email({
-      name,
-      email,
-      password,
-      callbackURL: callbackUrl || '/dashboard',
-    })
-    setIsSubmitting(false)
 
-    if (error) {
-      toast.error(error.message || 'Failed to sign up')
+    try {
+      const { error } = await authClient.signUp.email({
+        name,
+        email,
+        password,
+        callbackURL: callbackUrl || '/dashboard',
+      })
+
+      if (error) {
+        toast.error(error.message || 'Failed to sign up')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to sign up')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 

@@ -1,6 +1,6 @@
 # Publishing & Consuming `@xk2800/nextjs-template` as a Private npm Package
 
-This repo doubles as a **private npm library** published to **GitHub Packages** (GitHub's npm registry). Because the GitHub repo is private, the package is private too — only accounts with a valid GitHub token that can read the repo can install it. That covers "just me and my server" with no paid npm account and no self-hosted registry.
+This repo doubles as a **private npm library** published to **GitHub Packages** (GitHub's npm registry). Before publishing or documenting install access, verify in the GitHub Packages UI / package settings that the published package is actually private and that the intended repo-linked access is in effect — do not assume the package inherits private visibility solely because the GitHub repo is private. That covers "just me and my server" with no paid npm account and no self-hosted registry, as long as the package has the correct access model at release time.
 
 ---
 
@@ -8,16 +8,16 @@ This repo doubles as a **private npm library** published to **GitHub Packages** 
 
 ### Already in place
 
-| Piece | Where | What it does |
-|---|---|---|
-| Package identity | `package.json` → `"name": "@xk2800/nextjs-template"` | The `@xk2800` scope must match the GitHub username — GitHub Packages requires this. |
-| Registry routing | `.npmrc` | Routes the `@xk2800` scope to `npm.pkg.github.com` and reads the auth token from the `GITHUB_TOKEN` env var. Safe to commit — no secret in the file. |
-| Server/lib build | `tsup.config.ts` + `bun run build:lib` | Compiles 11 server-side entry points (`server/auth.ts`, `server/db/*`, `lib/*-queries.ts`, etc.) to `dist/` as CJS + ESM with `.d.ts` types. |
+| Piece              | Where                                                                    | What it does                                                                                                                                                                                                                         |
+| ------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Package identity   | `package.json` → `"name": "@xk2800/nextjs-template"`                     | The `@xk2800` scope must match the GitHub username — GitHub Packages requires this.                                                                                                                                                  |
+| Registry routing   | `.npmrc`                                                                 | Routes the `@xk2800` scope to `npm.pkg.github.com` and reads the auth token from the `GITHUB_TOKEN` env var. Safe to commit — no secret in the file.                                                                                 |
+| Server/lib build   | `tsup.config.ts` + `bun run build:lib`                                   | Compiles 11 server-side entry points (`server/auth.ts`, `server/db/*`, `lib/*-queries.ts`, etc.) to `dist/` as CJS + ESM with `.d.ts` types.                                                                                         |
 | Component shipping | `package.json` → `"exports": { "./components/*": "./components/*.tsx" }` | React components ship as **raw `.tsx` source**, not compiled JS. The consuming Next.js app transpiles them (see `transpilePackages` below). This keeps `"use client"` directives intact and lets Tailwind scan the real class names. |
-| Publish whitelist | `package.json` → `"files"` | Only `dist/`, the component folders, 3 `lib/` files, `styles/theme.css`, and the README go into the tarball. The app itself (`app/`, `docs/`, configs, migrations) is never published. |
-| Theme tokens | `styles/theme.css` | A standalone copy of the shadcn theme variables (`--background`, `--primary`, oklch colors, dark mode) for consumers to import. |
-| Pre-publish safety | `"prepublishOnly"` script | Automatically runs typecheck + `tsup` build before every publish, so you can't publish a stale or broken `dist/`. |
-| Peer dependencies | `package.json` → `"peerDependencies"` | React, Next, Radix, clsx, etc. are peers so the consumer's versions are used (no duplicate React). `next-themes`, `sonner`, `@react-email/components` are optional — only needed if you use the components that import them. |
+| Publish whitelist  | `package.json` → `"files"`                                               | Only `dist/`, the component folders, 3 `lib/` files, `styles/theme.css`, and the README go into the tarball. The app itself (`app/`, `docs/`, configs, migrations) is never published.                                               |
+| Theme tokens       | `styles/theme.css`                                                       | A standalone copy of the shadcn theme variables (`--background`, `--primary`, oklch colors, dark mode) for consumers to import.                                                                                                      |
+| Pre-publish safety | `"prepublishOnly"` script                                                | Automatically runs typecheck + `tsup` build before every publish, so you can't publish a stale or broken `dist/`.                                                                                                                    |
+| Peer dependencies  | `package.json` → `"peerDependencies"`                                    | React, Next, Radix, clsx, etc. are peers so the consumer's versions are used (no duplicate React). `next-themes`, `sonner`, `@react-email/components` are optional — only needed if you use the components that import them.         |
 
 ### Changed to enable private publishing
 
@@ -32,10 +32,10 @@ Verified end-to-end: `bun run typecheck && bun run build:lib` passes; `npm pack`
 
 You need a **classic Personal Access Token** (GitHub Packages does not support fine-grained tokens for npm):
 
-1. Go to <https://github.com/settings/tokens> → *Generate new token (classic)*.
+1. Go to <https://github.com/settings/tokens> → _Generate new token (classic)_.
 2. Scopes:
    - `write:packages` (includes `read:packages`) — for publishing from your machine
-   - `repo` — required because the repo is private
+   - add `repo` only if GitHub explicitly requires it for your package's access model in this repo
 3. Make it available to npm/bun by exporting it. Add to `~/.zshrc`:
 
    ```bash
@@ -51,7 +51,7 @@ You need a **classic Personal Access Token** (GitHub Packages does not support f
    # should print: xk2800
    ```
 
-> **Tip:** create a **second, read-only token** (`read:packages` + `repo` only) for the VPS. If the server is ever compromised, the leaked token can't publish or push code.
+> **Tip:** create a **second, read-only token** with the smallest scope that works for your package permissions (`read:packages` only when allowed; add `repo` only if GitHub explicitly requires it for this package). Keep it separate from the publish-capable token so a VPS compromise cannot publish or push code.
 
 ---
 
@@ -87,7 +87,7 @@ Assumes a Next.js 15/16 + Tailwind 4 app (e.g. `bunx create-next-app@latest`).
 @xk2800:registry=https://npm.pkg.github.com
 ```
 
-There is no secret here — the token comes from your environment. Since `GITHUB_TOKEN` is already exported in your shell (Step 2 above), installs just work.
+There is no secret here — the token comes from your environment. Before telling consumers to install it, verify on the release date that the package is private in GitHub Packages and that the intended repo-linked access is active; do not assume that a private repo alone guarantees package access. Since `GITHUB_TOKEN` is already exported in your shell (Step 2 above), installs just work.
 
 ### Step 2 — Install
 
@@ -95,7 +95,7 @@ There is no secret here — the token comes from your environment. Since `GITHUB
 bun add @xk2800/nextjs-template
 ```
 
-Bun/npm auto-install the required peer dependencies (Radix, clsx, tailwind-merge, lucide-react, …). **Yarn classic (v1) does not** — if yarn ever runs an install in the project it will *remove* auto-installed peers; stick to one package manager per project (see Troubleshooting). Add the **optional** peers only if you use the components that need them:
+Bun/npm auto-install the required peer dependencies (Radix, clsx, tailwind-merge, lucide-react, …). **Yarn classic (v1) does not** — if yarn ever runs an install in the project it will _remove_ auto-installed peers; stick to one package manager per project (see Troubleshooting). Add the **optional** peers only if you use the components that need them:
 
 ```bash
 bun add next-themes   # if using components/providers/theme-provider or components/theme/theme-toggle
@@ -143,6 +143,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@xk2800/nextjs-templat
 import { AuthCard } from "@xk2800/nextjs-template/components/auth/authCard";
 import { authClient, useSession } from "@xk2800/nextjs-template/auth-client";
 
+// Schema validation
+import { SignupSchema } from "@xk2800/nextjs-template/types/auth/signupSchema";
+
 // Utilities
 import { cn } from "@xk2800/nextjs-template/lib/utils";
 
@@ -150,6 +153,18 @@ import { cn } from "@xk2800/nextjs-template/lib/utils";
 import { auth } from "@xk2800/nextjs-template/auth";
 import { db } from "@xk2800/nextjs-template/db";
 import * as schema from "@xk2800/nextjs-template/db/schema";
+
+const result = SignupSchema.safeParse({
+  name: "Example User",
+  email: "user@example.com",
+  password: "Passw0rd!",
+});
+
+if (!result.success) {
+  console.error(result.error.issues);
+} else {
+  console.log("valid signup payload", result.data);
+}
 ```
 
 > Server modules (`/auth`, `/db`, …) read the same env vars as this template (`DATABASE_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID/SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`) — set them in the consumer app's `.env` files if you use those imports. For components-only usage, no env vars are needed.
@@ -170,7 +185,7 @@ This installs the exact tarball a publish would produce — the most faithful pr
 
 ## 5. Installing on the VPS / Docker
 
-The consumer repo already commits `.npmrc`, so the server only needs `GITHUB_TOKEN` in its environment at **install time**. Use the read-only token from Section 2.
+The consumer repo already commits `.npmrc`, so the server only needs a dedicated install token in its environment at **install time**. Use the read-only token from Section 2, kept separate from the publish-capable credential and scoped to `read:packages` unless GitHub explicitly requires more for this package.
 
 ### Bare VPS (bun/npm install runs directly on the machine)
 
@@ -179,6 +194,8 @@ Add to the deploy user's `~/.profile` (or the systemd service / deploy script en
 ```bash
 export GITHUB_TOKEN=ghp_readonly_xxxxxxxx
 ```
+
+This should be a dedicated install token with the least privilege your org allows (`read:packages` only when supported); do not reuse the publish token here.
 
 Then `bun install` in the consumer app works exactly as it does locally.
 
@@ -216,15 +233,15 @@ cd /path/to/consumer-app && bun install            # should pull @xk2800/nextjs-
 
 ## 6. Troubleshooting
 
-| Symptom | Cause / fix |
-|---|---|
-| `401 Unauthorized` from `npm.pkg.github.com` | `GITHUB_TOKEN` not set in the environment running the install, or the token expired. `echo $GITHUB_TOKEN` to check. |
-| `403 Permission denied` | Token is missing scopes — needs `read:packages` **and** `repo` (private repo). Publishing needs `write:packages`. Must be a **classic** PAT. |
-| `404 Not Found` on install | Package not published yet, version doesn't exist, or the token's account can't see the repo. |
-| Components render completely unstyled | Missing `@source "../node_modules/@xk2800/nextjs-template";` in globals.css (Tailwind 4 skips node_modules), or `theme.css` not imported. |
-| `Module parse failed` / JSX syntax error from the package | Missing `transpilePackages: ["@xk2800/nextjs-template"]` in the consumer's next.config. |
-| Consumer gets old code after you pushed changes | You must `npm version patch && npm publish` here, then `bun update @xk2800/nextjs-template` in the consumer. Installs pull from the registry, not from git. |
-| Publish rejected: "version already exists" | GitHub Packages versions are immutable. Bump with `npm version patch` and publish again. |
+| Symptom                                                                                                             | Cause / fix                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401 Unauthorized` from `npm.pkg.github.com`                                                                        | `GITHUB_TOKEN` not set in the environment running the install, or the token expired. `echo $GITHUB_TOKEN` to check.                                                                                                                                                                                                   |
+| `403 Permission denied`                                                                                             | Token is missing required scopes — read-only installs generally need `read:packages`, and `repo` only if GitHub explicitly requires it for this package's visibility/access model. Publishing needs `write:packages` and should use a separate credential. Must be a **classic** PAT.                                 |
+| `404 Not Found` on install                                                                                          | Package not published yet, version doesn't exist, or the token's account can't see the repo.                                                                                                                                                                                                                          |
+| Components render completely unstyled                                                                               | Missing `@source "../node_modules/@xk2800/nextjs-template";` in globals.css (Tailwind 4 skips node_modules), or `theme.css` not imported.                                                                                                                                                                             |
+| `Module parse failed` / JSX syntax error from the package                                                           | Missing `transpilePackages: ["@xk2800/nextjs-template"]` in the consumer's next.config.                                                                                                                                                                                                                               |
+| Consumer gets old code after you pushed changes                                                                     | You must `npm version patch && npm publish` here, then `bun update @xk2800/nextjs-template` in the consumer. Installs pull from the registry, not from git.                                                                                                                                                           |
+| Publish rejected: "version already exists"                                                                          | GitHub Packages versions are immutable. Bump with `npm version patch` and publish again.                                                                                                                                                                                                                              |
 | `next build` crashes with `The "id" argument must be of type string` and appears to run a package install mid-build | Next 16's TypeScript auto-setup can't resolve **TypeScript 7** (the native Go rewrite) and loops trying to reinstall it every build. Pin `typescript@^5` in the consumer app (`bun add -d typescript@^5.9.0`), delete `node_modules` + any stray `yarn.lock`, and reinstall. (Hit and confirmed during verification.) |
-| Peer deps vanish after a build that printed yarn output (`Done in Xs`, "unmet peer dependency" warnings) | Next's auto-installer shelled out to globally-installed yarn v1, which prunes peers bun had auto-installed. Fix the root cause above, remove `yarn.lock`/`.yarn-integrity`, and reinstall with bun. |
-| Theme colors look right but you can't find `oklch(...)` in the built CSS | Not a bug — Tailwind 4's Lightning CSS transpiles `oklch()` to hex/`lab()` fallbacks. Check for `.dark` rules and `--background:` definitions instead. |
+| Peer deps vanish after a build that printed yarn output (`Done in Xs`, "unmet peer dependency" warnings)            | Next's auto-installer shelled out to globally-installed yarn v1, which prunes peers bun had auto-installed. Fix the root cause above, remove `yarn.lock`/`.yarn-integrity`, and reinstall with bun.                                                                                                                   |
+| Theme colors look right but you can't find `oklch(...)` in the built CSS                                            | Not a bug — Tailwind 4's Lightning CSS transpiles `oklch()` to hex/`lab()` fallbacks. Check for `.dark` rules and `--background:` definitions instead.                                                                                                                                                                |

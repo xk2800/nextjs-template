@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button } from '../ui/button'
-import { Input } from '../ui/input'
-import { Label } from '../ui/label'
-import { authClient } from '../../lib/auth-client'
-import { LoginSchema } from '../../types/auth/loginSchema'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { authClient } from '@/lib/auth-client'
+import { LoginSchema } from '@/types/auth/loginSchema'
 import { toast } from 'sonner'
 
 type Props = {
@@ -27,15 +27,21 @@ const EmailPasswordLogin = ({ callbackUrl }: Props) => {
     }
 
     setIsSubmitting(true)
-    const { error } = await authClient.signIn.email({
-      email,
-      password,
-      callbackURL: callbackUrl || '/dashboard',
-    })
-    setIsSubmitting(false)
 
-    if (error) {
-      toast.error(error.message || 'Failed to sign in')
+    try {
+      const { error } = await authClient.signIn.email({
+        email,
+        password,
+        callbackURL: callbackUrl || '/dashboard',
+      })
+
+      if (error) {
+        toast.error(error.message || 'Failed to sign in')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to sign in')
+    } finally {
+      setIsSubmitting(false)
     }
   }
 

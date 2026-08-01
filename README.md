@@ -213,6 +213,8 @@ AUTH_ENABLE_EMAIL_PASSWORD=false
 
 Setting one to `false` removes it from the Better-Auth config server-side (not just from the UI) — a disabled provider's endpoints won't authenticate anyone, even if called directly. The shipped login/signup pages hide the corresponding button/form automatically since they read the same flags.
 
+**`AUTH_ENABLE_GOOGLE=false` and `AUTH_ENABLE_EMAIL_PASSWORD=false` together always fail at startup** — `config/env.ts` throws before `createAuth()` even runs, as a fast, hard guard against ending up with zero sign-in methods. This is checked independently of `createAuth()` overrides, so it applies even if you've added a different provider (e.g. Apple, per the section above) via `socialProviders`. If you want Google and email/password both off in favor of a different provider, leave at least one of the two flags unset/`true` — `createAuth()` runs its own check on the final merged provider list, so the extra one won't cause an actual "nobody can sign in" state; it'll just sit unused.
+
 ### 6. Import what you need
 
 ```ts
