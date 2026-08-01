@@ -154,6 +154,7 @@
     "build:lib": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "prepublishOnly": "bun run typecheck && bun run build:lib",
+    "bump-version": "bun scripts/bump-version.ts",
     "generate": "bun drizzle-kit generate",
     "migrate:dev": "bun --env-file=.env.development drizzle-kit migrate",
     "migrate:prod": "bun --env-file=.env.production drizzle-kit migrate",
@@ -211,6 +212,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@inquirer/prompts": "^8.5.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",

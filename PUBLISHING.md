@@ -57,6 +57,16 @@ You need a **classic Personal Access Token** (GitHub Packages does not support f
 
 ## 3. Publishing a release (from this repo)
 
+### Option A — interactive (`bun run bump-version`)
+
+```bash
+bun run bump-version
+```
+
+An Inquirer.js prompt to pick **patch / minor / major (stable)**, each showing the resulting version number. It then optionally runs `typecheck` + `build:lib`, runs `npm version <type>`, and can `npm publish` and push the commit + tag for you — confirming before each step. Source: `scripts/bump-version.ts`.
+
+### Option B — manual
+
 ```bash
 # 1. Bump the version (creates a git commit + tag automatically)
 npm version patch        # 0.1.9 -> 0.1.10  (or: minor / major)
