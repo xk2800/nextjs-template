@@ -9,6 +9,7 @@ export default defineConfig({
     "db/schema": "server/db/schema.ts",
     "config/env": "config/env.ts",
     "types/auth/loginSchema": "types/auth/loginSchema.ts",
+    "types/auth/signupSchema": "types/auth/signupSchema.ts",
     "activity/logger": "lib/activity-logger.ts",
     "activity/queries": "lib/activity-queries.ts",
     "sessions/queries": "lib/session-queries.ts",

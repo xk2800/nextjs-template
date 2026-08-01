@@ -13,10 +13,11 @@ The configuration lives in `server/auth.ts`.
 - Passwords hashed with **bcrypt** (10 rounds)
 - Stored in the `users.password` column
 - Email verification is not currently required (`requireEmailVerification: false`)
+- Set `AUTH_ENABLE_EMAIL_PASSWORD=false` in a consuming project's `.env.*` to disable this provider
 
 ```typescript
 emailAndPassword: {
-  enabled: true,
+  enabled: config.AUTH_ENABLE_EMAIL_PASSWORD,
   requireEmailVerification: false,
   async hash(password: string) {
     return await bcrypt.hash(password, 10);
@@ -29,27 +30,53 @@ emailAndPassword: {
 
 ### Google OAuth
 
-Configured via environment variables:
+Configured via environment variables, and included by default. Set `AUTH_ENABLE_GOOGLE=false` in a consuming project's `.env.*` to disable it — the provider is omitted from the Better-Auth config entirely, not just hidden in the UI:
 
 ```typescript
 socialProviders: {
-  google: {
-    clientId: process.env.AUTH_GOOGLE_ID || "",
-    clientSecret: process.env.AUTH_GOOGLE_SECRET || "",
-  },
+  ...(config.AUTH_ENABLE_GOOGLE ? {
+    google: {
+      clientId: process.env.AUTH_GOOGLE_ID || "",
+      clientSecret: process.env.AUTH_GOOGLE_SECRET || "",
+    },
+  } : {}),
 }
 ```
 
+Both toggles default to `true`, so existing projects and the package's own app see no change unless they opt out. The `app/(auth)/login/page.tsx` and `app/(auth)/signup/page.tsx` pages read the same `config/env.ts` flags to decide which login methods to render.
+
+### Guarding against zero enabled providers
+
+`createAuth()` checks the *final* merged provider list — `socialProviders` after `overrides.socialProviders` is applied, plus `emailAndPassword.enabled` — and throws only if that combination is genuinely empty:
+
+```typescript
+const hasEnabledSocialProvider = Object.values(socialProviders).some(Boolean)
+
+if (!hasEnabledSocialProvider && !emailAndPasswordEnabled) {
+  throw new Error("No auth provider is enabled — ...")
+}
+```
+
+This means:
+
+- `AUTH_ENABLE_GOOGLE=false` + `AUTH_ENABLE_EMAIL_PASSWORD=false`, no override → throws. There'd be zero ways to sign in.
+- Same two flags `false`, but `createAuth({ socialProviders: { apple: {...} } })` → works. Apple is a valid replacement provider.
+
+The check is intentionally scoped to `createAuth()`, not `config/env.ts` — `config/env.ts` is evaluated before any `createAuth()` overrides exist, so it has no way to know whether a project plans to add its own provider. It cannot gate this safely, so it doesn't try.
+
+The package's own default `export const auth` (used by the shipped `/login`, `/signup`, and `app/api/auth/[...all]/route.ts`) is built lazily via `createAuth()` with no overrides — so if *that* combination has nothing enabled, the throw fires the first time `auth` is actually used (not merely imported), which is exactly the "you didn't enable any built-in provider and didn't add your own" case.
+
 ## Session Management
 
-| Setting | Value | Description |
-|---|---|---|
-| `expiresIn` | 30 days | Session lifetime |
-| `updateAge` | 24 hours | How often session is refreshed in the database |
-| `cookieCache.enabled` | `true` | Hybrid cookie caching for performance |
-| `cookieCache.maxAge` | 5 minutes | Cookie cache duration |
+| Setting               | Value     | Description                                    |
+| --------------------- | --------- | ---------------------------------------------- |
+| `expiresIn`           | 30 days   | Session lifetime                               |
+| `updateAge`           | 24 hours  | How often session is refreshed in the database |
+| `cookieCache.enabled` | `true`    | Hybrid cookie caching for performance          |
+| `cookieCache.maxAge`  | 5 minutes | Cookie cache duration                          |
 
 Sessions are database-backed, meaning you can:
+
 - List all active sessions for a user
 - Revoke individual sessions
 - Track IP address and user agent per session
@@ -61,16 +88,16 @@ The session revocation endpoint is at `POST /api/sessions/revoke`.
 Access the current session in server components or API routes:
 
 ```typescript
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
+import { auth } from "@/server/auth";
+import { headers } from "next/headers";
 
 const session = await auth.api.getSession({
-  headers: await headers()
-})
+  headers: await headers(),
+});
 
 if (session) {
-  const { user } = session
-  console.log(user.name, user.email, user.role)
+  const { user } = session;
+  console.log(user.name, user.email, user.role);
 }
 ```
 
@@ -79,16 +106,16 @@ if (session) {
 The `lib/auth-helpers.ts` module provides convenience functions:
 
 ```typescript
-import { getCurrentSession, requireAuth, requireRole } from "@/lib/auth-helpers"
+import { getCurrentSession, requireAuth, requireRole } from "@/lib/auth-helpers";
 
 // Get session (returns null if not authenticated)
-const session = await getCurrentSession()
+const session = await getCurrentSession();
 
 // Require authentication (redirects to /login if not authenticated)
-const session = await requireAuth()
+const session = await requireAuth();
 
 // Require a specific role (redirects if unauthorized)
-const session = await requireRole("admin")
+const session = await requireRole("admin");
 ```
 
 ## Client-Side Usage
@@ -96,25 +123,25 @@ const session = await requireRole("admin")
 The auth client is configured in `lib/auth-client.ts`:
 
 ```typescript
-import { authClient, useSession } from "@/lib/auth-client"
+import { authClient, useSession } from "@/lib/auth-client";
 
 // In React components — get current session
-const { data: session, isPending } = useSession()
+const { data: session, isPending } = useSession();
 
 // Sign in with email/password
 await authClient.signIn.email({
   email: "user@example.com",
   password: "password123",
-})
+});
 
 // Sign in with Google
 await authClient.signIn.social({
   provider: "google",
   callbackURL: "/",
-})
+});
 
 // Sign out
-await authClient.signOut()
+await authClient.signOut();
 ```
 
 ## Role-Based Access Control
@@ -142,11 +169,13 @@ The `better-auth.d.ts` file extends Better-Auth's default types:
 ```typescript
 declare module "better-auth" {
   interface User {
-    role: string
-    isTwoFactorEnabled?: boolean
+    role: string;
+    isTwoFactorEnabled?: boolean;
   }
   interface Session {
-    user: User & { /* full user fields */ }
+    user: User & {
+      /* full user fields */
+    };
   }
 }
 ```
@@ -163,10 +192,12 @@ This exposes endpoints like `/api/auth/sign-in/email`, `/api/auth/sign-in/social
 
 ## Required Environment Variables
 
-| Variable | Description | Example |
-|---|---|---|
-| `AUTH_SECRET` | Secret for signing cookies/tokens | `openssl rand -base64 32` |
-| `AUTH_GOOGLE_ID` | Google OAuth client ID | From Google Cloud Console |
-| `AUTH_GOOGLE_SECRET` | Google OAuth client secret | From Google Cloud Console |
-| `BETTER_AUTH_URL` | Base URL for auth callbacks | `http://localhost:3000` |
-| `NEXT_PUBLIC_APP_URL` | Client-side base URL | `http://localhost:3000` |
+| Variable                     | Description                                                    | Example                   |
+| ---------------------------- | -------------------------------------------------------------- | ------------------------- |
+| `AUTH_SECRET`                | Secret for signing cookies/tokens                              | `openssl rand -base64 32` |
+| `AUTH_GOOGLE_ID`             | Google OAuth client ID                                         | From Google Cloud Console |
+| `AUTH_GOOGLE_SECRET`         | Google OAuth client secret                                     | From Google Cloud Console |
+| `AUTH_ENABLE_GOOGLE`         | Disable Google login for this project (default `true`)         | `false`                   |
+| `AUTH_ENABLE_EMAIL_PASSWORD` | Disable email/password login for this project (default `true`) | `false`                   |
+| `BETTER_AUTH_URL`            | Base URL for auth callbacks                                    | `http://localhost:3000`   |
+| `NEXT_PUBLIC_APP_URL`        | Client-side base URL                                           | `http://localhost:3000`   |

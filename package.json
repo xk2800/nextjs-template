@@ -1,7 +1,14 @@
 {
   "name": "@xk2800/nextjs-template",
-  "version": "0.1.9",
+  "version": "0.1.11",
   "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xk2800/nextjs-template.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
   "sideEffects": [
     "./dist/config/env.js",
     "./dist/config/env.mjs",
@@ -69,6 +76,11 @@
       "import": "./dist/types/auth/loginSchema.mjs",
       "require": "./dist/types/auth/loginSchema.js"
     },
+    "./types/auth/signupSchema": {
+      "types": "./dist/types/auth/signupSchema.d.ts",
+      "import": "./dist/types/auth/signupSchema.mjs",
+      "require": "./dist/types/auth/signupSchema.js"
+    },
     "./activity/logger": {
       "types": "./dist/activity/logger.d.ts",
       "import": "./dist/activity/logger.mjs",
@@ -117,6 +129,9 @@
       "types/auth/loginSchema": [
         "dist/types/auth/loginSchema.d.ts"
       ],
+      "types/auth/signupSchema": [
+        "dist/types/auth/signupSchema.d.ts"
+      ],
       "activity/logger": [
         "dist/activity/logger.d.ts"
       ],
@@ -139,6 +154,7 @@
     "build:lib": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "prepublishOnly": "bun run typecheck && bun run build:lib",
+    "bump-version": "bun scripts/bump-version.ts",
     "generate": "bun drizzle-kit generate",
     "migrate:dev": "bun --env-file=.env.development drizzle-kit migrate",
     "migrate:prod": "bun --env-file=.env.production drizzle-kit migrate",
@@ -196,13 +212,7 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@react-email/components": "^1.0.1",
-    "@tailwindcss/postcss": "^4",
-    "@types/bcrypt": "^6.0.0",
-    "@types/node": "^26.1.0",
-    "@types/pg": "^8.15.2",
-    "@types/react": "^19.2.17",
-    "@types/react-dom": "^19",
+    "@inquirer/prompts": "^8.5.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-dialog": "^1.1.15",
@@ -210,6 +220,13 @@
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
+    "@react-email/components": "^1.0.1",
+    "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^6.0.0",
+    "@types/node": "^26.1.0",
+    "@types/pg": "^8.15.2",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
@@ -219,6 +236,7 @@
     "lucide-react": "^1.16.0",
     "next": "16.2.7",
     "next-themes": "^0.4.6",
+    "playwright": "^1.62.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
