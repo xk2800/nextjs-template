@@ -1,11 +1,11 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { authClient } from '@/lib/auth-client'
-import { LoginSchema } from '@/types/auth/loginSchema'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { Label } from '../ui/label'
+import { authClient } from '../../lib/auth-client'
+import { LoginSchema } from '../../types/auth/loginSchema'
 import { toast } from 'sonner'
 
 type Props = {

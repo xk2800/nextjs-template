@@ -8,11 +8,11 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
-import SocialLogin from '@/components/auth/socialLogin'
-import EmailPasswordLogin from '@/components/auth/emailPasswordLogin'
-import EmailPasswordSignup from '@/components/auth/emailPasswordSignup'
+} from "../ui/card"
+import { Separator } from "../ui/separator"
+import SocialLogin from './socialLogin'
+import EmailPasswordLogin from './emailPasswordLogin'
+import EmailPasswordSignup from './emailPasswordSignup'
 
 type Props = {
   authCardTitle: string
