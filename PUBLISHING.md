@@ -140,7 +140,7 @@ import { Button } from "@xk2800/nextjs-template/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@xk2800/nextjs-template/components/ui/card";
 
 // Auth UI + client
-import { AuthCard } from "@xk2800/nextjs-template/components/auth/authCard";
+import AuthCard from "@xk2800/nextjs-template/components/auth/authCard";
 import { authClient, useSession } from "@xk2800/nextjs-template/auth-client";
 
 // Schema validation
