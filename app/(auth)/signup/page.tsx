@@ -2,6 +2,7 @@ import AuthCard from '@/components/auth/authCard'
 import React from 'react'
 import { auth } from "@/server/auth"
 import { config } from "@/config/env"
+import { normalizeCallbackUrl } from "@/lib/auth-helpers"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 
@@ -16,26 +17,6 @@ const SignupPage = async ({
   })
 
   const params = await searchParams
-
-  const normalizeCallbackUrl = (value?: string | string[]) => {
-    if (typeof value !== 'string' || !value.trim()) return '/dashboard'
-
-    const candidate = value.trim()
-
-    try {
-      const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000').origin
-      const callbackUrl = new URL(candidate, appOrigin)
-
-      if (callbackUrl.origin !== appOrigin) {
-        return '/dashboard'
-      }
-
-      return `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}` || '/dashboard'
-    } catch {
-      return '/dashboard'
-    }
-  }
-
   const callbackUrl = normalizeCallbackUrl(params.callbackUrl)
 
   if (session?.user) {

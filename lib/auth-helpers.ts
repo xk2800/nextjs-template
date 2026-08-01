@@ -74,3 +74,28 @@ export async function requireRole(requiredRole: 'user' | 'admin') {
   return session
 }
 
+/**
+ * Normalize a callbackUrl query param to a same-origin path before it's ever
+ * passed to redirect() or an auth form's callbackURL. Guards against open
+ * redirects (e.g. /login?callbackUrl=https://evil.com) — anything that
+ * doesn't resolve to this app's own origin falls back to /dashboard.
+ */
+export function normalizeCallbackUrl(value?: string | string[]): string {
+  if (typeof value !== 'string' || !value.trim()) return '/dashboard'
+
+  const candidate = value.trim()
+
+  try {
+    const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000').origin
+    const callbackUrl = new URL(candidate, appOrigin)
+
+    if (callbackUrl.origin !== appOrigin) {
+      return '/dashboard'
+    }
+
+    return `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}` || '/dashboard'
+  } catch {
+    return '/dashboard'
+  }
+}
+
