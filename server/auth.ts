@@ -1,6 +1,7 @@
 import "server-only"
 import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { eq } from "drizzle-orm"
 import { db } from "./db"
 import { users, accounts, sessions, verifications } from "./db/schema"
 import { config } from "@/config/env"
@@ -91,6 +92,22 @@ export function createAuth(overrides: AuthOverrides = {}) {
     // Advanced options
     advanced: {
       generateId: () => require('@paralleldrive/cuid2').createId(),
+    },
+
+    // Every new session row corresponds to a sign-in (credential or OAuth) —
+    // use that as the "last logged in" signal rather than session updates,
+    // which also fire on cookie-cache refresh / expiry extension.
+    databaseHooks: {
+      session: {
+        create: {
+          async after(session) {
+            await db
+              .update(users)
+              .set({ lastLoginAt: new Date() })
+              .where(eq(users.id, session.userId))
+          },
+        },
+      },
     },
 
     // Base URL for callbacks

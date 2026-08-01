@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
-import { formatDate } from '@/lib/formatters'
+import { formatDate, formatDateTime } from '@/lib/formatters'
 
 interface User {
   id: string
@@ -36,7 +36,19 @@ interface User {
   banned: boolean
   bannedAt: Date | null
   bannedReason: string | null
+  lastLoginAt: Date | null
+  lastActiveAt: Date | null
   createdAt: Date
+}
+
+// A user counts as "online" if their heartbeat (sent every 30s while a
+// dashboard tab is open, see components/dashboard/heartbeat.tsx) landed
+// within this window.
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000
+
+function isOnline(lastActiveAt: Date | null): boolean {
+  if (!lastActiveAt) return false
+  return Date.now() - new Date(lastActiveAt).getTime() < ONLINE_THRESHOLD_MS
 }
 
 interface PaginationData {
@@ -57,8 +69,8 @@ export default function AdminUsersPage() {
   const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
 
-  const fetchUsers = async (pageNum: number, searchQuery: string) => {
-    setLoading(true)
+  const fetchUsers = async (pageNum: number, searchQuery: string, silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const params = new URLSearchParams({
         page: pageNum.toString(),
@@ -71,10 +83,10 @@ export default function AdminUsersPage() {
       setUsers(data.users)
       setPagination(data.pagination)
     } catch (error) {
-      toast.error('Failed to load users')
+      if (!silent) toast.error('Failed to load users')
       console.error(error)
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
@@ -85,6 +97,14 @@ export default function AdminUsersPage() {
     }, 300)
     return () => clearTimeout(timer)
   }, [search])
+
+  // Keep online status fresh without a full-page reload.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUsers(page, search, true)
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [page, search])
 
   const handleAction = async () => {
     if (!actionUserId || !actionType) return
@@ -181,6 +201,7 @@ export default function AdminUsersPage() {
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Last Login</TableHead>
                     <TableHead>Joined</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -188,7 +209,15 @@ export default function AdminUsersPage() {
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name || 'N/A'}</TableCell>
+                      <TableCell className="font-medium">
+                        <span className="inline-flex items-center gap-2">
+                          <span
+                            className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                            title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
+                          />
+                          {user.name || 'N/A'}
+                        </span>
+                      </TableCell>
                       <TableCell className="text-sm">{user.email}</TableCell>
                       <TableCell>
                         <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
@@ -201,6 +230,9 @@ export default function AdminUsersPage() {
                         ) : (
                           <Badge variant="outline">Active</Badge>
                         )}
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}
                       </TableCell>
                       <TableCell className="text-sm">{formatDate(user.createdAt)}</TableCell>
                       <TableCell className="text-right space-x-2">
