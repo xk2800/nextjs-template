@@ -51,7 +51,7 @@ You need a **classic Personal Access Token** (GitHub Packages does not support f
    # should print: xk2800
    ```
 
-> **Tip:** reserve **read-only** for credentials that use `read:packages` by itself. If GitHub requires `repo` for this package, that credential is effectively a repo-scoped token with full repository read/write access, so a VPS compromise could push code. Keep it separate from the publish-capable token and use the smallest scope that still works.
+> **Tip:** reserve **read-only** for credentials that use `read:packages` by itself. A classic PAT with `repo` can access every repository available to its owner, including full read/write access to private repositories, not just this package. Prefer `read:packages` as the default npm install scope and use `repo` only as a verified exception for this package. Keep it separate from the publish-capable token.
 
 ---
 
@@ -189,15 +189,14 @@ The consumer repo already commits `.npmrc`, so the server only needs a dedicated
 
 ### Bare VPS (bun/npm install runs directly on the machine)
 
-Add to the deploy user's `~/.profile` (or the systemd service / deploy script environment):
+Inject the dedicated install token only for the install or deployment command, then unset it immediately so it is not left in the shell environment:
 
 ```bash
-export GITHUB_TOKEN=ghp_readonly_xxxxxxxx
+GITHUB_TOKEN=ghp_readonly_xxxxxxxx bun install --frozen-lockfile
+unset GITHUB_TOKEN
 ```
 
-This should be a dedicated install token with the least privilege your org allows (`read:packages` only when supported); if `repo` is required, treat that token as a full repository read/write credential and do not reuse the publish token here.
-
-Then `bun install` in the consumer app works exactly as it does locally.
+This should be a dedicated install token with the least privilege your org allows (`read:packages` only when supported); if `repo` is required, treat that token as a full repository read/write credential and do not reuse the publish token here. For Docker and CI, use a short-lived secret or environment variable scoped to the install step instead of persisting it in `~/.profile` or a long-lived shell profile.
 
 ### Docker
 
@@ -234,8 +233,8 @@ cd /path/to/consumer-app && bun install            # should pull @xk2800/nextjs-
 ## 6. Troubleshooting
 
 | Symptom                                                                                                             | Cause / fix                                                                                                                                                                                                                                                                                                             |
-| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | --------------------------------- |
-| `401 Unauthorized` from `npm.pkg.github.com`                                                                        | `GITHUB_TOKEN` is not set in the environment running the install, or the token expired. Check whether the variable exists without printing its value (for example: `[[-n "${GITHUB_TOKEN:-}"]] && echo "GITHUB_TOKEN is set"                                                                                            |     | echo "GITHUB_TOKEN is not set"`). |
+| ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --- | ---------------------------------- |
+| `401 Unauthorized` from `npm.pkg.github.com`                                                                        | `GITHUB_TOKEN` is not set in the environment running the install, or the token expired. Check whether the variable exists without printing its value (for example: ``[[-n "${GITHUB_TOKEN:-}"]] && echo "GITHUB_TOKEN is set"                                                                                           |     | echo "GITHUB_TOKEN is not set"``). |
 | `403 Permission denied`                                                                                             | Token is missing required scopes — use `read:packages` for read-only installs when allowed; if `repo` is required, that token effectively has full repository read/write access and should be treated as privileged. Publishing needs `write:packages` and should use a separate credential. Must be a **classic** PAT. |
 | `404 Not Found` on install                                                                                          | Package not published yet, version doesn't exist, or the token's account can't see the repo.                                                                                                                                                                                                                            |
 | Components render completely unstyled                                                                               | Missing `@source "../node_modules/@xk2800/nextjs-template";` in globals.css (Tailwind 4 skips node_modules), or `theme.css` not imported.                                                                                                                                                                               |

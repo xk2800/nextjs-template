@@ -17,12 +17,14 @@ const SignupPage = async ({
 
   const params = await searchParams
 
-  const normalizeCallbackUrl = (value?: string) => {
-    if (!value || !value.trim()) return '/dashboard'
+  const normalizeCallbackUrl = (value?: string | string[]) => {
+    if (typeof value !== 'string' || !value.trim()) return '/dashboard'
+
+    const candidate = value.trim()
 
     try {
       const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000').origin
-      const callbackUrl = new URL(value, appOrigin)
+      const callbackUrl = new URL(candidate, appOrigin)
 
       if (callbackUrl.origin !== appOrigin) {
         return '/dashboard'
