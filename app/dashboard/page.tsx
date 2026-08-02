@@ -1,22 +1,19 @@
+import { Suspense } from "react"
 import { requireAuth, hasRole } from "@/lib/auth-helpers"
-import { cookies } from "next/headers"
-import { getUserSessions } from "@/lib/session-queries"
-import { getAdminStats } from "@/lib/admin-queries"
-import { config } from "@/config/env"
+import { ErrorBoundary } from "@/components/error-boundary"
+import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
 import ProfileCard from "@/components/dashboard/profileCard"
-import SessionsCard from "@/components/dashboard/sessionsCard"
 import AccountDetailsCard from "@/components/dashboard/accountDetailsCard"
-import AdminSection from "@/components/dashboard/adminSection"
-import ActivityLogsCard from "@/components/dashboard/activityLogsCard"
+import SessionsSection from "@/components/dashboard/sessionsSection"
+import SessionsCardSkeleton from "@/components/dashboard/sessionsCardSkeleton"
+import AdminStatsSection from "@/components/dashboard/adminStatsSection"
+import AdminSectionSkeleton from "@/components/dashboard/adminSectionSkeleton"
+import ActivityLogsSection from "@/components/dashboard/activityLogsSection"
+import ActivityLogsCardSkeleton from "@/components/dashboard/activityLogsCardSkeleton"
 
 export default async function DashboardPage() {
   const session = await requireAuth()
   const isAdmin = hasRole(session.user.role, 'admin')
-
-  // Get all sessions and current session token
-  const allSessions = await getUserSessions(session.user.id)
-  const cookieStore = await cookies()
-  const currentSessionToken = cookieStore.get('better-auth.session_token')?.value || ''
 
   return (
     <div className="space-y-8">
@@ -38,18 +35,27 @@ export default async function DashboardPage() {
       </div>
 
       {/* Sessions Section (Full Width) */}
-      <SessionsCard
-        userId={session.user.id}
-        initialSessions={allSessions}
-        currentSessionToken={currentSessionToken}
-        enableSessionRevocation={config.ENABLE_SESSION_REVOCATION}
-      />
+      <ErrorBoundary fallback={<SectionErrorFallback title="Active Sessions" />}>
+        <Suspense fallback={<SessionsCardSkeleton />}>
+          <SessionsSection userId={session.user.id} />
+        </Suspense>
+      </ErrorBoundary>
 
       {/* Admin-Only Section */}
-      {isAdmin && <AdminSection stats={await getAdminStats()} />}
+      {isAdmin && (
+        <ErrorBoundary fallback={<SectionErrorFallback title="Admin overview" />}>
+          <Suspense fallback={<AdminSectionSkeleton />}>
+            <AdminStatsSection />
+          </Suspense>
+        </ErrorBoundary>
+      )}
 
       {/* Activity Logs Section */}
-      <ActivityLogsCard isAdmin={isAdmin} />
+      <ErrorBoundary fallback={<SectionErrorFallback title="Activity Logs" />}>
+        <Suspense fallback={<ActivityLogsCardSkeleton />}>
+          <ActivityLogsSection userId={session.user.id} isAdmin={isAdmin} />
+        </Suspense>
+      </ErrorBoundary>
     </div>
   )
 }

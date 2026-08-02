@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth-helpers"
-import { db } from "@/server/db"
-import { users } from "@/server/db/schema"
-import { like, desc, or, sql } from "drizzle-orm"
+import { getUsersFiltered } from "@/lib/user-queries"
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -25,38 +23,8 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
-    const offset = (page - 1) * limit
 
-    // Build search query
-    let query = db.select().from(users)
-
-    if (search.trim()) {
-      query = query.where(
-        or(
-          like(users.name, `%${search}%`),
-          like(users.email, `%${search}%`)
-        )
-      ) as any
-    }
-
-    // Get total count
-    const countResult = await db.select({ count: sql`count(*)` })
-      .from(users)
-      .where(
-        search.trim() ?
-          or(
-            like(users.name, `%${search}%`),
-            like(users.email, `%${search}%`)
-          ) : undefined
-      ) as any
-
-    const total = parseInt(countResult[0]?.count?.toString() || '0')
-
-    // Get paginated results
-    const usersList = await (query as any)
-      .orderBy(desc(users.createdAt))
-      .limit(limit)
-      .offset(offset)
+    const { users: usersList, total, pages } = await getUsersFiltered({ search, page, limit })
 
     return NextResponse.json({
       users: usersList,
@@ -64,7 +32,7 @@ export async function GET(request: NextRequest) {
         page,
         limit,
         total,
-        pages: Math.ceil(total / limit)
+        pages
       }
     })
   } catch (error) {

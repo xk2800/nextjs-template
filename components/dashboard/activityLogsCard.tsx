@@ -20,7 +20,7 @@ interface ActivityLog {
   description: string
   ipAddress: string | null
   userAgent: string | null
-  createdAt: Date
+  createdAt: Date | string
   userId: string
   userName?: string | null
   userEmail?: string | null
@@ -42,11 +42,12 @@ const actionBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive'
 
 interface ActivityLogsCardProps {
   isAdmin?: boolean
+  initialLogs?: ActivityLog[]
 }
 
-export default function ActivityLogsCard({ isAdmin = false }: ActivityLogsCardProps) {
-  const [logs, setLogs] = useState<ActivityLog[]>([])
-  const [loading, setLoading] = useState(true)
+export default function ActivityLogsCard({ isAdmin = false, initialLogs = [] }: ActivityLogsCardProps) {
+  const [logs, setLogs] = useState<ActivityLog[]>(initialLogs)
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     const fetchLogs = async () => {
