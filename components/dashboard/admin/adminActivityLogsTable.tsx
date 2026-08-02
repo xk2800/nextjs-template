@@ -82,7 +82,10 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationData | null>(initialPagination)
 
+  const requestId = useRef(0)
+
   const fetchLogs = async (pageNum: number) => {
+    const currentRequest = ++requestId.current
     setLoading(true)
     try {
       const params = new URLSearchParams({
@@ -96,13 +99,15 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
       const response = await fetch(`/api/admin/activity-logs?${params}`)
       if (!response.ok) throw new Error('Failed to fetch activity logs')
       const data = await response.json()
+      if (currentRequest !== requestId.current) return
       setLogs(data.logs)
       setPagination(data.pagination)
     } catch (error) {
+      if (currentRequest !== requestId.current) return
       toast.error('Failed to load activity logs')
       console.error(error)
     } finally {
-      setLoading(false)
+      if (currentRequest === requestId.current) setLoading(false)
     }
   }
 
