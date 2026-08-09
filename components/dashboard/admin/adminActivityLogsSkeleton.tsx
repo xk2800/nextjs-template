@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
+import { Skeleton } from "../../ui/skeleton"
 
 export default function AdminActivityLogsSkeleton() {
   return (
