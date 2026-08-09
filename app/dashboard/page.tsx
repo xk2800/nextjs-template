@@ -6,8 +6,7 @@ import ProfileCard from "@/components/dashboard/profileCard"
 import AccountDetailsCard from "@/components/dashboard/accountDetailsCard"
 import SessionsSection from "@/components/dashboard/sessionsSection"
 import SessionsCardSkeleton from "@/components/dashboard/sessionsCardSkeleton"
-import AdminStatsSection from "@/components/dashboard/adminStatsSection"
-import AdminSectionSkeleton from "@/components/dashboard/adminSectionSkeleton"
+import AdminSection from "@/components/dashboard/adminSection"
 import ActivityLogsSection from "@/components/dashboard/activityLogsSection"
 import ActivityLogsCardSkeleton from "@/components/dashboard/activityLogsCardSkeleton"
 
@@ -42,13 +41,7 @@ export default async function DashboardPage() {
       </ErrorBoundary>
 
       {/* Admin-Only Section */}
-      {isAdmin && (
-        <ErrorBoundary fallback={<SectionErrorFallback title="Admin overview" />}>
-          <Suspense fallback={<AdminSectionSkeleton />}>
-            <AdminStatsSection />
-          </Suspense>
-        </ErrorBoundary>
-      )}
+      {isAdmin && <AdminSection />}
 
       {/* Activity Logs Section */}
       <ErrorBoundary fallback={<SectionErrorFallback title="Activity Logs" />}>
