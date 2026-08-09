@@ -2,6 +2,7 @@ import { requireAuth } from "@/lib/auth-helpers"
 import DashboardHeader from "@/components/dashboard/dashboardHeader"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import Heartbeat from "@/components/dashboard/heartbeat"
+import ImpersonationBanner from "@/components/dashboard/impersonationBanner"
 
 export default async function DashboardLayout({
   children,
@@ -14,6 +15,7 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
       <Heartbeat />
+      <ImpersonationBanner />
       <DashboardHeader userName={session.user.name} actions={<ThemeToggle />} />
 
       {/* Dashboard Content */}

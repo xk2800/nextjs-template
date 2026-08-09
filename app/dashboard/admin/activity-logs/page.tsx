@@ -3,6 +3,8 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
 import ActivityLogsSection from "@/components/dashboard/admin/activityLogsSection"
 import AdminActivityLogsSkeleton from "@/components/dashboard/admin/adminActivityLogsSkeleton"
+import ImpersonationLogCard from "@/components/dashboard/admin/impersonationLogCard"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function AdminActivityLogsPage() {
   return (
@@ -13,6 +15,12 @@ export default function AdminActivityLogsPage() {
           Review activity across all users
         </p>
       </div>
+
+      <ErrorBoundary fallback={<SectionErrorFallback title="Impersonation log" />}>
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <ImpersonationLogCard showViewAllLink={false} />
+        </Suspense>
+      </ErrorBoundary>
 
       <ErrorBoundary fallback={<SectionErrorFallback title="Events" />}>
         <Suspense fallback={<AdminActivityLogsSkeleton />}>

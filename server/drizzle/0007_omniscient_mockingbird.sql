@@ -1,0 +1,1 @@
+ALTER TYPE "public"."activity_actions" ADD VALUE 'impersonation_stopped';

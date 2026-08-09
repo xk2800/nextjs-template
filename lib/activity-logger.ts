@@ -14,6 +14,8 @@ export type ActivityAction =
   | 'user_banned'
   | 'user_unbanned'
   | 'role_changed'
+  | 'impersonation_started'
+  | 'impersonation_stopped'
 
 interface LogActivityParams {
   userId: string

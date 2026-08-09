@@ -3,6 +3,8 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
 import UsersSection from "@/components/dashboard/admin/usersSection"
 import AdminUsersSkeleton from "@/components/dashboard/admin/adminUsersSkeleton"
+import ImpersonationLogCard from "@/components/dashboard/admin/impersonationLogCard"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function AdminUsersPage() {
   return (
@@ -13,6 +15,12 @@ export default function AdminUsersPage() {
           Manage users, view activity, and control access
         </p>
       </div>
+
+      <ErrorBoundary fallback={<SectionErrorFallback title="Impersonation log" />}>
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <ImpersonationLogCard />
+        </Suspense>
+      </ErrorBoundary>
 
       <ErrorBoundary fallback={<SectionErrorFallback title="Users List" />}>
         <Suspense fallback={<AdminUsersSkeleton />}>

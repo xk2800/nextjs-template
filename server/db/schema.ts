@@ -15,6 +15,8 @@ export const ActivityActionEnum = pgEnum('activity_actions', [
   'user_banned',
   'user_unbanned',
   'role_changed',
+  'impersonation_started',
+  'impersonation_stopped',
 ])
 
 export const users = pgTable("user", {
@@ -28,6 +30,10 @@ export const users = pgTable("user", {
   banned: boolean('banned').default(false).notNull(),
   bannedAt: timestamp('bannedAt'),
   bannedReason: text('bannedReason'),
+  // Required by better-auth's admin plugin schema (auto-expiring bans). We
+  // never set this ourselves, so it stays null and bans behave as permanent,
+  // same as before the plugin was added.
+  banExpires: timestamp('banExpires'),
   lastLoginAt: timestamp('lastLoginAt'),
   lastActiveAt: timestamp('lastActiveAt'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
@@ -45,6 +51,9 @@ export const sessions = pgTable("session", {
   userId: text("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  // Set by better-auth's admin plugin while this session is an admin
+  // impersonating another user; holds the impersonating admin's user id.
+  impersonatedBy: text("impersonatedBy"),
 });
 
 export const accounts = pgTable("account", {
