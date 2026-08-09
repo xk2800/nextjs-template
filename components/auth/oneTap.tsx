@@ -4,7 +4,15 @@ import { authClient, useSession } from '../../lib/auth-client'
 import { useRouter } from 'next/navigation'
 import React, { useEffect } from 'react'
 
-const OneTap = () => {
+type OneTapProps = {
+  /**
+   * Where Better-Auth redirects after a successful One Tap sign-in.
+   * @default "/dashboard"
+   */
+  callbackURL?: string
+}
+
+const OneTap = ({ callbackURL = '/dashboard' }: OneTapProps) => {
   const { data: session, isPending } = useSession()
   const router = useRouter()
 
@@ -13,12 +21,12 @@ const OneTap = () => {
     if (isPending || session) return
 
     authClient.oneTap({
-      callbackURL: '/dashboard',
+      callbackURL,
       onPromptNotification: (notification) => {
         console.log('One Tap prompt notification:', notification)
       }
     })
-  }, [session, isPending])
+  }, [session, isPending, callbackURL])
 
   return null
 }
