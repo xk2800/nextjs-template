@@ -1,10 +1,12 @@
 import "server-only"
 import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { eq } from "drizzle-orm"
 import { db } from "./db"
 import { users, accounts, sessions, verifications } from "./db/schema"
 import { config } from "@/config/env"
 import bcrypt from 'bcrypt'
+import { oneTap } from "better-auth/plugins";
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
@@ -93,11 +95,35 @@ export function createAuth(overrides: AuthOverrides = {}) {
       generateId: () => require('@paralleldrive/cuid2').createId(),
     },
 
+    // Every new session row corresponds to a sign-in (credential or OAuth) —
+    // use that as the "last logged in" signal rather than session updates,
+    // which also fire on cookie-cache refresh / expiry extension.
+    databaseHooks: {
+      session: {
+        create: {
+          async after(session) {
+            try {
+              await db
+                .update(users)
+                .set({ lastLoginAt: new Date() })
+                .where(eq(users.id, session.userId))
+            } catch (error) {
+              console.error("Failed to update lastLoginAt", error)
+            }
+          },
+        },
+      },
+    },
     // Base URL for callbacks
     baseURL: process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000",
 
     // Secret for signing cookies and tokens
     secret: process.env.AUTH_SECRET!,
+
+    plugins: [
+      // checks to see if oneTap is enabled and if google provider is available, then add the oneTap plugin
+      ...(config.AUTH_ENABLE_ONE_TAP && Boolean(socialProviders.google) ? [oneTap()] : []),
+    ]
   })
 }
 

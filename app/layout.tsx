@@ -4,6 +4,7 @@ import "./globals.css";
 import { ModalProvider } from "@/components/Updates/modal-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "sonner";
+import OneTap from "@/components/auth/oneTap";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({
           <ModalProvider />
           {children}
           <Toaster richColors position="top-right" />
+          <OneTap />
         </ThemeProvider>
       </body>
     </html>

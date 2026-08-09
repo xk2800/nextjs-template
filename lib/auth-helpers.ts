@@ -1,4 +1,5 @@
 import "server-only"
+import { cache } from "react"
 import { auth } from "../server/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
@@ -9,20 +10,26 @@ import { eq } from "drizzle-orm"
 /**
  * Get current session (server-side only)
  * Returns session data or null if not authenticated
+ *
+ * Wrapped in React's cache() so the layout and page (both of which call
+ * requireAuth per request) share one auth.api.getSession call instead of two.
  */
-export async function getCurrentSession() {
+export const getCurrentSession = cache(async () => {
   const session = await auth.api.getSession({
     headers: await headers()
   })
 
   return session
-}
+})
 
 /**
  * Require authentication - redirect to login if not authenticated
  * Use in server components/layouts that need protection
+ *
+ * Wrapped in cache() so the layout, page, and any admin layout that all call
+ * requireAuth per request share one banned-status DB lookup instead of several.
  */
-export async function requireAuth() {
+export const requireAuth = cache(async () => {
   const session = await getCurrentSession()
 
   if (!session?.user) {
@@ -45,7 +52,7 @@ export async function requireAuth() {
   }
 
   return session
-}
+})
 
 /**
  * Check if user has specific role
