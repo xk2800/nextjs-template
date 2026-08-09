@@ -9,15 +9,19 @@ export interface UserFilters {
   limit?: number
 }
 
-export async function getUsersFiltered({ search = "", page = 1, limit = 10 }: UserFilters) {
-  const offset = (page - 1) * limit
-
-  const where: SQL | undefined = search.trim()
+function buildUsersWhere(search: string): SQL | undefined {
+  return search.trim()
     ? (or(
         like(users.name, `%${search}%`),
         like(users.email, `%${search}%`)
       ) as SQL)
     : undefined
+}
+
+export async function getUsersFiltered({ search = "", page = 1, limit = 10 }: UserFilters) {
+  const offset = (page - 1) * limit
+
+  const where = buildUsersWhere(search)
 
   const [usersList, countResult] = await Promise.all([
     db
@@ -42,4 +46,22 @@ export async function getUsersFiltered({ search = "", page = 1, limit = 10 }: Us
     limit,
     pages: Math.ceil(total / limit),
   }
+}
+
+export interface UserExportFilters {
+  search?: string
+}
+
+// Caps export size to keep the CSV response bounded on very large tables.
+const EXPORT_ROW_LIMIT = 10_000
+
+export async function getUsersForExport({ search = "" }: UserExportFilters) {
+  const where = buildUsersWhere(search)
+
+  return db
+    .select()
+    .from(users)
+    .where(where)
+    .orderBy(desc(users.createdAt))
+    .limit(EXPORT_ROW_LIMIT)
 }

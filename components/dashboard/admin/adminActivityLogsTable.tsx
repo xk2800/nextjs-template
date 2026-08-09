@@ -17,6 +17,7 @@ import {
 } from '../../ui/table'
 import { toast } from 'sonner'
 import { formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
+import { Download } from 'lucide-react'
 
 interface ActivityLog {
   id: string
@@ -81,6 +82,7 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
   const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationData | null>(initialPagination)
+  const [isExporting, setIsExporting] = useState(false)
 
   const requestId = useRef(0)
 
@@ -131,6 +133,34 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
     setAction('')
     setDateFrom('')
     setDateTo('')
+  }
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const params = new URLSearchParams({
+        search,
+        action,
+        ...(dateFrom && { dateFrom }),
+        ...(dateTo && { dateTo }),
+      })
+      const response = await fetch(`/api/admin/activity-logs/export?${params}`)
+      if (!response.ok) throw new Error('Failed to export activity logs')
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `activity-logs-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      toast.error('Failed to export activity logs')
+      console.error(error)
+    } finally {
+      setIsExporting(false)
+    }
   }
 
   return (
@@ -198,11 +228,22 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Events</CardTitle>
-          <CardDescription>
-            {pagination ? `Showing ${logs.length} of ${pagination.total} events` : 'Loading...'}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>Events</CardTitle>
+            <CardDescription>
+              {pagination ? `Showing ${logs.length} of ${pagination.total} events` : 'Loading...'}
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={isExporting || logs.length === 0}
+          >
+            <Download />
+            {isExporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
