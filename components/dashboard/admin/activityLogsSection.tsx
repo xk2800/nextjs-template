@@ -1,5 +1,5 @@
-import { getActivityLogsFiltered } from "@/lib/activity-queries"
-import AdminActivityLogsTable from "@/components/dashboard/admin/adminActivityLogsTable"
+import { getActivityLogsFiltered } from "@xk2800/nextjs-template/activity/queries"
+import AdminActivityLogsTable from "./adminActivityLogsTable"
 
 export default async function ActivityLogsSection() {
   const { logs, total, page, limit, pages } = await getActivityLogsFiltered({ page: 1, limit: 20 })

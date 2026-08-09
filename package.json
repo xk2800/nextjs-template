@@ -23,7 +23,9 @@
     "./dist/sessions/queries.js",
     "./dist/sessions/queries.mjs",
     "./dist/admin/queries.js",
-    "./dist/admin/queries.mjs"
+    "./dist/admin/queries.mjs",
+    "./dist/users/queries.js",
+    "./dist/users/queries.mjs"
   ],
   "files": [
     "dist",
@@ -102,6 +104,11 @@
       "import": "./dist/admin/queries.mjs",
       "require": "./dist/admin/queries.js"
     },
+    "./users/queries": {
+      "types": "./dist/users/queries.d.ts",
+      "import": "./dist/users/queries.mjs",
+      "require": "./dist/users/queries.js"
+    },
     "./lib/utils": "./lib/utils.ts",
     "./lib/formatters": "./lib/formatters.ts",
     "./styles/theme.css": "./styles/theme.css",
@@ -144,12 +151,15 @@
       ],
       "admin/queries": [
         "dist/admin/queries.d.ts"
+      ],
+      "users/queries": [
+        "dist/users/queries.d.ts"
       ]
     }
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "bun run build:lib && next build",
     "start": "next start",
     "lint": "next lint",
     "build:lib": "tsup",

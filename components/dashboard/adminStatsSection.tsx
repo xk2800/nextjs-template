@@ -1,5 +1,5 @@
-import { getAdminStats } from "@/lib/admin-queries"
-import AdminSection from "@/components/dashboard/adminSection"
+import { getAdminStats } from "@xk2800/nextjs-template/admin/queries"
+import AdminSection from "./adminSection"
 
 export default async function AdminStatsSection() {
   const stats = await getAdminStats()
