@@ -27,6 +27,7 @@ import {
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
+import { Download } from 'lucide-react'
 
 interface User {
   id: string
@@ -71,8 +72,9 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationData | null>(initialPagination)
   const [actionUserId, setActionUserId] = useState<string | null>(null)
-  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | null>(null)
+  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
 
   const fetchUsers = async (pageNum: number, searchQuery: string, silent = false) => {
     if (!silent) setLoading(true)
@@ -118,6 +120,29 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
     return () => clearInterval(interval)
   }, [page, search])
 
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const params = new URLSearchParams({ search })
+      const response = await fetch(`/api/admin/users/export?${params}`)
+      if (!response.ok) throw new Error('Failed to export users')
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `users-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      toast.error('Failed to export users')
+      console.error(error)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const handleAction = async () => {
     if (!actionUserId || !actionType) return
 
@@ -148,6 +173,22 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
             body: JSON.stringify({ ban: false }),
           })
           successMessage = 'User unbanned successfully'
+          break
+        case 'promote':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'admin' }),
+          })
+          successMessage = 'User promoted to admin'
+          break
+        case 'demote':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'user' }),
+          })
+          successMessage = 'Admin access removed'
           break
       }
 
@@ -182,11 +223,22 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Users List</CardTitle>
-          <CardDescription>
-            {pagination ? `Showing ${users.length} of ${pagination.total} users` : 'Loading...'}
-          </CardDescription>
+        <CardHeader className="flex flex-row items-start justify-between gap-4">
+          <div>
+            <CardTitle>Users List</CardTitle>
+            <CardDescription>
+              {pagination ? `Showing ${users.length} of ${pagination.total} users` : 'Loading...'}
+            </CardDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={isExporting || users.length === 0}
+          >
+            <Download />
+            {isExporting ? 'Exporting...' : 'Export CSV'}
+          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -241,6 +293,29 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                       </TableCell>
                       <TableCell className="text-sm">{formatDate(user.createdAt)}</TableCell>
                       <TableCell className="text-right space-x-2">
+                        {user.role === 'admin' ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setActionUserId(user.id)
+                              setActionType('demote')
+                            }}
+                          >
+                            Remove Admin
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setActionUserId(user.id)
+                              setActionType('promote')
+                            }}
+                          >
+                            Make Admin
+                          </Button>
+                        )}
                         {user.banned ? (
                           <Button
                             variant="outline"
@@ -325,6 +400,8 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               {actionType === 'delete' && 'Delete User?'}
               {actionType === 'ban' && 'Ban User?'}
               {actionType === 'unban' && 'Unban User?'}
+              {actionType === 'promote' && 'Promote to Admin?'}
+              {actionType === 'demote' && 'Remove Admin Access?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {actionType === 'delete' &&
@@ -332,6 +409,10 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               {actionType === 'ban' &&
                 'This will revoke all sessions and prevent the user from logging in.'}
               {actionType === 'unban' && 'This will restore the user access.'}
+              {actionType === 'promote' &&
+                'This will grant the user full admin dashboard access.'}
+              {actionType === 'demote' &&
+                "This will revoke the user's admin dashboard access."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

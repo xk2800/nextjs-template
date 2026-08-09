@@ -44,16 +44,12 @@ export interface ActivityLogFilters {
   limit?: number
 }
 
-export async function getActivityLogsFiltered({
+function buildActivityLogsWhere({
   search = "",
   action,
   dateFrom,
   dateTo,
-  page = 1,
-  limit = 20,
-}: ActivityLogFilters) {
-  const offset = (page - 1) * limit
-
+}: Pick<ActivityLogFilters, "search" | "action" | "dateFrom" | "dateTo">): SQL | undefined {
   const conditions: SQL[] = []
   if (search.trim()) {
     conditions.push(
@@ -73,7 +69,20 @@ export async function getActivityLogsFiltered({
     conditions.push(lte(activityLogs.createdAt, dateTo))
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined
+  return conditions.length > 0 ? and(...conditions) : undefined
+}
+
+export async function getActivityLogsFiltered({
+  search = "",
+  action,
+  dateFrom,
+  dateTo,
+  page = 1,
+  limit = 20,
+}: ActivityLogFilters) {
+  const offset = (page - 1) * limit
+
+  const where = buildActivityLogsWhere({ search, action, dateFrom, dateTo })
 
   const [logs, countResult] = await Promise.all([
     db
@@ -111,4 +120,37 @@ export async function getActivityLogsFiltered({
     limit,
     pages: Math.ceil(total / limit),
   }
+}
+
+export type ActivityLogExportFilters = Pick<ActivityLogFilters, "search" | "action" | "dateFrom" | "dateTo">
+
+// Caps export size to keep the CSV response bounded on very large tables.
+const EXPORT_ROW_LIMIT = 10_000
+
+export async function getActivityLogsForExport({
+  search = "",
+  action,
+  dateFrom,
+  dateTo,
+}: ActivityLogExportFilters) {
+  const where = buildActivityLogsWhere({ search, action, dateFrom, dateTo })
+
+  return await db
+    .select({
+      id: activityLogs.id,
+      action: activityLogs.action,
+      description: activityLogs.description,
+      ipAddress: activityLogs.ipAddress,
+      userAgent: activityLogs.userAgent,
+      metadata: activityLogs.metadata,
+      createdAt: activityLogs.createdAt,
+      userId: activityLogs.userId,
+      userName: users.name,
+      userEmail: users.email,
+    })
+    .from(activityLogs)
+    .leftJoin(users, eq(activityLogs.userId, users.id))
+    .where(where)
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(EXPORT_ROW_LIMIT)
 }
