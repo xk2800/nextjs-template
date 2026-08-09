@@ -6,6 +6,7 @@ import { db } from "./db"
 import { users, accounts, sessions, verifications } from "./db/schema"
 import { config } from "@/config/env"
 import bcrypt from 'bcrypt'
+import { oneTap } from "better-auth/plugins";
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
@@ -118,6 +119,10 @@ export function createAuth(overrides: AuthOverrides = {}) {
 
     // Secret for signing cookies and tokens
     secret: process.env.AUTH_SECRET!,
+
+    plugins: [
+      oneTap(), // Add the One Tap server plugin
+    ]
   })
 }
 
