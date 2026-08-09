@@ -121,7 +121,8 @@ export function createAuth(overrides: AuthOverrides = {}) {
     secret: process.env.AUTH_SECRET!,
 
     plugins: [
-      oneTap(), // Add the One Tap server plugin
+      // checks to see if oneTap is enabled and if google provider is available, then add the oneTap plugin
+      ...(config.AUTH_ENABLE_ONE_TAP && Boolean(socialProviders.google) ? [oneTap()] : []),
     ]
   })
 }

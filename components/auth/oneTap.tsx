@@ -9,6 +9,7 @@ const OneTap = () => {
   const router = useRouter()
 
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP !== 'true') return
     if (isPending || session) return
 
     authClient.oneTap({

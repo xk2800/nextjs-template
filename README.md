@@ -217,6 +217,31 @@ Setting one to `false` removes it from the Better-Auth config server-side (not j
 
 This check lives in `createAuth()`, not `config/env.ts` — `config/env.ts` can't see overrides (they're only known at `createAuth()` call time), so it doesn't gate this at all. It only throws for the package's own default `auth` export (used by the shipped `/login`, `/signup`, and `app/api/auth/[...all]/route.ts`) if *that* ends up providerless, since that instance never has overrides.
 
+#### Enabling Google One Tap
+
+[Google One Tap](https://better-auth.com/docs/plugins/one-tap) is off by default and needs **two** flags, not one — `config/env.ts` is server-only (`import "server-only"`), so `lib/auth-client.ts` and the shipped `components/auth/oneTap.tsx` can't read it. The public flag is what actually gets inlined into your browser bundle; the server one only controls whether the Better-Auth server registers the plugin.
+
+```bash
+# .env.* in your project — both default to false
+AUTH_ENABLE_ONE_TAP=true
+NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP=true
+
+# needed either way — same OAuth client as AUTH_GOOGLE_ID, but public
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=
+```
+
+One Tap also requires Google to be enabled (`AUTH_ENABLE_GOOGLE=true`, the default) — the server silently skips registering the plugin if Google isn't configured, rather than throwing, since email/password-only projects are a valid config.
+
+Mount the shipped component once, anywhere it should be able to prompt (root layout is typical):
+
+```tsx
+import OneTap from "@xk2800/nextjs-template/components/auth/oneTap";
+```
+
+`<OneTap />` self-gates on `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` and on the current session (`useSession`), so it's safe to leave mounted permanently — it no-ops for signed-in users and for any project that hasn't turned the flag on, no conditional JSX needed on your end. Toggling the feature later is just flipping both env vars, no code changes.
+
+Your Google Cloud OAuth client also needs its **Authorized JavaScript origins** to include whatever origin you're testing/deploying from (e.g. `http://localhost:3000`) — One Tap validates the origin client-side, separately from the OAuth redirect URIs you already set up.
+
 ### 6. Import what you need
 
 ```ts
@@ -249,6 +274,7 @@ import AuthCard from "@xk2800/nextjs-template/components/auth/authCard";
 import LogoutButtons from "@xk2800/nextjs-template/components/auth/logoutButtons";
 import EmailPasswordLogin from "@xk2800/nextjs-template/components/auth/emailPasswordLogin";
 import EmailPasswordSignup from "@xk2800/nextjs-template/components/auth/emailPasswordSignup";
+import OneTap from "@xk2800/nextjs-template/components/auth/oneTap"; // no-ops unless NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP=true
 
 // dashboard UI (each takes data as props — fetch with the helpers above in your page, then pass down)
 import ProfileCard from "@xk2800/nextjs-template/components/dashboard/profileCard";

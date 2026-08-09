@@ -9,6 +9,7 @@ const envSchema = z.object({
   ENABLE_SESSION_REVOCATION: z.string().default('true').transform(val => val === 'true'),
   AUTH_ENABLE_GOOGLE: z.string().default('true').transform(val => val === 'true'),
   AUTH_ENABLE_EMAIL_PASSWORD: z.string().default('true').transform(val => val === 'true'),
+  AUTH_ENABLE_ONE_TAP: z.string().default('false').transform(val => val === 'true'),
   DB_DRIVER: z.enum(['pg', 'neon']).default('pg'),
 })
 // No refine() gating "at least one of AUTH_ENABLE_GOOGLE / AUTH_ENABLE_EMAIL_PASSWORD"
