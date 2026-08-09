@@ -6,6 +6,7 @@ import { Button } from '../../ui/button'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
 import { Skeleton } from '../../ui/skeleton'
+import { Checkbox } from '../../ui/checkbox'
 import {
   Table,
   TableBody,
@@ -28,6 +29,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
 import { Download } from 'lucide-react'
+import { useSession } from '@/lib/auth-client'
 
 interface User {
   id: string
@@ -66,6 +68,7 @@ interface AdminUsersTableProps {
 
 export default function AdminUsersTable({ initialUsers, initialPagination }: AdminUsersTableProps) {
   const router = useRouter()
+  const { data: currentSession } = useSession()
   const [users, setUsers] = useState<User[]>(initialUsers)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
@@ -75,6 +78,30 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
   const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkActionType, setBulkActionType] = useState<'ban' | 'delete' | null>(null)
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false)
+
+  const currentUserId = currentSession?.user?.id
+  const selectableIds = users.filter((u) => u.id !== currentUserId).map((u) => u.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+  const someSelected = selectedIds.size > 0 && !allSelected
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
 
   const fetchUsers = async (pageNum: number, searchQuery: string, silent = false) => {
     if (!silent) setLoading(true)
@@ -89,6 +116,7 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
       const data = await response.json()
       setUsers(data.users)
       setPagination(data.pagination)
+      if (!silent) setSelectedIds(new Set())
     } catch (error) {
       if (!silent) toast.error('Failed to load users')
       console.error(error)
@@ -205,6 +233,46 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
     }
   }
 
+  const handleBulkAction = async () => {
+    if (!bulkActionType || selectedIds.size === 0) return
+
+    setIsBulkProcessing(true)
+    try {
+      const userIds = Array.from(selectedIds)
+      const response =
+        bulkActionType === 'delete'
+          ? await fetch('/api/admin/users/bulk-delete', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds }),
+            })
+          : await fetch('/api/admin/users/bulk-ban', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds, ban: true, reason: 'Banned by admin (bulk action)' }),
+            })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || 'Bulk action failed')
+      }
+
+      toast.success(
+        bulkActionType === 'delete'
+          ? `${userIds.length} user(s) deleted`
+          : `${userIds.length} user(s) banned`
+      )
+      setBulkActionType(null)
+      setSelectedIds(new Set())
+      await fetchUsers(page, search)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Failed to bulk ${bulkActionType} users`)
+      console.error(error)
+    } finally {
+      setIsBulkProcessing(false)
+    }
+  }
+
   return (
     <>
       <Card>
@@ -241,6 +309,22 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
           </Button>
         </CardHeader>
         <CardContent>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between gap-4 mb-4 rounded-md border bg-muted/50 px-4 py-2">
+              <p className="text-sm font-medium">{selectedIds.size} selected</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkActionType('ban')}>
+                  Ban Selected
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setBulkActionType('delete')}>
+                  Delete Selected
+                </Button>
+              </div>
+            </div>
+          )}
           {loading ? (
             <div className="space-y-4">
               {[...Array(5)].map((_, i) => (
@@ -254,6 +338,13 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-10">
+                      <Checkbox
+                        checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                        onCheckedChange={toggleSelectAll}
+                        aria-label="Select all users on this page"
+                      />
+                    </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
@@ -266,6 +357,14 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                 <TableBody>
                   {users.map((user) => (
                     <TableRow key={user.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedIds.has(user.id)}
+                          onCheckedChange={() => toggleSelectOne(user.id)}
+                          disabled={user.id === currentUserId}
+                          aria-label={`Select ${user.name || user.email}`}
+                        />
+                      </TableCell>
                       <TableCell className="font-medium">
                         <span className="inline-flex items-center gap-2">
                           <span
@@ -423,6 +522,39 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               className={actionType === 'delete' ? 'bg-destructive hover:bg-destructive/90' : ''}
             >
               {isProcessing ? 'Processing...' : 'Confirm'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Action Confirmation Dialog */}
+      <AlertDialog
+        open={!!bulkActionType}
+        onOpenChange={(open) => {
+          if (!open) setBulkActionType(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkActionType === 'delete'
+                ? `Delete ${selectedIds.size} Users?`
+                : `Ban ${selectedIds.size} Users?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkActionType === 'delete'
+                ? 'This will permanently delete the selected users and all their data. This action cannot be undone.'
+                : 'This will revoke all sessions for the selected users and prevent them from logging in.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkAction}
+              disabled={isBulkProcessing}
+              className={bulkActionType === 'delete' ? 'bg-destructive hover:bg-destructive/90' : ''}
+            >
+              {isBulkProcessing ? 'Processing...' : 'Confirm'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
