@@ -116,7 +116,7 @@ async function main() {
 
   const doPublish = await confirm({
     message: 'Publish to GitHub Packages now? (npm publish)',
-    default: false,
+    default: true,
   })
   if (doPublish) {
     run('npm publish')
