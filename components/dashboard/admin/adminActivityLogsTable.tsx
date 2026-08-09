@@ -52,6 +52,8 @@ const actionOptions = [
   { value: 'user_banned', label: 'User banned' },
   { value: 'user_unbanned', label: 'User unbanned' },
   { value: 'role_changed', label: 'Role changed' },
+  { value: 'impersonation_started', label: 'Impersonation started' },
+  { value: 'impersonation_stopped', label: 'Impersonation stopped' },
 ]
 
 const actionBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -66,6 +68,8 @@ const actionBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive'
   user_banned: 'destructive',
   user_unbanned: 'default',
   role_changed: 'default',
+  impersonation_started: 'destructive',
+  impersonation_stopped: 'secondary',
 }
 
 interface AdminActivityLogsTableProps {

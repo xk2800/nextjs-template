@@ -29,7 +29,7 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
 import { Download } from 'lucide-react'
-import { useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@/lib/auth-client'
 
 interface User {
   id: string
@@ -75,7 +75,7 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationData | null>(initialPagination)
   const [actionUserId, setActionUserId] = useState<string | null>(null)
-  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | null>(null)
+  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | 'impersonate' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -173,6 +173,23 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
 
   const handleAction = async () => {
     if (!actionUserId || !actionType) return
+
+    if (actionType === 'impersonate') {
+      setIsProcessing(true)
+      try {
+        const { error } = await authClient.admin.impersonateUser({ userId: actionUserId })
+        if (error) throw new Error(error.message)
+        setActionUserId(null)
+        setActionType(null)
+        router.push('/dashboard')
+      } catch (error) {
+        toast.error('Failed to impersonate user')
+        console.error(error)
+      } finally {
+        setIsProcessing(false)
+      }
+      return
+    }
 
     setIsProcessing(true)
     try {
@@ -392,6 +409,18 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                       </TableCell>
                       <TableCell className="text-sm">{formatDate(user.createdAt)}</TableCell>
                       <TableCell className="text-right space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={user.id === currentUserId || user.banned}
+                          title={user.banned ? 'Cannot impersonate a banned user' : undefined}
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType('impersonate')
+                          }}
+                        >
+                          Impersonate
+                        </Button>
                         {user.role === 'admin' ? (
                           <Button
                             variant="outline"
@@ -501,6 +530,7 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               {actionType === 'unban' && 'Unban User?'}
               {actionType === 'promote' && 'Promote to Admin?'}
               {actionType === 'demote' && 'Remove Admin Access?'}
+              {actionType === 'impersonate' && 'Impersonate User?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {actionType === 'delete' &&
@@ -512,6 +542,8 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                 'This will grant the user full admin dashboard access.'}
               {actionType === 'demote' &&
                 "This will revoke the user's admin dashboard access."}
+              {actionType === 'impersonate' &&
+                "You'll be signed in as this user until you stop impersonating. This is logged."}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

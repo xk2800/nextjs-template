@@ -1,5 +1,5 @@
 import { createAuthClient } from "better-auth/react"
-import { oneTapClient } from "better-auth/client/plugins"
+import { oneTapClient, adminClient } from "better-auth/client/plugins"
 import type { BetterAuthClientPlugin } from "better-auth/client"
 
 const oneTapEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP === "true"
@@ -12,6 +12,7 @@ const baseAuthClient = createAuthClient({
   baseURL: typeof window !== "undefined" ? window.location.origin : undefined,
 
   plugins: [
+    adminClient(),
     ...(oneTapEnabled ? [
       // On newer better-auth versions (>=1.6, within our ^1.3.34 range) the
       // one-tap plugin's `getActions` signature doesn't structurally satisfy

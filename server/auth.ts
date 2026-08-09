@@ -6,7 +6,9 @@ import { db } from "./db"
 import { users, accounts, sessions, verifications } from "./db/schema"
 import { config } from "@/config/env"
 import bcrypt from 'bcrypt'
-import { oneTap } from "better-auth/plugins";
+import { oneTap, admin as adminPlugin } from "better-auth/plugins";
+import { createAuthMiddleware, getSessionFromCtx } from "better-auth/api"
+import { logActivity } from "@/lib/activity-logger"
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
@@ -102,6 +104,27 @@ export function createAuth(overrides: AuthOverrides = {}) {
       session: {
         create: {
           async after(session) {
+            // Impersonation sessions (created by the admin plugin's
+            // impersonateUser endpoint) also go through session.create —
+            // don't let "an admin looked at this account" show up as the
+            // user's own last login, and log it as an audit event instead.
+            const impersonatedBy = (session as { impersonatedBy?: string | null }).impersonatedBy
+            if (impersonatedBy) {
+              const target = await db
+                .select({ email: users.email })
+                .from(users)
+                .where(eq(users.id, session.userId))
+                .limit(1)
+
+              await logActivity({
+                userId: impersonatedBy,
+                action: 'impersonation_started',
+                description: `Admin started impersonating ${target[0]?.email ?? session.userId}`,
+                metadata: { impersonatedUserId: session.userId },
+              })
+              return
+            }
+
             try {
               await db
                 .update(users)
@@ -114,6 +137,35 @@ export function createAuth(overrides: AuthOverrides = {}) {
         },
       },
     },
+    // better-auth's admin plugin ends impersonation by deleting the
+    // impersonation session and restoring the admin's original session
+    // straight from a signed cookie — it never runs session.create, so
+    // there's no databaseHooks entry point to log the stop event from.
+    // Reading the session here (before the endpoint deletes it) is the only
+    // point where both the admin id and the impersonated user id are still
+    // available together.
+    hooks: {
+      before: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/admin/stop-impersonating") return
+
+        const current = await getSessionFromCtx(ctx, { disableCookieCache: true })
+        if (current?.session.impersonatedBy) {
+          const target = await db
+            .select({ email: users.email })
+            .from(users)
+            .where(eq(users.id, current.session.userId))
+            .limit(1)
+
+          await logActivity({
+            userId: current.session.impersonatedBy,
+            action: 'impersonation_stopped',
+            description: `Admin stopped impersonating ${target[0]?.email ?? current.session.userId}`,
+            metadata: { impersonatedUserId: current.session.userId },
+          })
+        }
+      }),
+    },
+
     // Base URL for callbacks
     baseURL: process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000",
 
@@ -123,6 +175,21 @@ export function createAuth(overrides: AuthOverrides = {}) {
     plugins: [
       // checks to see if oneTap is enabled and if google provider is available, then add the oneTap plugin
       ...(config.AUTH_ENABLE_ONE_TAP && Boolean(socialProviders.google) ? [oneTap()] : []),
+      // Registered for impersonation (auth.api.impersonateUser / stopImpersonating)
+      // only — role/ban/delete stay on our own custom routes above. adminRoles
+      // matches our existing role column so the plugin's own permission checks
+      // line up with hasRole(role, 'admin'). banReason is remapped onto our
+      // existing bannedReason column instead of adding a duplicate field.
+      adminPlugin({
+        adminRoles: ["admin"],
+        schema: {
+          user: {
+            fields: {
+              banReason: "bannedReason",
+            },
+          },
+        },
+      }),
     ]
   })
 }

@@ -1,7 +1,7 @@
 import "server-only"
 import { db } from "../server/db"
 import { activityLogs, users, ActivityActionEnum } from "../server/db/schema"
-import { eq, desc, and, or, like, gte, lte, sql, type SQL } from "drizzle-orm"
+import { eq, desc, and, or, like, gte, lte, sql, inArray, type SQL } from "drizzle-orm"
 
 export async function getUserActivityLogs(userId: string, limit = 50) {
   return await db
@@ -31,6 +31,27 @@ export async function getAllActivityLogs(limit = 100, offset = 0) {
     .orderBy(desc(activityLogs.createdAt))
     .limit(limit)
     .offset(offset)
+}
+
+// Narrow, purpose-built feed for the admin panel's "Impersonation log" card —
+// so admins have a dedicated view of who's been logging in as whom without
+// having to remember to apply the generic action filter first.
+export async function getRecentImpersonationEvents(limit = 10) {
+  return await db
+    .select({
+      id: activityLogs.id,
+      action: activityLogs.action,
+      description: activityLogs.description,
+      createdAt: activityLogs.createdAt,
+      adminId: activityLogs.userId,
+      adminName: users.name,
+      adminEmail: users.email,
+    })
+    .from(activityLogs)
+    .leftJoin(users, eq(activityLogs.userId, users.id))
+    .where(inArray(activityLogs.action, ['impersonation_started', 'impersonation_stopped']))
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(limit)
 }
 
 export type ActivityActionFilter = (typeof ActivityActionEnum.enumValues)[number]
