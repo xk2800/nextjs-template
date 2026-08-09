@@ -159,7 +159,7 @@
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build",
+    "build": "bun run build:lib && next build",
     "start": "next start",
     "lint": "next lint",
     "build:lib": "tsup",
