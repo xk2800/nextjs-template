@@ -1,7 +1,7 @@
 import { cookies } from "next/headers"
-import { getUserSessions } from "@/lib/session-queries"
-import { config } from "@/config/env"
-import SessionsCard from "@/components/dashboard/sessionsCard"
+import { getUserSessions } from "@xk2800/nextjs-template/sessions/queries"
+import { config } from "@xk2800/nextjs-template/config/env"
+import SessionsCard from "./sessionsCard"
 
 export default async function SessionsSection({ userId }: { userId: string }) {
   const allSessions = await getUserSessions(userId)

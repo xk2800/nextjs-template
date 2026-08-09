@@ -1,5 +1,5 @@
-import { getUserActivityLogs, getAllActivityLogs } from "@/lib/activity-queries"
-import ActivityLogsCard from "@/components/dashboard/activityLogsCard"
+import { getUserActivityLogs, getAllActivityLogs } from "@xk2800/nextjs-template/activity/queries"
+import ActivityLogsCard from "./activityLogsCard"
 
 export default async function ActivityLogsSection({
   userId,
