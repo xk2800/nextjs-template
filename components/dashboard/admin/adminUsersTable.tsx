@@ -30,7 +30,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
 import { Download } from 'lucide-react'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@xk2800/nextjs-template/auth-client'
 
 interface User {
   id: string

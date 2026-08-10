@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '../../lib/auth-client'
 import { Button } from '../ui/button'
 
 // Shown app-wide (see app/dashboard/layout.tsx) while the current session is

@@ -1,9 +1,9 @@
 import Link from "next/link"
 import { ShieldAlert } from "lucide-react"
-import { getRecentImpersonationEvents } from "@/lib/activity-queries"
+import { getRecentImpersonationEvents } from "@xk2800/nextjs-template/activity/queries"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
 import { Badge } from "../../ui/badge"
-import { formatDateTime } from "@/lib/formatters"
+import { formatDateTime } from "../../../lib/formatters"
 
 // Dedicated, always-visible feed of who's been logging in as whom — so an
 // admin can see this at a glance instead of having to remember to filter the
