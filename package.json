@@ -1,6 +1,6 @@
 {
   "name": "@xk2800/nextjs-template",
-  "version": "0.2.7",
+  "version": "0.3.0",
   "private": false,
   "repository": {
     "type": "git",
@@ -40,6 +40,8 @@
     "lib/utils.ts",
     "lib/auth-client.ts",
     "lib/formatters.ts",
+    "lib/cookie-names.ts",
+    "lib/request-info.ts",
     "types/auth",
     "styles/theme.css",
     "README.md"
