@@ -8,6 +8,6 @@
     "incremental": false,
     "ignoreDeprecations": "6.0"
   },
-  "include": ["server/auth.ts", "server/db/index.ts", "server/db/schema.ts", "lib/auth-client.ts", "lib/auth-helpers.ts", "config/env.ts", "types/auth/loginSchema.ts", "types/auth/signupSchema.ts", "lib/activity-logger.ts", "lib/activity-queries.ts", "lib/session-queries.ts", "lib/admin-queries.ts"],
+  "include": ["server/auth.ts", "server/db/index.ts", "server/db/schema.ts", "lib/auth-client.ts", "lib/auth-helpers.ts", "config/env.ts", "types/auth/loginSchema.ts", "types/auth/signupSchema.ts", "lib/activity-logger.ts", "lib/activity-queries.ts", "lib/session-queries.ts", "lib/admin-queries.ts", "lib/settings-queries.ts"],
   "exclude": ["node_modules", "docs", "app", ".next"]
 }

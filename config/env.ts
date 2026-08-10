@@ -6,6 +6,9 @@ const envSchema = z.object({
   PORT: z.string().default('3000').transform(Number),
   DATABASE_URL: z.string().default(''),
   RESEND_API_KEY: z.string().default(''),
+  // Seed-only: the live value lives in the system_settings DB row (see
+  // lib/settings-queries.ts) once it's been seeded on first read, and is
+  // changed from the admin System Settings page, not by editing this var.
   ENABLE_SESSION_REVOCATION: z.string().default('true').transform(val => val === 'true'),
   AUTH_ENABLE_GOOGLE: z.string().default('true').transform(val => val === 'true'),
   AUTH_ENABLE_EMAIL_PASSWORD: z.string().default('true').transform(val => val === 'true'),

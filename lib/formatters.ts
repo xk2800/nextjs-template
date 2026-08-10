@@ -49,4 +49,5 @@ export const actionBadgeVariant: Record<string, 'default' | 'secondary' | 'destr
   user_banned: 'destructive',
   user_unbanned: 'default',
   role_changed: 'default',
+  settings_changed: 'default',
 }

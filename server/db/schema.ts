@@ -1,4 +1,5 @@
-import { boolean, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, check, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createId } from '@paralleldrive/cuid2'
 
 export const RoleEnum = pgEnum('roles', ['user', 'admin'])
@@ -17,6 +18,7 @@ export const ActivityActionEnum = pgEnum('activity_actions', [
   'role_changed',
   'impersonation_started',
   'impersonation_stopped',
+  'settings_changed',
 ])
 
 export const users = pgTable("user", {
@@ -104,3 +106,23 @@ export const activityLogs = pgTable("activity_log", {
   city: text('city'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 });
+
+// Singleton row (id is always 'default') holding admin-editable settings for
+// config that used to be env-var-only. See lib/settings-queries.ts for the
+// cached read path and lazy-seed-from-env behavior.
+export const systemSettings = pgTable("system_settings", {
+  id: text("id").primaryKey().default("default"),
+  maintenanceMode: boolean("maintenanceMode").notNull().default(false),
+  maintenanceMessage: text("maintenanceMessage"),
+  authEnableGoogle: boolean("authEnableGoogle").notNull().default(true),
+  authEnableEmailPassword: boolean("authEnableEmailPassword").notNull().default(true),
+  authEnableOneTap: boolean("authEnableOneTap").notNull().default(false),
+  enableSessionRevocation: boolean("enableSessionRevocation").notNull().default(true),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+  // Who last changed a setting. This row doesn't "belong" to that admin the
+  // way sessions/activityLogs belong to their user, so deleting that admin's
+  // account should null this out rather than cascade-delete the singleton row.
+  updatedBy: text("updatedBy").references(() => users.id, { onDelete: "set null" }),
+}, (table) => [
+  check("system_settings_singleton", sql`${table.id} = 'default'`),
+]);

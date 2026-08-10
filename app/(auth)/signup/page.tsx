@@ -1,7 +1,7 @@
 import AuthCard from '@/components/auth/authCard'
 import React from 'react'
 import { auth } from "@/server/auth"
-import { config } from "@/config/env"
+import { getEffectiveAuthFlags } from "@/lib/settings-queries"
 import { normalizeCallbackUrl } from "@/lib/auth-helpers"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
@@ -23,9 +23,12 @@ const SignupPage = async ({
     redirect(callbackUrl)
   }
 
+  const authFlags = await getEffectiveAuthFlags()
+
   // Signup only makes sense for the email/password provider — if it's
-  // disabled in this project, there's nothing to render here.
-  if (!config.AUTH_ENABLE_EMAIL_PASSWORD) {
+  // disabled (at deploy time or live via System Settings), there's nothing
+  // to render here.
+  if (!authFlags.emailPassword) {
     redirect('/login')
   }
 
@@ -35,8 +38,8 @@ const SignupPage = async ({
         authCardTitle="Sign up"
         authCardDescription="Create a new account"
         authCardAction="Sign up"
-        showSocials={config.AUTH_ENABLE_GOOGLE}
-        showEmailPassword={config.AUTH_ENABLE_EMAIL_PASSWORD}
+        showSocials={authFlags.google}
+        showEmailPassword={authFlags.emailPassword}
         variant="signup"
         callbackUrl={callbackUrl}
       />

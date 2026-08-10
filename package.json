@@ -25,7 +25,9 @@
     "./dist/admin/queries.js",
     "./dist/admin/queries.mjs",
     "./dist/users/queries.js",
-    "./dist/users/queries.mjs"
+    "./dist/users/queries.mjs",
+    "./dist/settings/queries.js",
+    "./dist/settings/queries.mjs"
   ],
   "files": [
     "dist",
@@ -109,6 +111,11 @@
       "import": "./dist/users/queries.mjs",
       "require": "./dist/users/queries.js"
     },
+    "./settings/queries": {
+      "types": "./dist/settings/queries.d.ts",
+      "import": "./dist/settings/queries.mjs",
+      "require": "./dist/settings/queries.js"
+    },
     "./lib/utils": "./lib/utils.ts",
     "./lib/formatters": "./lib/formatters.ts",
     "./styles/theme.css": "./styles/theme.css",
@@ -154,6 +161,9 @@
       ],
       "users/queries": [
         "dist/users/queries.d.ts"
+      ],
+      "settings/queries": [
+        "dist/settings/queries.d.ts"
       ]
     }
   },

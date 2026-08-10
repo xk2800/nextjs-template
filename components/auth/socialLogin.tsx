@@ -5,6 +5,7 @@ import { FcGoogle } from "react-icons/fc";
 import React from 'react'
 import { authClient } from "../../lib/auth-client";
 import { LOGIN_REFERRER_COOKIE } from "../../lib/cookie-names";
+import { toast } from 'sonner'
 
 type Props = {
   callbackUrl?: string
@@ -19,10 +20,18 @@ const SocialLogin = ({ callbackUrl }: Props) => {
     // getCookie in server/auth.ts's session.create hook).
     document.cookie = `${LOGIN_REFERRER_COOKIE}=${encodeURIComponent(window.location.href)}; path=/; max-age=300; samesite=lax`
 
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: callbackUrl || "/dashboard"
-    })
+    try {
+      const { error } = await authClient.signIn.social({
+        provider: "google",
+        callbackURL: callbackUrl || "/dashboard"
+      })
+
+      if (error) {
+        toast.error(error.message || 'Failed to sign in with Google')
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to sign in with Google')
+    }
   }
 
   return (

@@ -54,6 +54,7 @@ const actionOptions = [
   { value: 'role_changed', label: 'Role changed' },
   { value: 'impersonation_started', label: 'Impersonation started' },
   { value: 'impersonation_stopped', label: 'Impersonation stopped' },
+  { value: 'settings_changed', label: 'Settings changed' },
 ]
 
 const actionBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -70,6 +71,7 @@ const actionBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive'
   role_changed: 'default',
   impersonation_started: 'destructive',
   impersonation_stopped: 'secondary',
+  settings_changed: 'default',
 }
 
 interface AdminActivityLogsTableProps {

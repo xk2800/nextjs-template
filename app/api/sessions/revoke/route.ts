@@ -5,11 +5,12 @@ import { db } from "@/server/db"
 import { sessions } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
-import { config } from "@/config/env"
+import { getSystemSettings } from "@/lib/settings-queries"
 
 export async function POST(request: NextRequest) {
   // Check if session revocation is enabled
-  if (!config.ENABLE_SESSION_REVOCATION) {
+  const settings = await getSystemSettings()
+  if (!settings.enableSessionRevocation) {
     return NextResponse.json(
       { error: "Session revocation is disabled" },
       { status: 403 }
