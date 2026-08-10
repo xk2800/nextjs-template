@@ -24,6 +24,13 @@ interface LogActivityParams {
   ipAddress?: string | null
   userAgent?: string | null
   metadata?: Record<string, any>
+  // Populated on 'login' events only — see server/auth.ts's session.create hook.
+  referrerUrl?: string | null
+  os?: string | null
+  browser?: string | null
+  deviceType?: string | null
+  country?: string | null
+  city?: string | null
 }
 
 export async function logActivity({
@@ -33,6 +40,12 @@ export async function logActivity({
   ipAddress,
   userAgent,
   metadata,
+  referrerUrl,
+  os,
+  browser,
+  deviceType,
+  country,
+  city,
 }: LogActivityParams) {
   try {
     await db.insert(activityLogs).values({
@@ -42,6 +55,12 @@ export async function logActivity({
       ipAddress: ipAddress || null,
       userAgent: userAgent || null,
       metadata: metadata ? JSON.stringify(metadata) : null,
+      referrerUrl: referrerUrl || null,
+      os: os || null,
+      browser: browser || null,
+      deviceType: deviceType || null,
+      country: country || null,
+      city: city || null,
     })
   } catch (error) {
     console.error('Failed to log activity:', error)

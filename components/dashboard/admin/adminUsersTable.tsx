@@ -27,6 +27,7 @@ import {
 } from '../../ui/alert-dialog'
 import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
 import { Download } from 'lucide-react'
 import { authClient, useSession } from '@/lib/auth-client'
@@ -383,13 +384,16 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                         />
                       </TableCell>
                       <TableCell className="font-medium">
-                        <span className="inline-flex items-center gap-2">
+                        <Link
+                          href={`/dashboard/admin/users/${user.id}`}
+                          className="inline-flex items-center gap-2 hover:underline"
+                        >
                           <span
                             className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
                             title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
                           />
                           {user.name || 'N/A'}
-                        </span>
+                        </Link>
                       </TableCell>
                       <TableCell className="text-sm">{user.email}</TableCell>
                       <TableCell>

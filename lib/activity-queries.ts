@@ -12,6 +12,17 @@ export async function getUserActivityLogs(userId: string, limit = 50) {
     .limit(limit)
 }
 
+// Registration + sign-in events only, with the referrer/device/geolocation
+// columns captured at login time (see server/auth.ts's session.create hook).
+export async function getUserLoginHistory(userId: string, limit = 20) {
+  return await db
+    .select()
+    .from(activityLogs)
+    .where(and(eq(activityLogs.userId, userId), eq(activityLogs.action, 'login')))
+    .orderBy(desc(activityLogs.createdAt))
+    .limit(limit)
+}
+
 export async function getAllActivityLogs(limit = 100, offset = 0) {
   return await db
     .select({

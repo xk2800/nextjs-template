@@ -12,7 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from '../ui/table'
-import { formatDateTime } from '../../lib/formatters'
+import { formatDateTime, actionBadgeVariant } from '../../lib/formatters'
 
 interface ActivityLog {
   id: string
@@ -20,24 +20,12 @@ interface ActivityLog {
   description: string
   ipAddress: string | null
   userAgent: string | null
+  deviceLabel?: string
+  location?: string
   createdAt: Date | string
   userId: string
   userName?: string | null
   userEmail?: string | null
-}
-
-const actionBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  login: 'default',
-  logout: 'secondary',
-  login_failed: 'destructive',
-  password_changed: 'default',
-  email_changed: 'default',
-  profile_updated: 'secondary',
-  session_revoked: 'destructive',
-  user_deleted: 'destructive',
-  user_banned: 'destructive',
-  user_unbanned: 'default',
-  role_changed: 'default',
 }
 
 interface ActivityLogsCardProps {
@@ -98,6 +86,8 @@ export default function ActivityLogsCard({ isAdmin = false, initialLogs = [] }: 
                   <TableHead>Action</TableHead>
                   {isAdmin && <TableHead>User</TableHead>}
                   <TableHead>Description</TableHead>
+                  <TableHead>Device</TableHead>
+                  <TableHead>Location</TableHead>
                   <TableHead>IP Address</TableHead>
                   <TableHead>Time</TableHead>
                 </TableRow>
@@ -118,6 +108,12 @@ export default function ActivityLogsCard({ isAdmin = false, initialLogs = [] }: 
                     )}
                     <TableCell className="text-sm max-w-xs truncate">
                       {log.description}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {log.deviceLabel || 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {log.location || 'N/A'}
                     </TableCell>
                     <TableCell className="text-sm font-mono">
                       {log.ipAddress || 'N/A'}
