@@ -5,6 +5,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { authClient } from '../../lib/auth-client'
+import { LOGIN_REFERRER_COOKIE } from '../../lib/cookie-names'
 import { SignupSchema } from '../../types/auth/signupSchema'
 import { toast } from 'sonner'
 
@@ -28,6 +29,11 @@ const EmailPasswordSignup = ({ callbackUrl }: Props) => {
     }
 
     setIsSubmitting(true)
+
+    // See emailPasswordLogin.tsx — keeps this cookie fresh for this flow so
+    // the login-activity log doesn't pick up a stale value from an
+    // abandoned social sign-in attempt.
+    document.cookie = `${LOGIN_REFERRER_COOKIE}=${encodeURIComponent(window.location.href)}; path=/; max-age=300; samesite=lax`
 
     try {
       const { error } = await authClient.signUp.email({

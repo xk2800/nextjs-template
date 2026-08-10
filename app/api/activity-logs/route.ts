@@ -3,6 +3,15 @@ import { auth } from "@/server/auth"
 import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth-helpers"
 import { getUserActivityLogs, getAllActivityLogs } from "@/lib/activity-queries"
+import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
+
+function withDeviceInfo<T extends { ipAddress: string | null; userAgent: string | null }>(logs: T[]) {
+  return logs.map((log) => ({
+    ...log,
+    deviceLabel: formatDeviceInfo(parseUserAgent(log.userAgent)),
+    location: formatLocation(lookupGeoLocation(log.ipAddress)),
+  }))
+}
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -23,11 +32,11 @@ export async function GET(request: NextRequest) {
     if (isAdmin) {
       // Admins can see all activity logs
       const logs = await getAllActivityLogs(limit, offset)
-      return NextResponse.json({ logs })
+      return NextResponse.json({ logs: withDeviceInfo(logs) })
     } else {
       // Regular users can only see their own logs
       const logs = await getUserActivityLogs(session.user.id, limit)
-      return NextResponse.json({ logs })
+      return NextResponse.json({ logs: withDeviceInfo(logs) })
     }
   } catch (error) {
     console.error('Error fetching activity logs:', error)

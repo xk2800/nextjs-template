@@ -5,6 +5,7 @@ import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Label } from '../ui/label'
 import { authClient } from '../../lib/auth-client'
+import { LOGIN_REFERRER_COOKIE } from '../../lib/cookie-names'
 import { LoginSchema } from '../../types/auth/loginSchema'
 import { toast } from 'sonner'
 
@@ -27,6 +28,12 @@ const EmailPasswordLogin = ({ callbackUrl }: Props) => {
     }
 
     setIsSubmitting(true)
+
+    // Overwrite any stale value left by an abandoned social sign-in attempt
+    // (see socialLogin.tsx) — this request's own referer header is already
+    // correct for email/password, but the login-activity log always prefers
+    // the cookie when present, so it needs to reflect this flow instead.
+    document.cookie = `${LOGIN_REFERRER_COOKIE}=${encodeURIComponent(window.location.href)}; path=/; max-age=300; samesite=lax`
 
     try {
       const { error } = await authClient.signIn.email({

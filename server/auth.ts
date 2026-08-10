@@ -1,7 +1,7 @@
 import "server-only"
 import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 import { db } from "./db"
 import { users, accounts, sessions, verifications } from "./db/schema"
 import { config } from "@/config/env"
@@ -9,6 +9,8 @@ import bcrypt from 'bcrypt'
 import { oneTap, admin as adminPlugin } from "better-auth/plugins";
 import { createAuthMiddleware, getSessionFromCtx } from "better-auth/api"
 import { logActivity } from "@/lib/activity-logger"
+import { getClientIp, parseUserAgent, lookupGeoLocation } from "@/lib/request-info"
+import { LOGIN_REFERRER_COOKIE } from "@/lib/cookie-names"
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
@@ -103,7 +105,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
     databaseHooks: {
       session: {
         create: {
-          async after(session) {
+          async after(session, context) {
             // Impersonation sessions (created by the admin plugin's
             // impersonateUser endpoint) also go through session.create —
             // don't let "an admin looked at this account" show up as the
@@ -132,6 +134,51 @@ export function createAuth(overrides: AuthOverrides = {}) {
                 .where(eq(users.id, session.userId))
             } catch (error) {
               console.error("Failed to update lastLoginAt", error)
+            }
+
+            try {
+              const headers = context?.headers
+              const ipAddress = getClientIp(headers)
+              const userAgent = headers?.get('user-agent') ?? null
+              // For OAuth, the live referer header on this request is the
+              // provider's own callback page (e.g. accounts.google.com), not
+              // the page the user actually came from — socialLogin.tsx stashes
+              // the real page in a cookie right before the redirect, which
+              // survives the round trip since it's set on our own origin.
+              // Falls back to the live header for email/password sign-in,
+              // where this request *is* the originating request.
+              const referrerUrl = context?.getCookie?.(LOGIN_REFERRER_COOKIE)
+                || headers?.get('referer')
+                || null
+              const device = parseUserAgent(userAgent)
+              const geo = lookupGeoLocation(ipAddress)
+
+              // Every session row for this user, including the one just
+              // created — count === 1 means signup just auto-signed them in
+              // (better-auth's default), anything higher is a returning login.
+              const [{ count }] = await db
+                .select({ count: sql<number>`count(*)` })
+                .from(sessions)
+                .where(eq(sessions.userId, session.userId))
+              const isFirstSession = Number(count) <= 1
+
+              await logActivity({
+                userId: session.userId,
+                action: 'login',
+                description: isFirstSession
+                  ? 'New account registered and signed in'
+                  : 'User logged in',
+                ipAddress,
+                userAgent,
+                referrerUrl,
+                os: device.os,
+                browser: device.browser,
+                deviceType: device.deviceType,
+                country: geo.country,
+                city: geo.city,
+              })
+            } catch (error) {
+              console.error("Failed to log login activity", error)
             }
           },
         },

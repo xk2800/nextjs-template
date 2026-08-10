@@ -93,5 +93,14 @@ export const activityLogs = pgTable("activity_log", {
   ipAddress: text('ipAddress'),
   userAgent: text('userAgent'),
   metadata: text('metadata'),
+  // Populated on 'login' events only (registration + sign-in) — parsed from
+  // userAgent/ipAddress at write time so the record stays stable even if
+  // the parsing library or geoip database changes later.
+  referrerUrl: text('referrerUrl'),
+  os: text('os'),
+  browser: text('browser'),
+  deviceType: text('deviceType'),
+  country: text('country'),
+  city: text('city'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 });
