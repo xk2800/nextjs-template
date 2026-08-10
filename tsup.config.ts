@@ -15,6 +15,7 @@ export default defineConfig({
     "sessions/queries": "lib/session-queries.ts",
     "admin/queries": "lib/admin-queries.ts",
     "users/queries": "lib/user-queries.ts",
+    "settings/queries": "lib/settings-queries.ts",
   },
   format: ["cjs", "esm"],
   dts: true,

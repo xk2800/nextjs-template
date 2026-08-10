@@ -7,10 +7,11 @@ import { users, accounts, sessions, verifications } from "./db/schema"
 import { config } from "@/config/env"
 import bcrypt from 'bcrypt'
 import { oneTap, admin as adminPlugin } from "better-auth/plugins";
-import { createAuthMiddleware, getSessionFromCtx } from "better-auth/api"
+import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/api"
 import { logActivity } from "@/lib/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation } from "@/lib/request-info"
 import { LOGIN_REFERRER_COOKIE } from "@/lib/cookie-names"
+import { getEffectiveAuthFlags } from "@/lib/settings-queries"
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
@@ -193,6 +194,44 @@ export function createAuth(overrides: AuthOverrides = {}) {
     // available together.
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        // Live kill-switch for the two built-in sign-in methods, on top of
+        // the (untouched) provider registration above — lets an admin
+        // disable a method from the System Settings page and have it take
+        // effect immediately, even for a client that already has the button
+        // rendered, instead of only on next deploy.
+        if (ctx.path === "/sign-in/social") {
+          // Scoped to "google" specifically since overrides.socialProviders
+          // can register other providers (e.g. apple) this flag shouldn't gate.
+          if (ctx.body?.provider === "google") {
+            const flags = await getEffectiveAuthFlags()
+            if (!flags.google) {
+              throw new APIError("FORBIDDEN", { message: "Google sign-in is currently disabled." })
+            }
+          }
+          return
+        }
+
+        if (ctx.path === "/sign-in/email") {
+          const flags = await getEffectiveAuthFlags()
+          if (!flags.emailPassword) {
+            throw new APIError("FORBIDDEN", { message: "Email/password sign-in is currently disabled." })
+          }
+          return
+        }
+
+        // One Tap isn't a separate identity, it's a UI shortcut into the
+        // same Google account — its plugin hits its own endpoint entirely
+        // (not /sign-in/social), so it needs its own guard, and it needs
+        // both flags: Google itself must still be allowed, and the One Tap
+        // prompt specifically must be enabled.
+        if (ctx.path === "/one-tap/callback") {
+          const flags = await getEffectiveAuthFlags()
+          if (!flags.google || !flags.oneTap) {
+            throw new APIError("FORBIDDEN", { message: "Google One Tap is currently disabled." })
+          }
+          return
+        }
+
         if (ctx.path !== "/admin/stop-impersonating") return
 
         const current = await getSessionFromCtx(ctx, { disableCookieCache: true })

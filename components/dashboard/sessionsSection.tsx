@@ -1,10 +1,13 @@
 import { cookies } from "next/headers"
 import { getUserSessions } from "@xk2800/nextjs-template/sessions/queries"
-import { config } from "@xk2800/nextjs-template/config/env"
+import { getSystemSettings } from "@xk2800/nextjs-template/settings/queries"
 import SessionsCard from "./sessionsCard"
 
 export default async function SessionsSection({ userId }: { userId: string }) {
-  const allSessions = await getUserSessions(userId)
+  const [allSessions, settings] = await Promise.all([
+    getUserSessions(userId),
+    getSystemSettings(),
+  ])
   const cookieStore = await cookies()
   const currentSessionToken = cookieStore.get('better-auth.session_token')?.value || ''
 
@@ -13,7 +16,7 @@ export default async function SessionsSection({ userId }: { userId: string }) {
       userId={userId}
       initialSessions={allSessions}
       currentSessionToken={currentSessionToken}
-      enableSessionRevocation={config.ENABLE_SESSION_REVOCATION}
+      enableSessionRevocation={settings.enableSessionRevocation}
     />
   )
 }

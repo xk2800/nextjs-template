@@ -16,6 +16,7 @@ export type ActivityAction =
   | 'role_changed'
   | 'impersonation_started'
   | 'impersonation_stopped'
+  | 'settings_changed'
 
 interface LogActivityParams {
   userId: string
