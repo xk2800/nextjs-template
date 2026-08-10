@@ -40,6 +40,8 @@
     "lib/utils.ts",
     "lib/auth-client.ts",
     "lib/formatters.ts",
+    "lib/cookie-names.ts",
+    "lib/request-info.ts",
     "types/auth",
     "styles/theme.css",
     "README.md"
