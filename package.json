@@ -202,7 +202,7 @@
     "pg": "^8.16.0",
     "radix-ui": "^1.6.7",
     "server-only": "^0.0.1",
-    "ua-parser-js": "1.0.41",
+    "ua-parser-js": "2.0.10",
     "zod": "^4.1.12"
   },
   "peerDependencies": {
