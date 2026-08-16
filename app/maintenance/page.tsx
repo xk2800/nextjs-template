@@ -1,6 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { getSystemSettings } from "@/lib/settings-queries"
 
+// Maintenance message can be updated live from the admin settings page, so
+// this route must never be prerendered with a stale snapshot — and doing so
+// would make `next build` depend on DB reachability, per the same issue in
+// app/dashboard/layout.tsx.
+export const dynamic = 'force-dynamic'
+
 export default async function MaintenancePage() {
   const settings = await getSystemSettings()
 
