@@ -14,6 +14,9 @@ const envSchema = z.object({
   AUTH_ENABLE_EMAIL_PASSWORD: z.string().default('true').transform(val => val === 'true'),
   AUTH_ENABLE_ONE_TAP: z.string().default('false').transform(val => val === 'true'),
   DB_DRIVER: z.enum(['pg', 'neon']).default('pg'),
+  // Only relevant when DB_DRIVER=pg — whether the target Postgres server has SSL
+  // enabled. Self-hosted Postgres (e.g. via Docker/Dokploy) typically does not.
+  DATABASE_SSL: z.string().default('false').transform(val => val === 'true'),
 })
 // No refine() gating "at least one of AUTH_ENABLE_GOOGLE / AUTH_ENABLE_EMAIL_PASSWORD"
 // here — this module can't see createAuth() overrides, so it can't tell a genuinely
