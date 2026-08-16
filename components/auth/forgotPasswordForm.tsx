@@ -53,7 +53,7 @@ const ForgotPasswordForm = () => {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
+        // required
         />
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>

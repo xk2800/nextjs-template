@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react'
 import Link from 'next/link'
+import { z } from 'zod'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { PasswordInput } from '../ui/password-input'
@@ -15,19 +16,29 @@ type Props = {
   callbackUrl?: string
 }
 
+// Derived from the schema (not hand-typed) so a field rename/add/remove
+// there can't silently drift out of sync with the error state's shape here.
+type FieldErrors = Partial<Record<keyof z.infer<typeof LoginSchema>, string>>
+
 const EmailPasswordLogin = ({ callbackUrl }: Props) => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
     const result = LoginSchema.safeParse({ email, password })
     if (!result.success) {
-      toast.error(result.error.issues[0]?.message || 'Invalid email or password')
+      const formatted = z.flattenError(result.error).fieldErrors
+      setFieldErrors({
+        email: formatted.email?.[0],
+        password: formatted.password?.[0],
+      })
       return
     }
+    setFieldErrors({})
 
     setIsSubmitting(true)
 
@@ -57,19 +68,28 @@ const EmailPasswordLogin = ({ callbackUrl }: Props) => {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email" className={fieldErrors.email ? 'text-destructive' : undefined}>
+          Email
+        </Label>
         <Input
           id="email"
           type="email"
           autoComplete="email"
+          aria-invalid={!!fieldErrors.email}
+          aria-describedby={fieldErrors.email ? 'email-error' : undefined}
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        // required
+          onChange={(e) => {
+            setEmail(e.target.value)
+            if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }))
+          }}
         />
+        {fieldErrors.email && <p id="email-error" className="text-sm text-destructive">{fieldErrors.email}</p>}
       </div>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className={fieldErrors.password ? 'text-destructive' : undefined}>
+            Password
+          </Label>
           <Link href="/forgot-password" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
             Forgot password?
           </Link>
@@ -77,10 +97,15 @@ const EmailPasswordLogin = ({ callbackUrl }: Props) => {
         <PasswordInput
           id="password"
           autoComplete="current-password"
+          aria-invalid={!!fieldErrors.password}
+          aria-describedby={fieldErrors.password ? 'password-error' : undefined}
           value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        // required
+          onChange={(e) => {
+            setPassword(e.target.value)
+            if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: undefined }))
+          }}
         />
+        {fieldErrors.password && <p id="password-error" className="text-sm text-destructive">{fieldErrors.password}</p>}
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>
         {isSubmitting ? 'Signing in...' : 'Sign in'}
