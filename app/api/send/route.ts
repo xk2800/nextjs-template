@@ -1,16 +1,9 @@
 import { EmailTemplate } from '@/components/email/email-template';
 import { EmailTemplate2 } from '@/components/email/email-template-2';
 import { EmailTemplateWelcome } from '@/components/email/email-template-welcome';
-import { config } from '@/config/env';
-import { Resend } from 'resend';
+import { getResend, EMAIL_FROM } from '@/lib/resend';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
-
-let resend: Resend;
-function getResend() {
-  if (!resend) resend = new Resend(config.RESEND_API_KEY);
-  return resend;
-}
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({
@@ -37,7 +30,7 @@ export async function POST(request: Request) {
     }
 
     const { data, error } = await getResend().emails.send({
-      from: 'Acme <onboarding@xavierkhew.com>',
+      from: EMAIL_FROM,
       to: [session.user.email],
       subject: 'Hello world',
       react: emailTemplate,

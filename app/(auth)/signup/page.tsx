@@ -1,4 +1,5 @@
 import AuthCard from '@/components/auth/authCard'
+import { AuthShell } from '@/components/auth/authShell'
 import React from 'react'
 import { auth } from "@/server/auth"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
@@ -33,17 +34,24 @@ const SignupPage = async ({
   }
 
   return (
-    <div className="max-w-4xl mx-auto mt-12">
+    <AuthShell
+      headline="Auth, admin and audit — already wired up."
+      bullets={[
+        "Google OAuth and email sign-in out of the box",
+        "Database-backed sessions you can revoke per device",
+        "Audit logging and admin impersonation built in",
+      ]}
+    >
       <AuthCard
-        authCardTitle="Sign up"
-        authCardDescription="Create a new account"
+        authCardTitle="Create your account"
+        authCardDescription="Free while you build. No credit card required."
         authCardAction="Sign up"
         showSocials={authFlags.google}
         showEmailPassword={authFlags.emailPassword}
         variant="signup"
         callbackUrl={callbackUrl}
       />
-    </div>
+    </AuthShell>
   )
 }
 

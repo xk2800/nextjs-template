@@ -12,6 +12,8 @@ import { logActivity } from "@/lib/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation } from "@/lib/request-info"
 import { LOGIN_REFERRER_COOKIE } from "@/lib/cookie-names"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
+import { getResend, EMAIL_FROM } from "@/lib/resend"
+import { EmailTemplateResetPassword } from "@/components/email/email-template-reset-password"
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
@@ -76,7 +78,18 @@ export function createAuth(overrides: AuthOverrides = {}) {
       },
       async verify({ hash, password }: { hash: string, password: string }) {
         return await bcrypt.compare(password, hash);
-      }
+      },
+      // `url` is fully composed by better-auth (baseURL + verification token +
+      // callbackURL) — see app/(auth)/forgot-password and reset-password for
+      // the pages this points at.
+      async sendResetPassword({ user, url }) {
+        await getResend().emails.send({
+          from: EMAIL_FROM,
+          to: [user.email],
+          subject: "Reset your password",
+          react: EmailTemplateResetPassword({ firstName: user.name || "there", url }),
+        })
+      },
     },
 
     // Social Providers — google is included by default; toggle per-project via

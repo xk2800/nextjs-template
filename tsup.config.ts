@@ -23,6 +23,6 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   outDir: "dist",
-  external: ["react", "react-dom", "next", "next/headers", "next/navigation"],
+  external: ["react", "react-dom", "next", "next/headers", "next/navigation", "resend", "@react-email/components"],
   tsconfig: "tsconfig.build.json",
 })

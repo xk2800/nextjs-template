@@ -1,8 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
+import Link from 'next/link'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
+import { PasswordInput } from '../ui/password-input'
 import { Label } from '../ui/label'
 import { authClient } from '../../lib/auth-client'
 import { LOGIN_REFERRER_COOKIE } from '../../lib/cookie-names'
@@ -62,18 +64,22 @@ const EmailPasswordLogin = ({ callbackUrl }: Props) => {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          required
+        // required
         />
       </div>
       <div className="flex flex-col gap-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
+        <div className="flex items-center justify-between">
+          <Label htmlFor="password">Password</Label>
+          <Link href="/forgot-password" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">
+            Forgot password?
+          </Link>
+        </div>
+        <PasswordInput
           id="password"
-          type="password"
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          required
+        // required
         />
       </div>
       <Button type="submit" className="w-full" disabled={isSubmitting}>

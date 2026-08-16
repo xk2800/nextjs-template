@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { auth } from "@/server/auth"
 import { Button } from "@/components/ui/button"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
+import { Logo } from "@/components/site/logo"
 import { cn } from "@/lib/utils"
 import { REPO_URL } from "@/lib/site"
 
@@ -18,12 +19,7 @@ export async function SiteHeader({ active }: { active?: "features" | "changelog"
   return (
     <header className="sticky top-0 z-20 border-b border-border/60 bg-background/80 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-6 items-center justify-center rounded-md bg-foreground text-background text-sm font-bold">
-            N
-          </span>
-          nextjs-template
-        </Link>
+        <Logo />
         <nav className="hidden items-center gap-1 text-sm text-muted-foreground sm:flex">
           <Link
             href="/features"

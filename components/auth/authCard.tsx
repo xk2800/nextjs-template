@@ -1,14 +1,4 @@
-import React from 'react'
 import Link from 'next/link'
-import {
-  Card,
-  // CardAction,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../ui/card"
 import { Separator } from "../ui/separator"
 import SocialLogin from './socialLogin'
 import EmailPasswordLogin from './emailPasswordLogin'
@@ -32,21 +22,23 @@ const authCard = ({ authCardTitle, authCardDescription, showSocials, showEmailPa
       : '/signup'
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{authCardTitle}</CardTitle>
-        <CardDescription>{authCardDescription}</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <div>
+      <h1 className="text-3xl font-bold tracking-tight">{authCardTitle}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{authCardDescription}</p>
+
+      <div className="mt-8 flex flex-col gap-4">
         {showSocials && (
           <div>
-            <SocialLogin callbackUrl={callbackUrl} />
+            <SocialLogin
+              callbackUrl={callbackUrl}
+              label={variant === 'signup' ? 'Sign up with Google' : 'Sign in with Google'}
+            />
           </div>
         )}
         {showSocials && showEmailPassword && (
           <div className="flex items-center gap-2">
             <Separator className="flex-1" />
-            <span className="text-xs text-muted-foreground">OR CONTINUE WITH</span>
+            <span className="text-xs text-muted-foreground">or continue with</span>
             <Separator className="flex-1" />
           </div>
         )}
@@ -55,21 +47,31 @@ const authCard = ({ authCardTitle, authCardDescription, showSocials, showEmailPa
             ? <EmailPasswordSignup callbackUrl={callbackUrl} />
             : <EmailPasswordLogin callbackUrl={callbackUrl} />
         )}
-      </CardContent>
-      {showEmailPassword && (
-        <CardFooter className="justify-center text-sm text-muted-foreground">
-          {variant === 'signup' ? (
-            <p>Already have an account?{' '}
-              <Link href={toggleHref} className="underline underline-offset-4">Log in</Link>
-            </p>
-          ) : (
-            <p>Don&apos;t have an account?{' '}
-              <Link href={toggleHref} className="underline underline-offset-4">Sign up</Link>
-            </p>
-          )}
-        </CardFooter>
+      </div>
+
+      {showEmailPassword && variant === 'signup' && (
+        <p className="mt-6 text-center text-xs text-muted-foreground">
+          By continuing you agree to the{' '}
+          <Link href="/terms" className="underline underline-offset-4 hover:text-foreground">Terms</Link>
+          {' '}and{' '}
+          <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">Privacy Policy</Link>.
+        </p>
       )}
-    </Card>
+
+      {showEmailPassword && (
+        <p className="mt-6 text-center text-sm text-muted-foreground">
+          {variant === 'signup' ? (
+            <>Already have an account?{' '}
+              <Link href={toggleHref} className="font-medium text-foreground underline underline-offset-4">Log in</Link>
+            </>
+          ) : (
+            <>Don&apos;t have an account?{' '}
+              <Link href={toggleHref} className="font-medium text-foreground underline underline-offset-4">Sign up</Link>
+            </>
+          )}
+        </p>
+      )}
+    </div>
   )
 }
 
