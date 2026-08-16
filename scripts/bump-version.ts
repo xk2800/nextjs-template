@@ -1,4 +1,4 @@
-import { select, confirm } from '@inquirer/prompts'
+import { select, confirm, input } from '@inquirer/prompts'
 import { execSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -6,13 +6,52 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 type BumpType = 'patch' | 'minor' | 'major'
+type ChangelogType = 'feature' | 'improvement' | 'fix'
+
+interface ChangelogEntry {
+  version: string
+  date: string
+  type: ChangelogType
+  title: string
+  changes: string[]
+}
 
 const pkgPath = fileURLToPath(new URL('../package.json', import.meta.url))
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { version: string }
+const changelogPath = fileURLToPath(new URL('../data/changelog.json', import.meta.url))
 
 function run(cmd: string) {
   console.log(`\n$ ${cmd}`)
   execSync(cmd, { stdio: 'inherit' })
+}
+
+// Commit subjects between two refs, newest first, merges and bare version-bump
+// commits ("0.1.4") stripped out — shared by the GitHub release notes and the
+// changelog entry so the two never drift apart on filtering rules.
+function commitMessagesBetween(range: string): string[] {
+  const log = execSync(`git log ${range} --oneline --no-merges`).toString().trim()
+  if (!log) return []
+  return log
+    .split('\n')
+    .map((line) => line.replace(/^[0-9a-f]+\s+/, ''))
+    .filter((msg) => !/^\d+\.\d+\.\d+$/.test(msg))
+    .filter((msg) => !/^docs: update changelog for v\d+\.\d+\.\d+$/i.test(msg))
+}
+
+function todayDateString(): string {
+  const d = new Date()
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+function inferChangelogType(commits: string[]): ChangelogType {
+  if (commits.some((c) => /^feat(\(|:)/i.test(c))) return 'feature'
+  if (commits.some((c) => /^fix(\(|:)/i.test(c))) return 'fix'
+  return 'improvement'
+}
+
+function prependChangelogEntry(entry: ChangelogEntry) {
+  const existing = JSON.parse(readFileSync(changelogPath, 'utf-8')) as ChangelogEntry[]
+  writeFileSync(changelogPath, JSON.stringify([entry, ...existing], null, 2) + '\n')
 }
 
 function nextVersion(current: string, type: BumpType): string {
@@ -35,21 +74,16 @@ function isGhAvailable(): boolean {
 // that push directly to a branch instead of merging PRs (this one does) — so
 // build notes from the actual commit log between tags instead.
 function generateReleaseNotes(fromTag: string, toTag: string): string {
-  const formatCommitLog = (log: string) =>
-    log
-      .split('\n')
-      .map((line) => `- ${line.replace(/^[0-9a-f]+\s+/, '')}`)
-      .join('\n')
-
+  let messages: string[]
   try {
-    const log = execSync(`git log ${fromTag}..${toTag} --oneline --no-merges`).toString().trim()
-    if (!log) return `No changes since ${fromTag}.`
-    return formatCommitLog(log)
+    messages = commitMessagesBetween(`${fromTag}..${toTag}`)
   } catch {
     console.warn(`Could not diff ${fromTag}..${toTag} — falling back to full history for ${toTag}.`)
     // fromTag doesn't exist locally (e.g. first-ever release) — fall back to full log.
-    return formatCommitLog(execSync(`git log ${toTag} --oneline --no-merges`).toString().trim())
+    messages = commitMessagesBetween(toTag)
   }
+  if (!messages.length) return `No changes since ${fromTag}.`
+  return messages.map((m) => `- ${m}`).join('\n')
 }
 
 async function main() {
@@ -111,6 +145,46 @@ async function main() {
 
   const previousTag = `v${pkg.version}`
   const newTag = `v${target}`
+
+  const doChangelog = await confirm({
+    message: `Add a changelog entry for ${newTag} to data/changelog.json?`,
+    default: true,
+  })
+  if (doChangelog) {
+    let commits: string[]
+    try {
+      commits = commitMessagesBetween(`${previousTag}..HEAD`)
+    } catch {
+      // previousTag doesn't exist locally (e.g. first-ever release).
+      commits = commitMessagesBetween('HEAD')
+    }
+
+    const type = await select<ChangelogType>({
+      message: 'Changelog entry type',
+      default: inferChangelogType(commits),
+      choices: [
+        { name: 'feature', value: 'feature', description: 'A new capability or behavior' },
+        { name: 'improvement', value: 'improvement', description: 'An enhancement to something existing' },
+        { name: 'fix', value: 'fix', description: 'A bug fix' },
+      ],
+    })
+    const title = await input({
+      message: 'Changelog entry title',
+      default: commits[0] ?? target,
+      validate: (value) => (value.trim().length > 0 ? true : 'Title is required'),
+    })
+
+    prependChangelogEntry({
+      version: target,
+      date: todayDateString(),
+      type,
+      title,
+      changes: commits.length ? commits : [title],
+    })
+
+    run(`git add data/changelog.json`)
+    run(`git commit -m "docs: update changelog for ${newTag}"`)
+  }
 
   run(`npm version ${bumpType}`)
 

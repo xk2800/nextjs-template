@@ -1,35 +1,23 @@
-import { headers } from "next/headers"
 import Link from "next/link"
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google"
+import { CheckCircle2 } from "lucide-react"
+
 import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
 import { formatDateTime } from "@/lib/formatters"
+import { headers } from "next/headers"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { SiteHeader } from "@/components/site/site-header"
+import { SiteFooter } from "@/components/site/site-footer"
+import { DOCS_URL, INSTALL_COMMAND, REPO_URL } from "@/lib/site"
 import packageJson from "../../package.json"
 import CopyInstallButton from "./_components/CopyInstallButton"
 import RevealOnScroll from "./_components/RevealOnScroll"
-import styles from "./page.module.css"
-
-const plexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--ibm-plex-sans",
-  display: "swap",
-})
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--ibm-plex-mono",
-  display: "swap",
-})
 
 export const metadata = {
   title: "@xk2800/nextjs-template — auth, admin, and audit trail, already built",
   description:
     "A Next.js + Drizzle + Postgres starter with sign-in, an admin back office, audit logging, and live feature flags already wired up.",
 }
-
-const REPO_URL = "https://github.com/xk2800/nextjs-template"
-const DOCS_URL = `${REPO_URL}/tree/master/docs`
-const INSTALL_COMMAND = "bun add @xk2800/nextjs-template"
 
 const DEPENDENCY_VERSIONS: Record<string, string> = {
   ...packageJson.dependencies,
@@ -134,153 +122,148 @@ export default async function FeaturesPage() {
   const locationLabel = formatLocation(geo)
   const capturedAt = formatDateTime(new Date())
 
+  const exhibitRows = [
+    { label: "device", value: deviceLabel },
+    { label: "location", value: locationLabel },
+    { label: "referrer", value: referrer || "direct visit" },
+    { label: "ip address", value: ip || "unavailable" },
+    { label: "captured at", value: capturedAt },
+  ]
+
   return (
-    <div className={`${styles.page} ${plexSans.variable} ${plexMono.variable}`}>
-      <div className={styles.gridBg} aria-hidden="true" />
+    <div className="min-h-screen bg-background text-foreground">
+      <SiteHeader active="features" />
 
-      <header className={styles.siteHeader}>
-        <div className={`${styles.wrap} ${styles.headerRow}`}>
-          <a className={styles.logo} href="#top">
-            <span className={styles.logoGlyph}>&gt;</span>nextjs-template
-          </a>
-          <nav className={styles.headerNav} aria-label="Primary">
-            <a href={REPO_URL}>GitHub</a>
-            <a href={DOCS_URL}>Docs</a>
-            <Link href="/changelog">Changelog</Link>
-          </nav>
-          <span className={styles.versionTag}>v{packageJson.version}</span>
-        </div>
-      </header>
-
-      <main id="top">
-        <section className={`${styles.hero} ${styles.wrap}`}>
-          <div>
-            <p className={styles.promptLine}>
-              <span>
-                <span className={styles.promptSign}>$</span> {INSTALL_COMMAND}
-                <span className={styles.cursor} aria-hidden="true" />
-              </span>
-              <CopyInstallButton command={INSTALL_COMMAND} className={styles.copyBtn} />
-            </p>
-            <h1 className={styles.h1}>Auth and an admin back office, already built.</h1>
-            <p className={styles.lede}>
-              Google + email sign-in, a full user-management dashboard, audit logging with device and
-              location tracking, and live feature flags — running on Next.js, Drizzle, and Postgres,
-              ready before you write your first page.
-            </p>
-            <div className={styles.heroCtas}>
-              <a className={`${styles.btn} ${styles.btnPrimary}`} href={REPO_URL}>
-                View on GitHub
-              </a>
-              <a className={`${styles.btn} ${styles.btnGhost}`} href={DOCS_URL}>
-                Read the docs
-              </a>
+      <main>
+        <section className="mx-auto max-w-6xl px-4 pt-16 pb-20 sm:px-6 sm:pt-24 sm:pb-28 lg:px-8">
+          <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-md border border-border bg-secondary/40 px-3 py-1.5">
+                <span className="font-mono text-xs text-muted-foreground">$ {INSTALL_COMMAND}</span>
+                <CopyInstallButton
+                  command={INSTALL_COMMAND}
+                  className="rounded border border-border px-2 py-0.5 font-mono text-[11px] text-muted-foreground transition-colors hover:text-foreground data-[copied]:border-green-500 data-[copied]:text-green-500"
+                />
+              </div>
+              <h1 className="mt-5 text-4xl font-bold tracking-tight text-balance sm:text-5xl">
+                Auth and an admin back office, already built.
+              </h1>
+              <p className="mt-5 max-w-xl text-lg text-muted-foreground text-pretty">
+                Google + email sign-in, a full user-management dashboard, audit logging with device
+                and location tracking, and live feature flags — running on Next.js, Drizzle, and
+                Postgres, ready before you write your first page.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3">
+                <Button asChild size="lg">
+                  <a href={REPO_URL}>View on GitHub</a>
+                </Button>
+                <Button asChild size="lg" variant="outline">
+                  <a href={DOCS_URL}>Read the docs</a>
+                </Button>
+              </div>
             </div>
-          </div>
 
-          <div
-            className={styles.exhibitCard}
-            aria-label="A live example of what this template's login tracker just captured about your visit"
-          >
-            <div className={styles.exhibitHead}>
-              <span className={styles.exhibitTitle}>Registration &amp; Login Info</span>
-              <span className={styles.exhibitSub}>captured live, from this request</span>
-            </div>
-            <dl className={styles.exhibitRows}>
-              <div className={styles.exhibitRow}>
-                <dt>device</dt>
-                <dd>{deviceLabel}</dd>
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              <div className="flex items-center gap-2 border-b border-border/60 px-4 py-2.5">
+                <span className="size-2.5 rounded-full bg-destructive/60" />
+                <span className="size-2.5 rounded-full bg-yellow-500/60" />
+                <span className="size-2.5 rounded-full bg-green-500/60" />
+                <span className="ml-2 font-mono text-xs text-muted-foreground">
+                  registration &amp; login info
+                </span>
               </div>
-              <div className={styles.exhibitRow}>
-                <dt>location</dt>
-                <dd>{locationLabel}</dd>
-              </div>
-              <div className={styles.exhibitRow}>
-                <dt>referrer</dt>
-                <dd>{referrer || "direct visit"}</dd>
-              </div>
-              <div className={styles.exhibitRow}>
-                <dt>ip address</dt>
-                <dd>{ip || "unavailable"}</dd>
-              </div>
-              <div className={styles.exhibitRow}>
-                <dt>captured at</dt>
-                <dd>{capturedAt}</dd>
-              </div>
-            </dl>
-            <p className={styles.exhibitFoot}>
-              This is what the template records for every real sign-in — running live on your visit to
-              this page, not a mockup.
-            </p>
-          </div>
-        </section>
-
-        <div className={`${styles.stackLine} ${styles.wrap}`}>
-          {STACK.map((s) => (
-            <span key={s.label}>
-              {s.label}
-              {s.version ? ` ${s.version}` : ""}
-            </span>
-          ))}
-        </div>
-
-        <section className={`${styles.ledger} ${styles.wrap}`} aria-label="Features">
-          <div className={styles.ledgerIntro}>
-            <p className={styles.ledgerEyebrow}>server/drizzle/*.sql, ordered</p>
-            <h2>Everything shipped, in the order it landed.</h2>
-            <p>
-              This template tracks its own growth the same way it expects you to track your schema —
-              numbered, one capability at a time. Here&apos;s what&apos;s already in place.
-            </p>
-          </div>
-
-          {RECORDS.map((record) => (
-            <RevealOnScroll key={record.id} className={styles.record} visibleClassName={styles.isVisible}>
-              <div>
-                <div className={styles.recordMeta}>
-                  <span className={styles.recordId}>{record.id}</span>
-                  <span className={styles.recordStatus}>shipped</span>
-                </div>
-                <div className={styles.recordBody}>
-                  <h3>{record.title}</h3>
-                  <p>{record.tagline}</p>
-                </div>
-              </div>
-              <ul className={styles.recordList}>
-                {record.items.map((item) => (
-                  <li key={item}>{item}</li>
+              <dl className="divide-y divide-border/60 px-4">
+                {exhibitRows.map((row) => (
+                  <div key={row.label} className="flex items-center justify-between gap-4 py-3 text-sm">
+                    <dt className="font-mono text-xs tracking-wide text-muted-foreground uppercase">
+                      {row.label}
+                    </dt>
+                    <dd className="truncate text-right font-mono">{row.value}</dd>
+                  </div>
                 ))}
-              </ul>
-            </RevealOnScroll>
-          ))}
+              </dl>
+              <p className="border-t border-border/60 px-4 py-3 text-xs text-muted-foreground">
+                This is what the template records for every real sign-in — captured live from your
+                visit to this page, not a mockup.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-14 flex flex-wrap gap-2 border-t border-border/60 pt-8">
+            {STACK.map((s) => (
+              <Badge key={s.label} variant="outline" className="font-mono">
+                {s.label}
+                {s.version ? ` ${s.version}` : ""}
+              </Badge>
+            ))}
+          </div>
         </section>
 
-        <section className={`${styles.ctaBand} ${styles.wrap}`}>
-          <h2>Clone it, migrate it, ship it.</h2>
-          <p>The scaffolding is done. Bring the product.</p>
-          <div className={styles.heroCtas}>
-            <a className={`${styles.btn} ${styles.btnPrimary}`} href={REPO_URL}>
-              Get the template
-            </a>
-            <Link className={`${styles.btn} ${styles.btnGhost}`} href="/changelog">
-              See what&apos;s new
-            </Link>
+        <section className="border-t border-border/60 bg-secondary/30">
+          <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:px-8">
+            <span className="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
+              server/drizzle/*.sql, ordered
+            </span>
+            <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-tight">
+              Everything shipped, in the order it landed.
+            </h2>
+            <p className="mt-2 max-w-xl text-muted-foreground">
+              This template tracks its own growth the same way it expects you to track your
+              schema — numbered, one capability at a time.
+            </p>
+
+            <div className="mt-10">
+              {RECORDS.map((record) => (
+                <RevealOnScroll
+                  key={record.id}
+                  className="grid gap-6 border-t border-border/60 py-8 opacity-0 translate-y-3.5 transition-all duration-500 ease-out last:border-b sm:grid-cols-[minmax(0,15rem)_1fr] sm:gap-10 lg:py-10"
+                  visibleClassName="!opacity-100 !translate-y-0"
+                >
+                  <div>
+                    <div className="flex items-baseline gap-2 font-mono">
+                      <span className="text-sm font-semibold text-muted-foreground">{record.id}</span>
+                      <span className="text-[11px] tracking-wide text-muted-foreground/70 uppercase">
+                        shipped
+                      </span>
+                    </div>
+                    <h3 className="mt-2 text-xl font-semibold tracking-tight">{record.title}</h3>
+                    <p className="mt-1.5 text-sm text-muted-foreground">{record.tagline}</p>
+                  </div>
+                  <ul className="flex flex-col gap-2.5">
+                    {record.items.map((item) => (
+                      <li key={item} className="flex items-start gap-2.5 text-sm">
+                        <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-green-600 dark:text-green-500" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                </RevealOnScroll>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="border-t border-border/60">
+          <div className="mx-auto max-w-6xl px-4 py-20 text-center sm:px-6 lg:px-8">
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
+              Clone it, migrate it, ship it.
+            </h2>
+            <p className="mx-auto mt-3 max-w-md text-muted-foreground">
+              The scaffolding is done. Bring the product.
+            </p>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              <Button asChild size="lg">
+                <a href={REPO_URL}>Get the template</a>
+              </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/changelog">See what&apos;s new</Link>
+              </Button>
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className={styles.siteFooter}>
-        <div className={`${styles.wrap} ${styles.footerRow}`}>
-          <span>
-            @xk2800/nextjs-template <span className={styles.versionTag}>v{packageJson.version}</span>
-          </span>
-          <nav aria-label="Footer">
-            <a href={REPO_URL}>GitHub</a>
-            <a href={DOCS_URL}>Docs</a>
-            <Link href="/changelog">Changelog</Link>
-          </nav>
-        </div>
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

@@ -1,7 +1,97 @@
 [
   {
-    "version": "0.0.1",
-    "date": "2025-6-10",
-    "changes": ["This is a what the changelog looks like"]
+    "version": "0.3.3",
+    "date": "2026-8-10",
+    "type": "fix",
+    "title": "Import path consistency",
+    "changes": ["Fix inconsistent import paths across components"]
+  },
+  {
+    "version": "0.3.0",
+    "date": "2026-8-10",
+    "type": "feature",
+    "title": "System settings, impersonation & bulk admin actions",
+    "changes": [
+      "Add live System Settings management (feature flags, maintenance mode)",
+      "Add admin impersonation with logging and an always-visible banner",
+      "Add bulk ban and bulk delete actions for users",
+      "Add CSV export for activity logs and users",
+      "Add per-user activity log, login info, sessions, and status cards"
+    ]
+  },
+  {
+    "version": "0.2.7",
+    "date": "2026-8-9",
+    "type": "improvement",
+    "title": "Auth client & import cleanup",
+    "changes": [
+      "Improve One Tap plugin integration and type handling in the auth client",
+      "Clean up import paths across activity, admin, and user components"
+    ]
+  },
+  {
+    "version": "0.2.4",
+    "date": "2026-8-9",
+    "type": "feature",
+    "title": "Customizable One Tap redirect",
+    "changes": ["Add a callbackURL prop to One Tap for a customizable post-sign-in redirect"]
+  },
+  {
+    "version": "0.2.3",
+    "date": "2026-8-9",
+    "type": "fix",
+    "title": "Fix One Tap import path",
+    "changes": ["Fix an incorrect authClient import path in the One Tap component"]
+  },
+  {
+    "version": "0.2.1",
+    "date": "2026-8-9",
+    "type": "improvement",
+    "title": "Release tooling defaults",
+    "changes": ["Default the release script to publish to GitHub Packages"]
+  },
+  {
+    "version": "0.1.13",
+    "date": "2026-8-9",
+    "type": "feature",
+    "title": "Google One Tap & live status",
+    "changes": [
+      "Add Google One Tap sign-in, behind a configurable flag",
+      "Add a heartbeat endpoint and a live online/offline dashboard status",
+      "Add error handling and loading states across dashboard sections",
+      "Fix stale requests and a loading-state bug in the activity log table",
+      "Auto-generate GitHub release notes from commit history"
+    ]
+  },
+  {
+    "version": "0.1.12",
+    "date": "2026-8-1",
+    "type": "feature",
+    "title": "Configurable auth providers",
+    "changes": [
+      "Add an automated version-bump and release script",
+      "Enable Google and email/password sign-in by default, toggleable via env vars",
+      "Centralize and harden callback URL normalization against open redirects",
+      "Add an admin activity logs API and dashboard components"
+    ]
+  },
+  {
+    "version": "0.1.10",
+    "date": "2026-7-25",
+    "type": "improvement",
+    "title": "Publish as a package",
+    "changes": ["Add repository and publishConfig metadata for GitHub Packages", "Add a publishing guide"]
+  },
+  {
+    "version": "0.1.9",
+    "date": "2026-7-3",
+    "type": "feature",
+    "title": "Dashboard foundations",
+    "changes": [
+      "Add dashboard components and admin statistics",
+      "Add Doppler secrets management support",
+      "Add Tailwind theme support",
+      "Update database connection handling and migration instructions"
+    ]
   }
 ]
