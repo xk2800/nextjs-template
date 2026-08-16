@@ -1,4 +1,5 @@
-FROM oven/bun:1 AS base
+# FROM oven/bun:1 AS base
+FROM oven/bun:1-baseline AS base
 
 # --- Dependencies ---
 FROM base AS deps
