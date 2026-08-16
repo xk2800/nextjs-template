@@ -2,7 +2,8 @@
 FROM oven/bun:1.3.13 AS base
 
 # --- Dependencies ---
-FROM base AS deps
+# FROM base AS deps
+FROM oven/bun:1 AS deps
 WORKDIR /app
 
 COPY package.json bun.lockb ./
@@ -16,7 +17,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 ARG DATABASE_URL
-ARG AUTH_SECRET=build-placeholder
+# ARG AUTH_SECRET=build-placeholder
 ARG BETTER_AUTH_URL=http://localhost:3000
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
 ARG AUTH_GOOGLE_ID=placeholder
