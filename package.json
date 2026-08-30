@@ -40,6 +40,7 @@
     "lib/utils.ts",
     "lib/auth-client.ts",
     "lib/formatters.ts",
+    "lib/recalculate-columns.ts",
     "lib/cookie-names.ts",
     "lib/request-info.ts",
     "types/auth",
@@ -120,6 +121,7 @@
     },
     "./lib/utils": "./lib/utils.ts",
     "./lib/formatters": "./lib/formatters.ts",
+    "./lib/recalculate-columns": "./lib/recalculate-columns.ts",
     "./styles/theme.css": "./styles/theme.css",
     "./components/*": "./components/*.tsx"
   },
@@ -174,6 +176,7 @@
     "build": "npm run build:lib && next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "bun lib/recalculate-columns.test.ts",
     "build:lib": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "prepublishOnly": "bun run typecheck && bun run build:lib",

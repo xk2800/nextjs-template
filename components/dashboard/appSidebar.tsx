@@ -9,6 +9,7 @@ import {
   Users,
   ScrollText,
   SlidersHorizontal,
+  Table,
   LogOut,
 } from "lucide-react"
 
@@ -43,6 +44,7 @@ export interface AppSidebarProps {
 
 const workspaceLinks = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/data-table", label: "DataTable", icon: Table },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ]
 

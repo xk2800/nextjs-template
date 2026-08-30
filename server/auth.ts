@@ -271,6 +271,19 @@ export function createAuth(overrides: AuthOverrides = {}) {
     // Secret for signing cookies and tokens
     secret: process.env.AUTH_SECRET!,
 
+    // The OAuth `state` is a one-time verification row: the callback consumes
+    // and deletes it. When the same callback URL gets hit twice (browser
+    // prefetch / bfcache / double nav — common on a repeat Google sign-in
+    // where Google auto-redirects with no consent screen), the first hit
+    // logs the user in and the second finds no `state` row and throws
+    // `please_restart_the_process`. Default sends that to better-auth's bare
+    // error page; point it at /login instead, which already bounces an
+    // authenticated user straight to their callbackUrl — so the losing race
+    // just lands them logged in. See better-auth#5658 / #6544.
+    onAPIError: {
+      errorURL: "/login",
+    },
+
     plugins: [
       // checks to see if oneTap is enabled and if google provider is available, then add the oneTap plugin
       ...(config.AUTH_ENABLE_ONE_TAP && Boolean(socialProviders.google) ? [oneTap()] : []),
