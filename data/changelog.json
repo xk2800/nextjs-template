@@ -1,10 +1,35 @@
 [
   {
+    "version": "0.4.0",
+    "date": "2026-8-31",
+    "type": "feature",
+    "title": "feat: add DataTable component and related utilities for enhanced data display",
+    "changes": [
+      "feat: add DataTable component and related utilities for enhanced data display",
+      "fix: add DATABASE_SSL configuration for Postgres and update SSL handling in db connection",
+      "fix: update Dockerfile to use npm for build and remove unused ARGs",
+      "fix: update Dockerfile to correct dependency base image and comment out unused ARG",
+      "fix: update base image version in Dockerfile to 1.3.13",
+      "update docker file",
+      "update docker file",
+      "feat: implement dynamic maintenance page and add new sidebar component",
+      "feat: Enhance form validation and error handling in authentication components",
+      "feat: Implement authentication flows with password reset, signup, and login features; enhance UI components and email templates",
+      "feat: Refactor features page and enhance layout with new components",
+      "feat: add CopyInstallButton and RevealOnScroll components; create page styles and main FeaturesPage",
+      "build(deps): bump ua-parser-js from 1.0.41 to 2.0.10",
+      "build(deps-dev): bump next from 16.2.12 to 16.3.0",
+      "build(deps-dev): bump eslint-config-next from 16.2.12 to 16.3.0"
+    ]
+  },
+  {
     "version": "0.3.3",
     "date": "2026-8-10",
     "type": "fix",
     "title": "Import path consistency",
-    "changes": ["Fix inconsistent import paths across components"]
+    "changes": [
+      "Fix inconsistent import paths across components"
+    ]
   },
   {
     "version": "0.3.0",
@@ -34,21 +59,27 @@
     "date": "2026-8-9",
     "type": "feature",
     "title": "Customizable One Tap redirect",
-    "changes": ["Add a callbackURL prop to One Tap for a customizable post-sign-in redirect"]
+    "changes": [
+      "Add a callbackURL prop to One Tap for a customizable post-sign-in redirect"
+    ]
   },
   {
     "version": "0.2.3",
     "date": "2026-8-9",
     "type": "fix",
     "title": "Fix One Tap import path",
-    "changes": ["Fix an incorrect authClient import path in the One Tap component"]
+    "changes": [
+      "Fix an incorrect authClient import path in the One Tap component"
+    ]
   },
   {
     "version": "0.2.1",
     "date": "2026-8-9",
     "type": "improvement",
     "title": "Release tooling defaults",
-    "changes": ["Default the release script to publish to GitHub Packages"]
+    "changes": [
+      "Default the release script to publish to GitHub Packages"
+    ]
   },
   {
     "version": "0.1.13",
@@ -80,7 +111,10 @@
     "date": "2026-7-25",
     "type": "improvement",
     "title": "Publish as a package",
-    "changes": ["Add repository and publishConfig metadata for GitHub Packages", "Add a publishing guide"]
+    "changes": [
+      "Add repository and publishConfig metadata for GitHub Packages",
+      "Add a publishing guide"
+    ]
   },
   {
     "version": "0.1.9",
