@@ -5,7 +5,9 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
 import AdminStatsGrid from "@/components/dashboard/admin/adminStatsGrid"
 import AdminStatsGridSkeleton from "@/components/dashboard/admin/adminStatsGridSkeleton"
+import DeviceThrottleCard from "@/components/dashboard/admin/deviceThrottleCard"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export default function AdminDashboardPage() {
   return (
@@ -20,6 +22,12 @@ export default function AdminDashboardPage() {
       <ErrorBoundary fallback={<SectionErrorFallback title="Stats" />}>
         <Suspense fallback={<AdminStatsGridSkeleton />}>
           <AdminStatsGrid />
+        </Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary fallback={<SectionErrorFallback title="Device throttle" />}>
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <DeviceThrottleCard />
         </Suspense>
       </ErrorBoundary>
 

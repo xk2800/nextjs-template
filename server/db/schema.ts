@@ -1,4 +1,4 @@
-import { boolean, check, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { boolean, check, integer, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createId } from '@paralleldrive/cuid2'
 
@@ -123,6 +123,28 @@ export const deviceFingerprints = pgTable("device_fingerprint", {
 }, (table) => [
   unique("device_fingerprint_user_visitor").on(table.userId, table.visitorId),
 ]);
+
+// Per-device abuse throttle for /sign-in/email and /sign-up/email — one
+// fixed-window counter row per FingerprintJS visitorId (sent by the auth
+// forms as the x-device-fingerprint header; see lib/auth-throttle.ts).
+// Keyed by device, not IP: IP is shared behind corporate NAT / CGNAT / VPN,
+// so an IP counter throttles coworkers together while missing an abuser who
+// rotates IPs. Rows whose window has elapsed are dead weight but harmless
+// (reset on the next attempt) — prune on a cron if the table ever grows.
+export const authThrottle = pgTable("auth_throttle", {
+  fingerprint: text("fingerprint").notNull().primaryKey(),
+  count: integer("count").notNull().default(0),
+  windowStart: timestamp("windowStart").notNull().defaultNow(),
+  // Blockable data points, overwritten on every attempt (last-write-wins) so
+  // the admin panel can show who to block — by IP or by fingerprint — with no
+  // join and no per-attempt history table. windowStart anchors the counter's
+  // window; lastAttemptAt is just "most recently seen".
+  lastAttemptAt: timestamp("lastAttemptAt").notNull().defaultNow(),
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  lastEmail: text("lastEmail"),
+  lastKind: text("lastKind"), // 'signin' | 'signup'
+});
 
 // Singleton row (id is always 'default') holding admin-editable settings for
 // config that used to be env-var-only. See lib/settings-queries.ts for the

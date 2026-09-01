@@ -1,13 +1,14 @@
 'use client'
 
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { z } from 'zod'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { PasswordInput } from '../ui/password-input'
 import { Label } from '../ui/label'
 import { authClient } from '../../lib/auth-client'
-import { LOGIN_REFERRER_COOKIE } from '../../lib/cookie-names'
+import { getVisitorId } from '../../lib/device-fingerprint'
+import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from '../../lib/cookie-names'
 import { SignupSchema } from '../../types/auth/signupSchema'
 import { toast } from 'sonner'
 
@@ -45,6 +46,11 @@ const EmailPasswordSignup = ({ callbackUrl }: Props) => {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const strength = useMemo(() => getPasswordStrength(password), [password])
 
+  // Warm the fingerprint cache so the first submit doesn't wait on it.
+  useEffect(() => {
+    void getVisitorId()
+  }, [])
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -68,11 +74,15 @@ const EmailPasswordSignup = ({ callbackUrl }: Props) => {
     document.cookie = `${LOGIN_REFERRER_COOKIE}=${encodeURIComponent(window.location.href)}; path=/; max-age=300; samesite=lax`
 
     try {
+      const visitorId = await getVisitorId()
       const { error } = await authClient.signUp.email({
         name,
         email,
         password,
         callbackURL: callbackUrl || '/dashboard',
+        fetchOptions: visitorId
+          ? { headers: { [DEVICE_FINGERPRINT_HEADER]: visitorId } }
+          : undefined,
       })
 
       if (error) {

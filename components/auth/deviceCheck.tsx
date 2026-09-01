@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useSession } from '../../lib/auth-client'
+import { getVisitorId } from '../../lib/device-fingerprint'
 
 // Mount once (e.g. in the root layout). When a session is present it computes
 // a FingerprintJS device id and hands it to /api/device-check, which emails
@@ -26,9 +27,8 @@ export default function DeviceCheck() {
         // is idempotent, so the cost is at most one redundant POST per load.
       }
 
-      const FingerprintJS = (await import('@fingerprintjs/fingerprintjs')).default
-      const fp = await FingerprintJS.load()
-      const { visitorId } = await fp.get()
+      const visitorId = await getVisitorId()
+      if (!visitorId) return
 
       await fetch('/api/device-check', {
         method: 'POST',

@@ -10,7 +10,8 @@ import { oneTap, admin as adminPlugin } from "better-auth/plugins";
 import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/api"
 import { logActivity } from "@/lib/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation } from "@/lib/request-info"
-import { LOGIN_REFERRER_COOKIE } from "@/lib/cookie-names"
+import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/cookie-names"
+import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/lib/auth-throttle"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
 import { getResend, EMAIL_FROM } from "@/lib/resend"
 import { EmailTemplateResetPassword } from "@/components/email/email-template-reset-password"
@@ -19,6 +20,35 @@ type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
   // consuming projects can add e.g. `apple` without forking this file.
   socialProviders?: BetterAuthOptions["socialProviders"]
+}
+
+// A failed credential sign-in, written to the activity feed — but only when
+// the attempted email maps to a real account (activityLogs.userId is NOT
+// NULL, and a miss has no user to attribute the row to). Best-effort: runs
+// in an after-hook and must never disturb the sign-in response.
+async function logFailedLogin(ctx: { body?: unknown; headers?: Headers | null }) {
+  try {
+    const raw = (ctx.body as { email?: unknown } | undefined)?.email
+    const email = typeof raw === "string" ? raw.toLowerCase() : null
+    if (!email) return
+
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1)
+    if (!user) return
+
+    await logActivity({
+      userId: user.id,
+      action: "login_failed",
+      description: "Failed login attempt",
+      ipAddress: getClientIp(ctx.headers),
+      userAgent: ctx.headers?.get("user-agent") ?? null,
+    })
+  } catch (error) {
+    console.error("Failed to log login_failed activity", error)
+  }
 }
 
 export function createAuth(overrides: AuthOverrides = {}) {
@@ -207,6 +237,20 @@ export function createAuth(overrides: AuthOverrides = {}) {
     // available together.
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        // Per-device abuse throttle for the two credential entry points.
+        // Keyed by the client's FingerprintJS visitorId (x-device-fingerprint
+        // header, set in emailPasswordLogin/Signup) — not by IP, which is
+        // shared behind corporate NAT / CGNAT / VPN. No header (library not
+        // installed / blocked, or a non-browser caller) ⇒ no throttle.
+        if (ctx.path === "/sign-in/email" || ctx.path === "/sign-up/email") {
+          const fingerprint = ctx.headers?.get(DEVICE_FINGERPRINT_HEADER)
+          if (fingerprint && (await isDeviceThrottled(fingerprint))) {
+            throw new APIError("TOO_MANY_REQUESTS", {
+              message: "Too many attempts from this device. Try again in a few minutes.",
+            })
+          }
+        }
+
         // Live kill-switch for the two built-in sign-in methods, on top of
         // the (untouched) provider registration above — lets an admin
         // disable a method from the System Settings page and have it take
@@ -261,6 +305,38 @@ export function createAuth(overrides: AuthOverrides = {}) {
             description: `Admin stopped impersonating ${target[0]?.email ?? current.session.userId}`,
             metadata: { impersonatedUserId: current.session.userId },
           })
+        }
+      }),
+      after: createAuthMiddleware(async (ctx) => {
+        if (ctx.path !== "/sign-in/email" && ctx.path !== "/sign-up/email") return
+
+        const fingerprint = ctx.headers?.get(DEVICE_FINGERPRINT_HEADER)
+        if (!fingerprint) return
+
+        const failed = ctx.context.returned instanceof APIError
+        const rawEmail = (ctx.body as { email?: unknown } | undefined)?.email
+        const meta = {
+          ipAddress: getClientIp(ctx.headers),
+          userAgent: ctx.headers?.get("user-agent") ?? null,
+          email: typeof rawEmail === "string" ? rawEmail.toLowerCase() : null,
+        }
+
+        // Sign-up abuse is mass account creation — the *successful* ones are
+        // the problem — so every sign-up from this device counts.
+        if (ctx.path === "/sign-up/email") {
+          await recordDeviceAttempt(fingerprint, { ...meta, kind: "signup" })
+          return
+        }
+
+        // /sign-in/email: count failures; a success clears the counter.
+        // ponytail: a successful sign-in wipes the device's failure budget, so
+        // a credential-stuffing hit resets itself — per-outcome counters if
+        // that ceiling ever bites.
+        if (failed) {
+          await recordDeviceAttempt(fingerprint, { ...meta, kind: "signin" })
+          await logFailedLogin(ctx)
+        } else {
+          await clearDeviceThrottle(fingerprint)
         }
       }),
     },
