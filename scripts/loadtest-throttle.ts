@@ -8,6 +8,8 @@
 // Run against `bun dev` — better-auth's own IP rate-limiter is off in dev,
 // on in a production build, and would muddy the result.
 
+export {} // make this a module so top-level await type-checks
+
 const BASE = process.env.LOADTEST_URL ?? "http://localhost:3000"
 const total = Number(process.argv[2] ?? 30)
 const concurrency = Number(process.argv[3] ?? 1)
