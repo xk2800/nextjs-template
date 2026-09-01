@@ -71,6 +71,13 @@
       "when": 1786365740229,
       "tag": "0009_narrow_skullbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788150107313,
+      "tag": "0010_workable_wolfsbane",
+      "breakpoints": true
     }
   ]
 }

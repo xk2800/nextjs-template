@@ -1,4 +1,4 @@
-import { boolean, check, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { boolean, check, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createId } from '@paralleldrive/cuid2'
 
@@ -106,6 +106,23 @@ export const activityLogs = pgTable("activity_log", {
   city: text('city'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
 });
+
+// One row per (user, device fingerprint) pair. Its only job is to answer
+// "has this account signed in from this device before?" — no matching row ⇒
+// send a new-device alert (see app/api/device-check/route.ts). visitorId is
+// FingerprintJS's identifier, computed client-side in
+// components/auth/deviceCheck.tsx. UA+IP are deliberately NOT the signal here:
+// they churn constantly on mobile and would alert on every other login.
+export const deviceFingerprints = pgTable("device_fingerprint", {
+  id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  visitorId: text("visitorId").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => [
+  unique("device_fingerprint_user_visitor").on(table.userId, table.visitorId),
+]);
 
 // Singleton row (id is always 'default') holding admin-editable settings for
 // config that used to be env-var-only. See lib/settings-queries.ts for the

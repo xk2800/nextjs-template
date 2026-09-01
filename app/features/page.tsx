@@ -48,6 +48,7 @@ const RECORDS = [
       "bcrypt-hashed credentials, DB-backed sessions with a 5-minute cookie cache",
       "Open-redirect-safe callback URLs on every login and signup route",
       "Role-based access — user and admin, enforced at the layout level",
+      "Self-serve password reset — emailed link, single-use token, no support ticket",
     ],
   },
   {
@@ -70,6 +71,7 @@ const RECORDS = [
       "Admin impersonation, logged on start and stop, with an always-visible banner",
       "Every login captures OS, browser, device type, and city/country — offline, no third-party calls",
       "Referrer tracking survives the round trip through Google's OAuth redirect",
+      "New-device sign-in alerts — a client-side device fingerprint flags any device an account hasn't used before and emails the user, instead of noisy IP/user-agent matching",
     ],
   },
   {
@@ -92,6 +94,7 @@ const RECORDS = [
       "Versioned SQL migrations, generated and reviewable, never run blind",
       "Zod-validated environment config, kept separate for dev, prod, and test",
       "Drizzle Studio wired up for local inspection out of the box",
+      "TLS toggle for self-hosted Postgres — one DATABASE_SSL env var, no code changes for managed hosts that require it",
     ],
   },
   {
@@ -103,6 +106,16 @@ const RECORDS = [
       "Doppler secrets management, or plain .env files — your choice",
       "Docker support out of the box",
       "A versioned changelog and an automated release script",
+    ],
+  },
+  {
+    id: "0007",
+    title: "Data display",
+    tagline: "A table that adapts to its container, not the other way around.",
+    items: [
+      "Responsive DataTable — overflowing columns collapse into an expandable per-row detail panel instead of forcing horizontal scroll",
+      "Per-column sticky and minimum-width control, with a configurable collapse breakpoint",
+      "Fully generic over your own row type — see it live at /dashboard/data-table",
     ],
   },
 ]
