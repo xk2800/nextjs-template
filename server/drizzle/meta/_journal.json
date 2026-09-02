@@ -85,6 +85,13 @@
       "when": 1788281206916,
       "tag": "0011_cultured_gorilla_man",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788283090840,
+      "tag": "0012_mean_raider",
+      "breakpoints": true
     }
   ]
 }

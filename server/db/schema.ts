@@ -119,6 +119,14 @@ export const deviceFingerprints = pgTable("device_fingerprint", {
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
   visitorId: text("visitorId").notNull(),
+  // Context captured at first-seen time — for the admin panel's "New devices"
+  // card and the alert email. Not part of the new-vs-known decision (that's
+  // visitorId only), just so an admin can eyeball whether a sign-in looks like
+  // a hijack. Nullable: an old row predates these columns, or geoip missed.
+  ipAddress: text("ipAddress"),
+  userAgent: text("userAgent"),
+  country: text("country"),
+  city: text("city"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }, (table) => [
   unique("device_fingerprint_user_visitor").on(table.userId, table.visitorId),

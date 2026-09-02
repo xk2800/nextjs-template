@@ -24,7 +24,8 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
   }
 
   const { data, error } = await getResend().emails.send({
-    from: 'Acme <onboarding@xavierkhew.com>',
+    // from: 'Acme <onboarding@xavierkhew.com>',
+    from: 'Acme <onboarding@xavierkhew.xyz>',
     to: [session.user.email],
     subject: 'Hello world',
     react: EmailTemplate({ firstName: session.user.name || 'User' }),

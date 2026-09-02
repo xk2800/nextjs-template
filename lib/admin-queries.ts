@@ -1,6 +1,6 @@
 import "server-only"
 import { db } from "../server/db"
-import { users, sessions, authThrottle } from "../server/db/schema"
+import { users, sessions, authThrottle, deviceFingerprints } from "../server/db/schema"
 import { sql, gte, eq, desc } from "drizzle-orm"
 import { parseUserAgent, lookupGeoLocation } from "./request-info"
 import { WINDOW_MS, isOverLimit } from "./auth-throttle-limits"
@@ -105,6 +105,41 @@ export async function getDeviceThrottleActivity(limit = 50) {
       // Is the counter still inside its window (attack ongoing) or has it
       // gone quiet (last burst, awaiting reset on next attempt)?
       windowActive: now - r.windowStart.getTime() < WINDOW_MS,
+    }
+  })
+}
+
+export type RecentNewDeviceRow = Awaited<ReturnType<typeof getRecentNewDevices>>[number]
+
+// Powers the admin "New devices" card. One row per (account, device) pair the
+// first time that account is seen on that device — written by
+// app/api/device-check/route.ts, newest first. The row links to the user's
+// admin detail page, where sessions can be revoked if the sign-in wasn't them.
+export async function getRecentNewDevices(limit = 20) {
+  const rows = await db
+    .select({
+      id: deviceFingerprints.id,
+      userId: deviceFingerprints.userId,
+      userName: users.name,
+      userEmail: users.email,
+      ipAddress: deviceFingerprints.ipAddress,
+      userAgent: deviceFingerprints.userAgent,
+      country: deviceFingerprints.country,
+      city: deviceFingerprints.city,
+      createdAt: deviceFingerprints.createdAt,
+    })
+    .from(deviceFingerprints)
+    .innerJoin(users, eq(deviceFingerprints.userId, users.id))
+    .orderBy(desc(deviceFingerprints.createdAt))
+    .limit(limit)
+
+  return rows.map((r) => {
+    const device = parseUserAgent(r.userAgent)
+    return {
+      ...r,
+      os: device.os,
+      browser: device.browser,
+      deviceType: device.deviceType,
     }
   })
 }

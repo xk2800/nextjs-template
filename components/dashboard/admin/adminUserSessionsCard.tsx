@@ -45,10 +45,30 @@ export default function AdminUserSessionsCard({ userId, initialSessions }: Admin
   const [sessions, setSessions] = useState(initialSessions)
   const [sessionToRevoke, setSessionToRevoke] = useState<string | null>(null)
   const [isRevoking, setIsRevoking] = useState(false)
+  const [confirmRevokeAll, setConfirmRevokeAll] = useState(false)
 
   const now = new Date()
   const activeSessions = sessions.filter(s => new Date(s.expiresAt) > now)
   const expiredSessions = sessions.filter(s => new Date(s.expiresAt) <= now)
+
+  const handleRevokeAll = async () => {
+    setIsRevoking(true)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}/sessions`, { method: 'DELETE' })
+      if (!response.ok) {
+        throw new Error('Failed to revoke sessions')
+      }
+      toast.success('All sessions revoked')
+      setSessions(sessions.filter(s => new Date(s.expiresAt) <= now))
+      setConfirmRevokeAll(false)
+      router.refresh()
+    } catch (error) {
+      toast.error('Failed to revoke sessions')
+      console.error(error)
+    } finally {
+      setIsRevoking(false)
+    }
+  }
 
   const handleRevokeSession = async (sessionId: string) => {
     setIsRevoking(true)
@@ -78,10 +98,23 @@ export default function AdminUserSessionsCard({ userId, initialSessions }: Admin
     <>
       <Card>
         <CardHeader>
-          <CardTitle>Sessions</CardTitle>
-          <CardDescription>
-            {activeSessions.length} active session(s)
-          </CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>Sessions</CardTitle>
+              <CardDescription>
+                {activeSessions.length} active session(s)
+              </CardDescription>
+            </div>
+            {activeSessions.length > 0 && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => setConfirmRevokeAll(true)}
+              >
+                Revoke all sessions
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {activeSessions.length === 0 ? (
@@ -163,6 +196,29 @@ export default function AdminUserSessionsCard({ userId, initialSessions }: Admin
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isRevoking ? "Revoking..." : "Revoke Session"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={confirmRevokeAll} onOpenChange={setConfirmRevokeAll}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke all sessions?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Logs this account out of every device — use this if the account may be
+              compromised. Cached sessions may stay valid for up to 5 minutes. The
+              user can sign back in normally afterwards.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRevoking}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRevokeAll}
+              disabled={isRevoking}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isRevoking ? "Revoking..." : "Revoke all"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

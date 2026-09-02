@@ -58,3 +58,54 @@ only needed after using a fixed fingerprint:
 ```sql
 DELETE FROM auth_throttle WHERE fingerprint LIKE 'loadtest-%';
 ```
+
+---
+
+## New-device sign-in alert
+
+First time an account is seen on a given FingerprintJS `visitorId`, the user
+**and every admin** get an email and the sign-in shows on the admin panel's
+**New devices** card. Detection is fingerprint-only (not IP/UA). Route:
+`app/api/device-check/route.ts`, client trigger:
+`components/auth/deviceCheck.tsx`, storage: `device_fingerprint`.
+
+### 1. End-to-end test (hits the real endpoint)
+
+Needs the dev server running (`bun dev`) and a real account to sign in as.
+
+```bash
+TEST_EMAIL=you@example.com TEST_PASSWORD=secret bun scripts/test-new-device.ts
+```
+
+Target defaults to `http://localhost:3000` (override with `DEVICE_CHECK_URL`).
+
+**Expected:** four `PASS` lines —
+
+- no session → `401`
+- body with no `visitorId` → `400`
+- a fresh `visitorId` → `{ newDevice: true }` (row written; emails sent if the
+  server has `RESEND_API_KEY`)
+- the same `visitorId` again → `{ newDevice: false }` (dedup — no second email)
+
+Emails aren't asserted (no Resend mock) — check the dev server logs or the
+Resend dashboard. Without `RESEND_API_KEY` on the server the route still
+records the row and returns the JSON above, so the checks still pass.
+
+### 2. Admin dashboard view + session revoke
+
+After a run, open `/dashboard/admin` (as an admin) → **New devices** card
+shows the account, device, location, IP and time. Each row:
+
+- links to the user's admin detail page, and
+- has a one-click **Revoke sessions** (confirm dialog → `DELETE
+  /api/admin/users/[id]/sessions`, writes a `session_revoked` audit entry).
+
+The same **Revoke all sessions** button is on the user detail page's
+**Sessions** card. Cached sessions can linger up to 5 min
+(`session.cookieCache.maxAge` in `server/auth.ts`).
+
+### 3. Cleanup
+
+```sql
+DELETE FROM device_fingerprint WHERE "visitorId" LIKE 'testdev-%';
+```

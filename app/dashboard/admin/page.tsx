@@ -6,6 +6,7 @@ import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
 import AdminStatsGrid from "@/components/dashboard/admin/adminStatsGrid"
 import AdminStatsGridSkeleton from "@/components/dashboard/admin/adminStatsGridSkeleton"
 import DeviceThrottleCard from "@/components/dashboard/admin/deviceThrottleCard"
+import NewDeviceCard from "@/components/dashboard/admin/newDeviceCard"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -28,6 +29,12 @@ export default function AdminDashboardPage() {
       <ErrorBoundary fallback={<SectionErrorFallback title="Device throttle" />}>
         <Suspense fallback={<Skeleton className="h-48 w-full" />}>
           <DeviceThrottleCard />
+        </Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary fallback={<SectionErrorFallback title="New devices" />}>
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <NewDeviceCard />
         </Suspense>
       </ErrorBoundary>
 
