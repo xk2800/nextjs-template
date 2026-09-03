@@ -4,6 +4,7 @@ import { users, sessions, authThrottle, deviceFingerprints } from "../server/db/
 import { sql, gte, eq, desc } from "drizzle-orm"
 import { parseUserAgent, lookupGeoLocation } from "./request-info"
 import { WINDOW_MS, isOverLimit } from "./auth-throttle-limits"
+import { groupSharedDevices } from "./shared-devices"
 
 // Powers the admin panel's landing page (/dashboard/admin) — kept separate
 // from getAdminStats (the compact overview embedded in the main dashboard)
@@ -142,4 +143,42 @@ export async function getRecentNewDevices(limit = 20) {
       deviceType: device.deviceType,
     }
   })
+}
+
+// A device fingerprint (FingerprintJS visitorId) is normally 1:1 with an
+// account, or 1:few (personal + work login on one laptop). One visitorId behind
+// this many accounts is the multi-account / trial-abuse smell.
+const MIN_SHARED_ACCOUNTS = 3
+
+export type SharedDeviceRow = Awaited<ReturnType<typeof getSharedDeviceAccounts>>[number]
+
+// Powers the admin "Shared devices" card. One row per device fingerprint that
+// MIN_SHARED_ACCOUNTS+ distinct accounts have signed in from, most-shared first,
+// each with its full account list so an admin can open and ban them. The
+// device_fingerprint unique (userId, visitorId) constraint means a plain row
+// count per visitorId already IS the distinct-account count.
+export async function getSharedDeviceAccounts(limit = 20) {
+  // ponytail: pulls the whole device_fingerprint table each call and groups in
+  // JS — fine for a template. If this table gets large, add an index on
+  // visitorId and push the "N+ accounts" filter into a HAVING subquery.
+  const rows = await db
+    .select({
+      visitorId: deviceFingerprints.visitorId,
+      userId: deviceFingerprints.userId,
+      userName: users.name,
+      userEmail: users.email,
+      banned: users.banned,
+      firstSeenAt: deviceFingerprints.createdAt,
+      userAgent: deviceFingerprints.userAgent,
+      country: deviceFingerprints.country,
+      city: deviceFingerprints.city,
+    })
+    .from(deviceFingerprints)
+    .innerJoin(users, eq(deviceFingerprints.userId, users.id))
+    .orderBy(desc(deviceFingerprints.createdAt))
+
+  return groupSharedDevices(rows, MIN_SHARED_ACCOUNTS, limit).map((d) => ({
+    ...d,
+    ...parseUserAgent(d.userAgent),
+  }))
 }

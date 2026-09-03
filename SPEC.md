@@ -82,6 +82,8 @@ The package is also exported piecemeal via `package.json#exports` (`/auth`, `/au
 | `verification` | Email verification / password reset tokens |
 | `activity_log` | Append-only audit trail — action enum (login, logout, login_failed, password_changed, email_changed, profile_updated, session_revoked, user_deleted, user_banned, user_unbanned, role_changed, impersonation_started/stopped, settings_changed), description, IP, user agent, parsed device/geo fields, metadata |
 | `system_settings` | Singleton row (`id = 'default'`, enforced via CHECK constraint) holding admin-editable runtime config: maintenance mode + message, auth method toggles (Google/email-password/One Tap), session-revocation toggle, `updatedBy` |
+| `device_fingerprint` | One row per (user, FingerprintJS `visitorId`) — answers "has this account signed in from this device before?" for new-device alerts, and (many accounts on one `visitorId`) the multi-account / trial-abuse signal. First-seen IP/UA/geo kept for context |
+| `auth_throttle` | Per-device fixed-window counter for `/sign-in/email` + `/sign-up/email` abuse, keyed by `visitorId` (not IP). Last IP/UA/email/kind kept so an admin can block the source |
 
 Migrations are generated with `drizzle-kit generate` and applied per-environment (`migrate:dev` / `migrate:prod` / `migrate:test`). The published package does not ship migrations — consuming projects re-export the schema locally so `drizzle-kit` can resolve it directly.
 
@@ -110,6 +112,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Impersonation banner shown app-wide while an admin is impersonating a user.
 - System-wide activity log viewer with CSV export.
 - System Settings form — maintenance mode/message, live auth-method toggles (Google, Email/Password, One Tap), session-revocation toggle.
+- Device security cards — **New devices** (first sign-in per account/device, with one-click session revoke), **Device throttle** (fingerprints hitting the sign-in/sign-up abuse limit), and **Shared devices** (one device fingerprint used by 3+ accounts — multi-account / trial-abuse signal, each account linked for a ban).
 - Route- and section-level `error.tsx` / `loading.tsx` boundaries throughout the admin tree.
 
 ### Email

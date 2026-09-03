@@ -72,6 +72,7 @@ const RECORDS = [
       "Every login captures OS, browser, device type, and city/country — offline, no third-party calls",
       "Referrer tracking survives the round trip through Google's OAuth redirect",
       "New-device sign-in alerts — a client-side device fingerprint flags any device an account hasn't used before and emails the user, instead of noisy IP/user-agent matching",
+      "Multi-account / trial-abuse flag — the admin panel surfaces any device fingerprint shared by three or more accounts, each linked for a one-click ban",
     ],
   },
   {

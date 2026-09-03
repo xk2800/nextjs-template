@@ -177,7 +177,7 @@
     "build": "npm run build:lib && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "bun lib/recalculate-columns.test.ts && bun lib/auth-throttle-limits.test.ts",
+    "test": "bun lib/recalculate-columns.test.ts && bun lib/auth-throttle-limits.test.ts && bun lib/shared-devices.test.ts",
     "build:lib": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "prepublishOnly": "bun run typecheck && bun run build:lib",

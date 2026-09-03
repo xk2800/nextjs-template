@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.5.0",
+    "date": "2026-9-2",
+    "type": "feature",
+    "title": "Device security: sign-in throttle, new-device alerts & multi-account detection",
+    "changes": [
+      "Add a per-device sign-in / sign-up abuse throttle keyed by FingerprintJS visitorId, not IP",
+      "Add new-device sign-in alerts — email the user and every admin the first time an account is seen on a device, plus a New devices admin card with one-click session revoke",
+      "Add multi-account / trial-abuse detection — a Shared devices admin card flags any device fingerprint shared by 3+ accounts, each linked for a ban"
+    ]
+  },
+  {
     "version": "0.4.0",
     "date": "2026-8-31",
     "type": "feature",

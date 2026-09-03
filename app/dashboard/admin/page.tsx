@@ -7,6 +7,7 @@ import AdminStatsGrid from "@/components/dashboard/admin/adminStatsGrid"
 import AdminStatsGridSkeleton from "@/components/dashboard/admin/adminStatsGridSkeleton"
 import DeviceThrottleCard from "@/components/dashboard/admin/deviceThrottleCard"
 import NewDeviceCard from "@/components/dashboard/admin/newDeviceCard"
+import SharedDeviceCard from "@/components/dashboard/admin/sharedDeviceCard"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -35,6 +36,12 @@ export default function AdminDashboardPage() {
       <ErrorBoundary fallback={<SectionErrorFallback title="New devices" />}>
         <Suspense fallback={<Skeleton className="h-48 w-full" />}>
           <NewDeviceCard />
+        </Suspense>
+      </ErrorBoundary>
+
+      <ErrorBoundary fallback={<SectionErrorFallback title="Shared devices" />}>
+        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
+          <SharedDeviceCard />
         </Suspense>
       </ErrorBoundary>
 

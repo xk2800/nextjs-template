@@ -109,3 +109,38 @@ The same **Revoke all sessions** button is on the user detail page's
 ```sql
 DELETE FROM device_fingerprint WHERE "visitorId" LIKE 'testdev-%';
 ```
+
+---
+
+## Multi-account / trial-abuse detection
+
+The admin panel's **Shared devices** card flags any FingerprintJS `visitorId`
+in `device_fingerprint` that 3+ distinct accounts have signed in from
+(threshold: `MIN_SHARED_ACCOUNTS` in `lib/admin-queries.ts`). Grouping / sort /
+threshold logic is pure and lives in `lib/shared-devices.ts`.
+
+### 1. Unit test (grouping / sort / limit / threshold)
+
+```bash
+bun lib/shared-devices.test.ts   # or: bun run test
+```
+
+### 2. Admin dashboard view
+
+Seed 3+ accounts on one fingerprint (use real user ids), then open
+`/dashboard/admin` (as an admin) → **Shared devices** card lists the device, its
+account count, and every account (each links to its admin page for a ban). Two
+accounts on one device is below threshold and won't show.
+
+```sql
+INSERT INTO device_fingerprint ("userId", "visitorId") VALUES
+  ('<uid1>', 'sharedtest-1'),
+  ('<uid2>', 'sharedtest-1'),
+  ('<uid3>', 'sharedtest-1');
+```
+
+### 3. Cleanup
+
+```sql
+DELETE FROM device_fingerprint WHERE "visitorId" LIKE 'sharedtest-%';
+```
