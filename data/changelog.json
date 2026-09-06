@@ -3,6 +3,22 @@
     "version": "0.5.0",
     "date": "2026-9-6",
     "type": "feature",
+    "title": "fix: update version number from 0.6.0 to 0.5.0 in spec sheet and changelog",
+    "changes": [
+      "fix: update version number from 0.6.0 to 0.5.0 in spec sheet and changelog",
+      "feat(database): add new snapshot for user authentication and activity logging",
+      "feat: implement device security features including sign-in throttle, new-device alerts, and multi-account detection",
+      "feat: add new-device sign-in alert feature",
+      "fix: ensure top-level await type-checks by exporting an empty module",
+      "feat: add load testing script for per-device sign-in throttle",
+      "feat: implement device throttling for sign-in and sign-up attempts",
+      "feat: implement device check functionality with email alerts for new sign-ins"
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-9-6",
+    "type": "feature",
     "title": "Auth hardening: device security, 2FA, passkeys & email verification",
     "changes": [
       "Add a per-device sign-in / sign-up abuse throttle keyed by FingerprintJS visitorId, not IP",
