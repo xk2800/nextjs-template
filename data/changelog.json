@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.5.1",
+    "date": "2026-9-6",
+    "type": "fix",
+    "title": "feat(auth): add login error recovery component and update OAuth callback handling",
+    "changes": [
+      "feat(auth): add login error recovery component and update OAuth callback handling"
+    ]
+  },
+  {
     "version": "0.5.0",
     "date": "2026-9-6",
     "type": "feature",
