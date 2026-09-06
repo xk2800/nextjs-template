@@ -1,47 +1,20 @@
 [
   {
-    "version": "0.6.2",
-    "date": "2026-9-6",
-    "type": "feature",
-    "title": "Passkey add/remove email alerts",
-    "changes": [
-      "Email the account owner (device / location / IP / time) whenever a passkey is registered or deleted, via an auth after-hook on /passkey/verify-registration and /passkey/delete-passkey",
-      "Mirror each change to the personal activity log as passkey_added / passkey_removed (new activity_actions enum values, migration 0014)",
-      "New Tailwind-based React Email template components/email/email-template-passkey-change.tsx; best-effort send, self-disables without RESEND_API_KEY"
-    ]
-  },
-  {
-    "version": "0.6.1",
-    "date": "2026-9-6",
-    "type": "feature",
-    "title": "Self-serve email verification",
-    "changes": [
-      "Add better-auth emailVerification config with a Resend-delivered React Email template; verification stays opt-in (requireEmailVerification: false)",
-      "Add a Verify email button on the dashboard Account Details card that calls authClient.sendVerificationEmail; the /api/auth/verify-email callback flips user.emailVerified and auto-signs-in",
-      "Add APP_NAME env var — drives the 2FA issuer label and passkey rpName instead of the hardcoded \"Next.js Template\""
-    ]
-  },
-  {
-    "version": "0.6.0",
-    "date": "2026-9-6",
-    "type": "feature",
-    "title": "Two-factor authentication (TOTP) & passkeys (WebAuthn)",
-    "changes": [
-      "Add TOTP two-factor auth via better-auth's twoFactor plugin — QR-code setup, encrypted backup codes, and enable/disable/regenerate from the Settings page",
-      "Add a /login/2fa code challenge for password sign-ins on 2FA-enabled accounts, with a 30-day \"trust this device\" option and backup-code fallback",
-      "Add passkeys (WebAuthn) via better-auth's passkey plugin — register/remove credentials in Settings and a passwordless \"Sign in with a passkey\" button on the login page",
-      "Schema: new twoFactor and passkey tables, plus user.twoFactorEnabled (migration 0013)"
-    ]
-  },
-  {
     "version": "0.5.0",
-    "date": "2026-9-2",
+    "date": "2026-9-6",
     "type": "feature",
-    "title": "Device security: sign-in throttle, new-device alerts & multi-account detection",
+    "title": "Auth hardening: device security, 2FA, passkeys & email verification",
     "changes": [
       "Add a per-device sign-in / sign-up abuse throttle keyed by FingerprintJS visitorId, not IP",
       "Add new-device sign-in alerts — email the user and every admin the first time an account is seen on a device, plus a New devices admin card with one-click session revoke",
-      "Add multi-account / trial-abuse detection — a Shared devices admin card flags any device fingerprint shared by 3+ accounts, each linked for a ban"
+      "Add multi-account / trial-abuse detection — a Shared devices admin card flags any device fingerprint shared by 3+ accounts, each linked for a ban",
+      "Add TOTP two-factor auth via better-auth's twoFactor plugin — QR-code setup, encrypted backup codes, and enable/disable/regenerate from the Settings page",
+      "Add a /login/2fa code challenge for password sign-ins on 2FA-enabled accounts, with a 30-day \"trust this device\" option and backup-code fallback",
+      "Add passkeys (WebAuthn) via better-auth's passkey plugin — register/remove credentials in Settings and a passwordless \"Sign in with a passkey\" button on the login page",
+      "Email the account owner (device / location / IP / time) whenever a passkey is registered or deleted, mirrored to the activity log as passkey_added / passkey_removed",
+      "Add self-serve email verification — better-auth emailVerification config, a Verify email button on the dashboard Account Details card, Resend-delivered React Email template; stays opt-in (requireEmailVerification: false)",
+      "Add APP_NAME env var — drives the 2FA issuer label and passkey rpName instead of the hardcoded \"Next.js Template\"",
+      "Schema: new twoFactor and passkey tables, user.twoFactorEnabled, and passkey_added / passkey_removed activity_actions values (migrations 0013-0014)"
     ]
   },
   {

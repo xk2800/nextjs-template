@@ -1,6 +1,6 @@
 # Spec Sheet — @xk2800/nextjs-template
 
-Version `0.6.0` · A production-oriented Next.js starter/template that also publishes itself as a private, installable npm package (`@xk2800/nextjs-template` on GitHub Packages). Consuming projects can either fork the whole repo or `bun add` the package and import individual pieces.
+Version `0.5.0` · A production-oriented Next.js starter/template that also publishes itself as a private, installable npm package (`@xk2800/nextjs-template` on GitHub Packages). Consuming projects can either fork the whole repo or `bun add` the package and import individual pieces.
 
 ---
 
