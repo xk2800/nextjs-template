@@ -286,3 +286,31 @@ row is still written and the endpoint succeeds.
 ```sql
 DELETE FROM "activity_log" WHERE action IN ('passkey_added','passkey_removed');
 ```
+
+---
+
+## OAuth callback double-hit recovery (`?error=please_restart_the_process`)
+
+Better-Auth's OAuth `state` is a one-time `verification` row the callback
+deletes on use. A second hit of `/api/auth/callback/google` (browser Back
+after Google's no-consent redirect, bfcache replay, prefetch, double-nav —
+better-auth#5658 / #6544) finds no row and redirects to
+`/login?error=please_restart_the_process` (via `onAPIError.errorURL` in
+`server/auth.ts`). `components/auth/loginErrorRecovery.tsx`, rendered by
+`app/(auth)/login/page.tsx` whenever `?error=` is present, recovers from it.
+
+Not covered by `bun run test` — needs a real Google round trip.
+
+### 1. In the browser
+
+1. Sign in with Google → land on `/dashboard`. Press browser **Back**.
+   Previously stuck on `/login?error=please_restart_the_process`; now shows
+   **"Reconnecting your session…"** briefly, then lands on `/dashboard`.
+2. While signed in, open `http://localhost:3000/login?error=please_restart_the_process`
+   directly → immediately redirected to `/dashboard`.
+3. While signed out, open the same URL → "Reconnecting…" → one silent Google
+   retry. If it fails again → **"Sign-in didn't complete. Please try again."**
+   with no redirect loop (guarded by `sessionStorage['login-oauth-retried']`,
+   cleared once a session is detected).
+4. `http://localhost:3000/login?error=account_banned` (or any non-transient
+   code) → static message, no session check, no Google retry.
