@@ -3,18 +3,21 @@ import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
 import { eq, sql } from "drizzle-orm"
 import { db } from "./db"
-import { users, accounts, sessions, verifications } from "./db/schema"
+import { users, accounts, sessions, verifications, twoFactors, passkeys } from "./db/schema"
 import { config } from "@/config/env"
 import bcrypt from 'bcrypt'
-import { oneTap, admin as adminPlugin } from "better-auth/plugins";
+import { oneTap, admin as adminPlugin, twoFactor } from "better-auth/plugins";
+import { passkey } from "better-auth/plugins/passkey";
 import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/api"
 import { logActivity } from "@/lib/activity-logger"
-import { getClientIp, parseUserAgent, lookupGeoLocation } from "@/lib/request-info"
+import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
 import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/cookie-names"
 import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/lib/auth-throttle"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
 import { getResend, EMAIL_FROM } from "@/lib/resend"
 import { EmailTemplateResetPassword } from "@/components/email/email-template-reset-password"
+import { EmailTemplateVerifyEmail } from "@/components/email/email-template-verify-email"
+import { EmailTemplatePasskeyChange } from "@/components/email/email-template-passkey-change"
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
@@ -51,6 +54,51 @@ async function logFailedLogin(ctx: { body?: unknown; headers?: Headers | null })
   }
 }
 
+// Email the account owner that a passkey was added or removed. Runs from the
+// auth `after` hook on a successful /passkey/verify-registration or
+// /passkey/delete-passkey; best-effort — a mail failure must not fail the
+// endpoint. Also written to the activity feed. Self-disables when Resend
+// isn't configured.
+async function notifyPasskeyChange(
+  ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0],
+  action: "added" | "removed",
+) {
+  try {
+    const session = await getSessionFromCtx(ctx)
+    const user = session?.user
+    if (!user) return
+
+    const ip = getClientIp(ctx.headers)
+
+    await logActivity({
+      userId: user.id,
+      action: action === "added" ? "passkey_added" : "passkey_removed",
+      description: `Passkey ${action}`,
+      ipAddress: ip,
+      userAgent: ctx.headers?.get("user-agent") ?? null,
+    })
+
+    if (!config.RESEND_API_KEY) return
+
+    await getResend().emails.send({
+      from: EMAIL_FROM,
+      to: [user.email],
+      subject: action === "added" ? "A passkey was added to your account" : "A passkey was removed from your account",
+      react: EmailTemplatePasskeyChange({
+        firstName: user.name || "there",
+        action,
+        device: formatDeviceInfo(parseUserAgent(ctx.headers?.get("user-agent") ?? null)),
+        location: formatLocation(lookupGeoLocation(ip)),
+        ipAddress: ip || "Unknown",
+        when: new Date().toUTCString(),
+        manageUrl: `${process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard/settings`,
+      }),
+    })
+  } catch (error) {
+    console.error("Failed to send passkey-change notification", error)
+  }
+}
+
 export function createAuth(overrides: AuthOverrides = {}) {
   const socialProviders: NonNullable<BetterAuthOptions["socialProviders"]> = {
     ...(config.AUTH_ENABLE_GOOGLE ? {
@@ -76,6 +124,11 @@ export function createAuth(overrides: AuthOverrides = {}) {
     )
   }
 
+  // Shared by the `baseURL` field below and the passkey plugin's rpID/origin
+  // — WebAuthn credentials are bound to this exact origin, so it must never
+  // fall back to better-auth's own "localhost" passkey default in production.
+  const baseURL = process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000"
+
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: "pg",
@@ -84,6 +137,8 @@ export function createAuth(overrides: AuthOverrides = {}) {
         account: accounts,
         session: sessions,
         verification: verifications,
+        twoFactor: twoFactors,
+        passkey: passkeys,
       },
     }),
 
@@ -118,6 +173,23 @@ export function createAuth(overrides: AuthOverrides = {}) {
           to: [user.email],
           subject: "Reset your password",
           react: EmailTemplateResetPassword({ firstName: user.name || "there", url }),
+        })
+      },
+    },
+
+    // Email verification. `requireEmailVerification` above stays false, so this
+    // is opt-in: users trigger it from the dashboard via
+    // authClient.sendVerificationEmail(). better-auth composes `url`
+    // (baseURL + token + callbackURL) and serves the /api/auth/verify-email
+    // callback that flips users.emailVerified on click.
+    emailVerification: {
+      autoSignInAfterVerification: true,
+      async sendVerificationEmail({ user, url }) {
+        await getResend().emails.send({
+          from: EMAIL_FROM,
+          to: [user.email],
+          subject: "Confirm your email",
+          react: EmailTemplateVerifyEmail({ firstName: user.name || "there", url }),
         })
       },
     },
@@ -308,6 +380,19 @@ export function createAuth(overrides: AuthOverrides = {}) {
         }
       }),
       after: createAuthMiddleware(async (ctx) => {
+        // Passkey add/remove is a security-sensitive change to how the account
+        // can be signed into — email the user whenever one lands, the same way
+        // new-device sign-ins are surfaced. Best-effort: never disturb the
+        // endpoint's own response.
+        if (ctx.path === "/passkey/verify-registration" || ctx.path === "/passkey/delete-passkey") {
+          if (ctx.context.returned instanceof APIError) return
+          await notifyPasskeyChange(
+            ctx,
+            ctx.path === "/passkey/verify-registration" ? "added" : "removed",
+          )
+          return
+        }
+
         if (ctx.path !== "/sign-in/email" && ctx.path !== "/sign-up/email") return
 
         const fingerprint = ctx.headers?.get(DEVICE_FINGERPRINT_HEADER)
@@ -342,7 +427,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
     },
 
     // Base URL for callbacks
-    baseURL: process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    baseURL,
 
     // Secret for signing cookies and tokens
     secret: process.env.AUTH_SECRET!,
@@ -377,6 +462,17 @@ export function createAuth(overrides: AuthOverrides = {}) {
             },
           },
         },
+      }),
+      // TOTP second factor + encrypted backup codes. `issuer` is the label
+      // shown in the user's authenticator app.
+      twoFactor({ issuer: config.APP_NAME }),
+      // WebAuthn passkeys (Touch ID / Windows Hello / security keys) as a
+      // passwordless sign-in method. rpID must be the bare host and origin
+      // the full URL — both derived from baseURL above.
+      passkey({
+        rpID: new URL(baseURL).hostname,
+        rpName: config.APP_NAME,
+        origin: baseURL,
       }),
     ]
   })

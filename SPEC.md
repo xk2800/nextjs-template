@@ -1,6 +1,6 @@
 # Spec Sheet — @xk2800/nextjs-template
 
-Version `0.3.3` · A production-oriented Next.js starter/template that also publishes itself as a private, installable npm package (`@xk2800/nextjs-template` on GitHub Packages). Consuming projects can either fork the whole repo or `bun add` the package and import individual pieces.
+Version `0.6.0` · A production-oriented Next.js starter/template that also publishes itself as a private, installable npm package (`@xk2800/nextjs-template` on GitHub Packages). Consuming projects can either fork the whole repo or `bun add` the package and import individual pieces.
 
 ---
 
@@ -56,7 +56,10 @@ The package is also exported piecemeal via `package.json#exports` (`/auth`, `/au
 
 ## 3. Authentication (Better-Auth)
 
-- **Providers:** Google OAuth, Email/Password (bcrypt-hashed, stored in `accounts` table with `providerId: "credential"`), Google One Tap (opt-in).
+- **Providers:** Google OAuth, Email/Password (bcrypt-hashed, stored in `accounts` table with `providerId: "credential"`), Google One Tap (opt-in), passkeys / WebAuthn (passwordless, opt-in per user).
+- **Two-factor (TOTP):** Better-Auth's `twoFactor` plugin — opt-in per user from the Settings page (QR-code setup + 10 encrypted single-use backup codes). A password sign-in on a 2FA-enabled account returns `twoFactorRedirect` instead of a session; `/login/2fa` takes the authenticator code or a backup code, with a 30-day "trust this device" option.
+- **Passkeys (WebAuthn):** Better-Auth's `passkey` plugin — `rpID`/`origin` derived from `BETTER_AUTH_URL` (no extra env var). Register/remove credentials from Settings; "Sign in with a passkey" button on the login page. Passkey registration requires an existing authenticated session, so there is no passkey-based signup.
+- **Passkey change alerts:** A successful `/passkey/verify-registration` or `/passkey/delete-passkey` fires an auth `after` hook that emails the account owner (device / location / IP / time, via a React Email template through Resend) and writes a `passkey_added` / `passkey_removed` activity-log entry. Best-effort — a mail failure never fails the endpoint; self-disables when `RESEND_API_KEY` is unset.
 - **Extensible provider model:** `createAuth(overrides)` factory merges a project's own `socialProviders` (e.g. Apple) with the built-in Google provider without forking the template.
 - **Session strategy:** Database-backed sessions, 30-day expiration, updated every 24h, with a 5-minute cookie cache for performance.
 - **Runtime auth kill-switches:** Google, Email/Password, and One Tap can each be disabled live from the admin System Settings page (enforced server-side in a Better-Auth `hooks.before` middleware, not just hidden in the UI).
@@ -67,6 +70,7 @@ The package is also exported piecemeal via `package.json#exports` (`/auth`, `/au
 - **First-login detection:** Session count for the user distinguishes "new account registered and signed in" from "user logged in."
 - **Route protection:** `middleware.ts` guards `/dashboard/*`, checking for the Better-Auth session cookie (including `__Secure-` prefixed variant) and redirecting to `/login?callbackUrl=...`.
 - **Password reset:** Better-Auth-composed reset URL, delivered via a React Email template through Resend.
+- **Email verification:** Opt-in (`requireEmailVerification: false`). Users trigger it from the dashboard Account Details card via `authClient.sendVerificationEmail()`; Better-Auth composes the URL, mails it through Resend, and its `/api/auth/verify-email` callback flips `user.emailVerified` and auto-signs-in.
 - **Server-side session access:** `auth.api.getSession({ headers })`.
 - **Client-side:** `authClient` / `useSession` from `lib/auth-client.ts`; sign-in, sign-out, and social sign-in helpers.
 
@@ -80,6 +84,8 @@ The package is also exported piecemeal via `package.json#exports` (`/auth`, `/au
 | `session` | Database-backed sessions — token, expiry, IP, user agent, `impersonatedBy` (set while an admin is impersonating) |
 | `account` | OAuth + credential accounts — provider tokens, credential password hash |
 | `verification` | Email verification / password reset tokens |
+| `twoFactor` | Per-user TOTP secret + encrypted backup codes (`twoFactor` plugin); `user.twoFactorEnabled` flips true after first verification |
+| `passkey` | Registered WebAuthn credentials — public key, counter, device type, transports, AAGUID (`passkey` plugin) |
 | `activity_log` | Append-only audit trail — action enum (login, logout, login_failed, password_changed, email_changed, profile_updated, session_revoked, user_deleted, user_banned, user_unbanned, role_changed, impersonation_started/stopped, settings_changed), description, IP, user agent, parsed device/geo fields, metadata |
 | `system_settings` | Singleton row (`id = 'default'`, enforced via CHECK constraint) holding admin-editable runtime config: maintenance mode + message, auth method toggles (Google/email-password/One Tap), session-revocation toggle, `updatedBy` |
 | `device_fingerprint` | One row per (user, FingerprintJS `visitorId`) — answers "has this account signed in from this device before?" for new-device alerts, and (many accounts on one `visitorId`) the multi-account / trial-abuse signal. First-seen IP/UA/geo kept for context |
@@ -96,14 +102,16 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Site header/footer, logo, theme toggle (light/dark via `next-themes`).
 
 ### Auth pages
-- Login, Signup, Forgot Password, Reset Password — all under `app/(auth)/`, built from shared `authCard` / `authShell` components.
+- Login, Signup, Forgot Password, Reset Password, 2FA challenge (`/login/2fa`) — all under `app/(auth)/`, built from shared `authCard` / `authShell` components.
 - Google One Tap prompt (self-gating, opt-in).
+- "Sign in with a passkey" button on the login page (WebAuthn, passwordless).
 
 ### User dashboard (`/dashboard`)
 - Profile card, account details card.
 - Active sessions list with per-session revoke (device/IP/location shown via parsed user-agent + geoip).
 - Personal activity log feed (with skeleton loading states and error boundaries per section).
 - Client-side heartbeat to keep `lastActiveAt` fresh.
+- Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys.
 
 ### Admin dashboard (`/dashboard/admin`)
 - Stats grid (aggregate user/session counts, etc.).
@@ -116,7 +124,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Route- and section-level `error.tsx` / `loading.tsx` boundaries throughout the admin tree.
 
 ### Email
-- Transactional templates via `@react-email/components`: welcome email, password reset, generic templates.
+- Transactional templates via `@react-email/components`: welcome email, password reset, email verification, new-device alert, passkey-change alert, generic templates.
 - Sending wrapper around Resend (`lib/resend.ts`), plus a demo send-email button component and `/api/send` route.
 
 ### API routes

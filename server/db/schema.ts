@@ -19,6 +19,8 @@ export const ActivityActionEnum = pgEnum('activity_actions', [
   'impersonation_started',
   'impersonation_stopped',
   'settings_changed',
+  'passkey_added',
+  'passkey_removed',
 ])
 
 export const users = pgTable("user", {
@@ -38,6 +40,10 @@ export const users = pgTable("user", {
   banExpires: timestamp('banExpires'),
   lastLoginAt: timestamp('lastLoginAt'),
   lastActiveAt: timestamp('lastActiveAt'),
+  // Set by better-auth's twoFactor plugin — true once the user has
+  // completed TOTP setup (see twoFactor pgTable below for the secret /
+  // backup codes themselves).
+  twoFactorEnabled: boolean('twoFactorEnabled').notNull().default(false),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 });
@@ -74,6 +80,36 @@ export const accounts = pgTable("account", {
   password: text("password"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+});
+
+// Better-auth's twoFactor plugin. One row per user (created on first
+// `enable`); secret and backupCodes are its own encrypted-at-rest strings,
+// field names/types must match its expectations exactly (drizzleAdapter in
+// server/auth.ts maps this table to the plugin's "twoFactor" model as-is).
+export const twoFactors = pgTable("twoFactor", {
+  id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
+  secret: text("secret").notNull(),
+  backupCodes: text("backupCodes").notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+});
+
+// Better-auth's passkey plugin — one row per registered WebAuthn credential.
+export const passkeys = pgTable("passkey", {
+  id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
+  name: text("name"),
+  publicKey: text("publicKey").notNull(),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  credentialID: text("credentialID").notNull().unique(),
+  counter: integer("counter").notNull(),
+  deviceType: text("deviceType").notNull(),
+  backedUp: boolean("backedUp").notNull(),
+  transports: text("transports"),
+  createdAt: timestamp("createdAt"),
+  aaguid: text("aaguid"),
 });
 
 export const verifications = pgTable("verification", {

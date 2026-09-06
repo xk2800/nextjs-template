@@ -7,7 +7,7 @@
 declare module "better-auth/types" {
   interface User {
     role: string
-    isTwoFactorEnabled?: boolean
+    twoFactorEnabled?: boolean
   }
 
   interface Session {

@@ -92,13 +92,16 @@ bun --env-file=.env.production server/test-connection/index.ts
 
 1. Basic Next.js + Tailwind CSS boilerplate
 2. Shadcn/ui
-3. NextAuth with Google OAuth
-4. Basic login flow using NextAuth
+3. Better-Auth with Google OAuth + email/password
+4. Basic login flow using Better-Auth
 5. Connection template to a postgresql database for development, testing and production
+6. Two-factor auth (TOTP + backup codes) and passkeys (WebAuthn), managed from the dashboard Settings page
+7. Password reset and self-serve email verification, both via Resend-delivered React Email templates
+8. Security email alerts — new-device sign-ins and passkey add/remove, mirrored to the activity log
 
 ## WIP
 
-1. Migrating NextAuth to BetterAuth
+1. Nothing in flight
 
 ## Using this as a package
 

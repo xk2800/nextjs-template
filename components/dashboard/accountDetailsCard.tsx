@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card"
 import { Badge } from "../ui/badge"
 import { Separator } from "../ui/separator"
 import { formatDate } from "../../lib/formatters"
+import VerifyEmailButton from "./verifyEmailButton"
 
 type User = {
   id: string
@@ -29,11 +30,12 @@ export default function AccountDetailsCard({ user }: { user: User }) {
 
         <div>
           <p className="text-sm font-medium text-gray-600">Email Status</p>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <p className="text-base">{user.email}</p>
             <Badge variant={user.emailVerified ? 'default' : 'destructive'}>
               {user.emailVerified ? 'Verified' : 'Unverified'}
             </Badge>
+            {!user.emailVerified && <VerifyEmailButton email={user.email} />}
           </div>
         </div>
 

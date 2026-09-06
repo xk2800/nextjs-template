@@ -229,7 +229,8 @@
     "@react-email/components": "^1.0.0",
     "resend": "^6.4.2",
     "sonner": "^2.0.0",
-    "@fingerprintjs/fingerprintjs": "^5.0.0"
+    "@fingerprintjs/fingerprintjs": "^5.0.0",
+    "react-qr-code": "^2.0.0"
   },
   "peerDependenciesMeta": {
     "@react-email/components": {
@@ -245,6 +246,9 @@
       "optional": true
     },
     "@fingerprintjs/fingerprintjs": {
+      "optional": true
+    },
+    "react-qr-code": {
       "optional": true
     }
   },
@@ -281,6 +285,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
+    "react-qr-code": "^2.2.0",
     "resend": "^6.4.2",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",

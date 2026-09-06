@@ -17,6 +17,8 @@ export type ActivityAction =
   | 'impersonation_started'
   | 'impersonation_stopped'
   | 'settings_changed'
+  | 'passkey_added'
+  | 'passkey_removed'
 
 interface LogActivityParams {
   userId: string

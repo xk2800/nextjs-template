@@ -3,6 +3,7 @@ import { Separator } from "../ui/separator"
 import SocialLogin from './socialLogin'
 import EmailPasswordLogin from './emailPasswordLogin'
 import EmailPasswordSignup from './emailPasswordSignup'
+import PasskeyLogin from './passkeyLogin'
 
 type Props = {
   authCardTitle: string
@@ -46,6 +47,19 @@ const authCard = ({ authCardTitle, authCardDescription, showSocials, showEmailPa
           variant === 'signup'
             ? <EmailPasswordSignup callbackUrl={callbackUrl} />
             : <EmailPasswordLogin callbackUrl={callbackUrl} />
+        )}
+
+        {variant === 'login' && (
+          <>
+            {(showSocials || showEmailPassword) && (
+              <div className="flex items-center gap-2">
+                <Separator className="flex-1" />
+                <span className="text-xs text-muted-foreground">or</span>
+                <Separator className="flex-1" />
+              </div>
+            )}
+            <PasskeyLogin callbackUrl={callbackUrl} />
+          </>
         )}
       </div>
 

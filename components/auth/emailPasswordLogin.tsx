@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { z } from 'zod'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
@@ -22,6 +23,7 @@ type Props = {
 type FieldErrors = Partial<Record<keyof z.infer<typeof LoginSchema>, string>>
 
 const EmailPasswordLogin = ({ callbackUrl }: Props) => {
+  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -56,7 +58,7 @@ const EmailPasswordLogin = ({ callbackUrl }: Props) => {
 
     try {
       const visitorId = await getVisitorId()
-      const { error } = await authClient.signIn.email({
+      const { data, error } = await authClient.signIn.email({
         email,
         password,
         callbackURL: callbackUrl || '/dashboard',
@@ -67,6 +69,13 @@ const EmailPasswordLogin = ({ callbackUrl }: Props) => {
 
       if (error) {
         toast.error(error.message || 'Failed to sign in')
+        return
+      }
+
+      // Account has TOTP enabled: no session yet, finish on the 2FA page.
+      if ((data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect) {
+        const target = callbackUrl || '/dashboard'
+        router.push(`/login/2fa?callbackUrl=${encodeURIComponent(target)}`)
       }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to sign in')

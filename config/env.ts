@@ -6,6 +6,10 @@ const envSchema = z.object({
   PORT: z.string().default('3000').transform(Number),
   DATABASE_URL: z.string().default(''),
   RESEND_API_KEY: z.string().default(''),
+  // Display name for this deployment — shown as the authenticator-app label
+  // (2FA issuer) and the passkey relying-party name. Consuming projects set
+  // this in their own .env; defaults to the template name.
+  APP_NAME: z.string().default('Next.js Template'),
   // Seed-only: the live value lives in the system_settings DB row (see
   // lib/settings-queries.ts) once it's been seeded on first read, and is
   // changed from the admin System Settings page, not by editing this var.

@@ -49,6 +49,7 @@ const RECORDS = [
       "Open-redirect-safe callback URLs on every login and signup route",
       "Role-based access — user and admin, enforced at the layout level",
       "Self-serve password reset — emailed link, single-use token, no support ticket",
+      "Self-serve email verification — resend from the dashboard, Better-Auth callback flips the flag",
     ],
   },
   {
@@ -117,6 +118,18 @@ const RECORDS = [
       "Responsive DataTable — overflowing columns collapse into an expandable per-row detail panel instead of forcing horizontal scroll",
       "Per-column sticky and minimum-width control, with a configurable collapse breakpoint",
       "Fully generic over your own row type — see it live at /dashboard/data-table",
+    ],
+  },
+  {
+    id: "0008",
+    title: "Two-factor auth & passkeys",
+    tagline: "A second factor and passwordless sign-in, both self-serve.",
+    items: [
+      "TOTP two-factor — QR-code setup, 10 single-use backup codes, enable/disable from Settings",
+      "A password sign-in on a 2FA account redirects to a code challenge, with a 30-day \"trust this device\" option",
+      "Passkeys (WebAuthn) — register Touch ID, Windows Hello, or a hardware key, then sign in with no password",
+      "Manage registered passkeys from Settings; the TOTP QR and secret never leave the browser",
+      "Adding or removing a passkey emails the account owner and lands in the activity log",
     ],
   },
 ]
