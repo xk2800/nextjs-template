@@ -180,6 +180,7 @@
     "test": "bun lib/recalculate-columns.test.ts && bun lib/auth-throttle-limits.test.ts && bun lib/shared-devices.test.ts",
     "build:lib": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
+    "doctor": "bun --env-file=.env.development scripts/doctor.ts",
     "prepublishOnly": "bun run typecheck && bun run build:lib",
     "bump-version": "bun scripts/bump-version.ts",
     "generate": "bun drizzle-kit generate",
