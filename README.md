@@ -105,20 +105,9 @@ bun --env-file=.env.production server/test-connection/index.ts
 
 ## Using this as a package
 
-This repo also publishes its reusable auth/db/UI pieces as a private npm package, `@xk2800/nextjs-template`, to GitHub Packages. Use this in new projects instead of copy-pasting the whole template.
+This repo also publishes its reusable auth/db/UI pieces as a public npm package, `@xk2800/nextjs-template`, to the npm registry. Use this in new projects instead of copy-pasting the whole template.
 
-### 1. Registry auth
-
-Create a `.npmrc` in your new project:
-
-```ini
-@xk2800:registry=https://npm.pkg.github.com
-//npm.pkg.github.com/:_authToken=${GITHUB_TOKEN}
-```
-
-Export a `GITHUB_TOKEN` with `read:packages` scope in your shell environment (do not hardcode it in `.npmrc`).
-
-### 2. Install
+### 1. Install
 
 ```bash
 bun add @xk2800/nextjs-template
@@ -126,7 +115,7 @@ bun add @xk2800/nextjs-template
 
 This has peer dependencies on `next`, `react`, `react-dom`, and the Radix/shadcn packages the UI components use (`@radix-ui/react-*`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`). If your project already uses shadcn/ui, these are typically already installed. Three more peer deps are optional, only needed if you use the specific feature: `next-themes` (theme toggle/provider), `sonner` (dashboard session-revoke toasts), `@react-email/components` (email templates).
 
-### 3. Enable `transpilePackages`
+### 2. Enable `transpilePackages`
 
 UI components ship as raw `.tsx` source so `'use client'` boundaries survive. Add this to your `next.config.ts`:
 
@@ -136,7 +125,7 @@ const nextConfig: NextConfig = {
 };
 ```
 
-### 4. Tailwind theme + content scanning
+### 3. Tailwind theme + content scanning
 
 The UI components use shadcn's CSS variable-based theme (`bg-primary`, `border-input`, etc.) and Tailwind v4 doesn't scan `node_modules` for class names by default. Add both to your `app/globals.css`, after the existing `@import "tailwindcss";`:
 
@@ -148,7 +137,7 @@ The UI components use shadcn's CSS variable-based theme (`bg-primary`, `border-i
 
 If you use `Dialog`, `AlertDialog`, or `DropdownMenu`, also install and import `tw-animate-css` for their open/close transitions — without it they still work, just without animation.
 
-### 5. Adding a social provider (e.g. Apple) in one project only
+### 4. Adding a social provider (e.g. Apple) in one project only
 
 `auth` is the package's default instance (Google + email/password). To add another provider in a specific project — without forking the template — use the `createAuth` factory. This needs three changes, all in your own project, none in the package.
 
@@ -245,7 +234,7 @@ import OneTap from "@xk2800/nextjs-template/components/auth/oneTap";
 
 Your Google Cloud OAuth client also needs its **Authorized JavaScript origins** to include whatever origin you're testing/deploying from (e.g. `http://localhost:3000`) — One Tap validates the origin client-side, separately from the OAuth redirect URIs you already set up.
 
-### 6. Import what you need
+### 5. Import what you need
 
 ```ts
 // auth
@@ -294,7 +283,7 @@ import { SendEmailButton } from "@xk2800/nextjs-template/components/email/send-e
 import { EmailTemplate } from "@xk2800/nextjs-template/components/email/email-template"; // @react-email/components
 ```
 
-### 7. Not importable — copy these patterns instead
+### 6. Not importable — copy these patterns instead
 
 `app/api/auth/[...all]/route.ts` and `middleware.ts` are Next.js file-convention code, not library exports. Copy the pattern into your own project:
 
@@ -306,7 +295,7 @@ import { toNextJsHandler } from "better-auth/next-js";
 export const { GET, POST } = toNextJsHandler(auth);
 ```
 
-### 8. Database migrations
+### 7. Database migrations
 
 The package does not ship migrations. drizzle-kit needs a local file it can import directly (it can't resolve package `exports` subpaths reliably), so add a one-line re-export in your own project:
 
@@ -329,7 +318,7 @@ export default defineConfig({
 });
 ```
 
-### 9. Secrets management with Doppler (optional)
+### 8. Secrets management with Doppler (optional)
 
 The package's `config/env.ts` and every server-only module just read `process.env.*` — they don't care whether values came from `.env` files or were injected by Doppler, so using Doppler in a consuming project needs zero changes to `@xk2800/nextjs-template` itself. Set it up the same way as in the template repo:
 
