@@ -274,6 +274,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19",
     "@types/ua-parser-js": "^0.7.39",
+    "bun-types": "^1.4.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
