@@ -13,6 +13,7 @@ import { logActivity } from "@/lib/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
 import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/cookie-names"
 import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/lib/auth-throttle"
+import { MAX_IP } from "@/lib/auth-throttle-limits"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
 import { getResend, EMAIL_FROM } from "@/lib/resend"
 import { EmailTemplateResetPassword } from "@/components/email/email-template-reset-password"
@@ -310,13 +311,20 @@ export function createAuth(overrides: AuthOverrides = {}) {
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
         // Per-device abuse throttle for the two credential entry points.
-        // Keyed by the client's FingerprintJS visitorId (x-device-fingerprint
-        // header, set in emailPasswordLogin/Signup) — not by IP, which is
-        // shared behind corporate NAT / CGNAT / VPN. No header (library not
-        // installed / blocked, or a non-browser caller) ⇒ no throttle.
+        // Primarily keyed by the client's FingerprintJS visitorId
+        // (x-device-fingerprint header, set in emailPasswordLogin/Signup), but
+        // that header is client-supplied and unsigned — omitting it or
+        // randomizing it per request bypasses a fingerprint-only check
+        // entirely. IP is a lower-ceiling-tolerant backstop (shared behind
+        // NAT/CGNAT/VPN, so it uses MAX_IP, not MAX) that still applies when
+        // the header is missing or spoofed.
         if (ctx.path === "/sign-in/email" || ctx.path === "/sign-up/email") {
           const fingerprint = ctx.headers?.get(DEVICE_FINGERPRINT_HEADER)
-          if (fingerprint && (await isDeviceThrottled(fingerprint))) {
+          const ip = getClientIp(ctx.headers)
+          const throttled =
+            (fingerprint && (await isDeviceThrottled(fingerprint))) ||
+            (ip && (await isDeviceThrottled(`ip:${ip}`, MAX_IP)))
+          if (throttled) {
             throw new APIError("TOO_MANY_REQUESTS", {
               message: "Too many attempts from this device. Try again in a few minutes.",
             })
@@ -396,20 +404,23 @@ export function createAuth(overrides: AuthOverrides = {}) {
         if (ctx.path !== "/sign-in/email" && ctx.path !== "/sign-up/email") return
 
         const fingerprint = ctx.headers?.get(DEVICE_FINGERPRINT_HEADER)
-        if (!fingerprint) return
+        const ip = getClientIp(ctx.headers)
+        const ipKey = ip ? `ip:${ip}` : null
+        if (!fingerprint && !ipKey) return
 
         const failed = ctx.context.returned instanceof APIError
         const rawEmail = (ctx.body as { email?: unknown } | undefined)?.email
         const meta = {
-          ipAddress: getClientIp(ctx.headers),
+          ipAddress: ip,
           userAgent: ctx.headers?.get("user-agent") ?? null,
           email: typeof rawEmail === "string" ? rawEmail.toLowerCase() : null,
         }
+        const keys = [fingerprint, ipKey].filter((k): k is string => !!k)
 
         // Sign-up abuse is mass account creation — the *successful* ones are
         // the problem — so every sign-up from this device counts.
         if (ctx.path === "/sign-up/email") {
-          await recordDeviceAttempt(fingerprint, { ...meta, kind: "signup" })
+          await Promise.all(keys.map((key) => recordDeviceAttempt(key, { ...meta, kind: "signup" })))
           return
         }
 
@@ -418,10 +429,10 @@ export function createAuth(overrides: AuthOverrides = {}) {
         // a credential-stuffing hit resets itself — per-outcome counters if
         // that ceiling ever bites.
         if (failed) {
-          await recordDeviceAttempt(fingerprint, { ...meta, kind: "signin" })
+          await Promise.all(keys.map((key) => recordDeviceAttempt(key, { ...meta, kind: "signin" })))
           await logFailedLogin(ctx)
         } else {
-          await clearDeviceThrottle(fingerprint)
+          await Promise.all(keys.map((key) => clearDeviceThrottle(key)))
         }
       }),
     },

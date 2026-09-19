@@ -4,16 +4,17 @@ import { db } from "../server/db"
 import { authThrottle } from "../server/db/schema"
 import { WINDOW_MS, isOverLimit } from "./auth-throttle-limits"
 
-// Is this device currently over the cap? Read-only — the caller (server/auth.ts
-// before-hook) decides whether to 429.
-export async function isDeviceThrottled(fingerprint: string): Promise<boolean> {
+// Is this key (device fingerprint, or "ip:<address>" backstop) currently over
+// the cap? Read-only — the caller (server/auth.ts before-hook) decides
+// whether to 429.
+export async function isDeviceThrottled(fingerprint: string, max?: number): Promise<boolean> {
   try {
     const [row] = await db
       .select({ count: authThrottle.count, windowStart: authThrottle.windowStart })
       .from(authThrottle)
       .where(eq(authThrottle.fingerprint, fingerprint))
       .limit(1)
-    return isOverLimit(row, Date.now())
+    return isOverLimit(row, Date.now(), max)
   } catch (error) {
     // Fail open — a throttle-store hiccup must never lock everyone out of sign-in.
     console.error("auth-throttle read failed, allowing request", error)
