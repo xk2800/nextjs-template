@@ -1,0 +1,100 @@
+{
+  "RECORDS": [
+    {
+      "id": "0001",
+      "title": "Authentication",
+      "tagline": "Sign-in, wired up and hardened before you touch it.",
+      "items": [
+        "Google OAuth and email/password, toggled independently per deployment",
+        "Optional Google One Tap prompt",
+        "bcrypt-hashed credentials, DB-backed sessions with a 5-minute cookie cache",
+        "Open-redirect-safe callback URLs on every login and signup route",
+        "Role-based access — user and admin, enforced at the layout level",
+        "Self-serve password reset — emailed link, single-use token, no support ticket",
+        "Self-serve email verification — resend from the dashboard, Better-Auth callback flips the flag",
+        "OAuth callback double-hit recovery — a stale \"please restart the process\" redirect (browser Back, bfcache replay) silently retries instead of stranding you on an error page"
+      ]
+    },
+    {
+      "id": "0002",
+      "title": "Admin dashboard",
+      "tagline": "A real back office, not just a route behind a login check.",
+      "items": [
+        "Searchable, paginated user table — ban, promote, delete, one click",
+        "Bulk ban, bulk delete, and CSV export for the whole user list",
+        "Per-user detail page: sessions, activity log, and account status, one screen",
+        "Live online/offline indicator via a lightweight heartbeat endpoint"
+      ]
+    },
+    {
+      "id": "0003",
+      "title": "Audit & impersonation",
+      "tagline": "Every sign-in and every admin action leaves a record.",
+      "items": [
+        "Activity log with search, action, and date-range filters, plus CSV export",
+        "Admin impersonation, logged on start and stop, with an always-visible banner",
+        "Every login captures OS, browser, device type, and city/country — offline, no third-party calls",
+        "Referrer tracking survives the round trip through Google's OAuth redirect",
+        "New-device sign-in alerts — a client-side device fingerprint flags any device an account hasn't used before and emails the user, instead of noisy IP/user-agent matching",
+        "Multi-account / trial-abuse flag — the admin panel surfaces any device fingerprint shared by three or more accounts, each linked for a one-click ban"
+      ]
+    },
+    {
+      "id": "0004",
+      "title": "Live system settings",
+      "tagline": "Flip a switch instead of shipping a deploy.",
+      "items": [
+        "Turn Google, email/password, or One Tap sign-in on or off, live",
+        "Maintenance mode with a custom message — admins keep access, everyone else doesn't",
+        "Changes take effect within seconds, cached, and fail open if the database hiccups",
+        "Every settings change is itself written to the activity feed"
+      ]
+    },
+    {
+      "id": "0005",
+      "title": "Data layer",
+      "tagline": "Typed schema, real migrations, no ORM guesswork.",
+      "items": [
+        "Drizzle ORM over Postgres — self-hosted for dev, Neon serverless in production",
+        "Versioned SQL migrations, generated and reviewable, never run blind",
+        "Zod-validated environment config, kept separate for dev, prod, and test",
+        "Drizzle Studio wired up for local inspection out of the box",
+        "TLS toggle for self-hosted Postgres — one DATABASE_SSL env var, no code changes for managed hosts that require it"
+      ]
+    },
+    {
+      "id": "0006",
+      "title": "Developer experience",
+      "tagline": "The template ships itself, too.",
+      "items": [
+        "Published as an installable package — import auth, schema, and admin components directly",
+        "Doppler secrets management, or plain .env files — your choice",
+        "Docker support out of the box",
+        "A versioned changelog and an automated release script",
+        "`bun run doctor` — one command checks runtime version, env validity, DB connectivity, and pending migrations, for a fast \"just cloned this\" sanity check"
+      ]
+    },
+    {
+      "id": "0007",
+      "title": "Data display",
+      "tagline": "A table that adapts to its container, not the other way around.",
+      "items": [
+        "Responsive DataTable — overflowing columns collapse into an expandable per-row detail panel instead of forcing horizontal scroll",
+        "Per-column sticky and minimum-width control, with a configurable collapse breakpoint",
+        "Fully generic over your own row type — see it live at /dashboard/data-table"
+      ]
+    },
+    {
+      "id": "0008",
+      "title": "Two-factor auth & passkeys",
+      "tagline": "A second factor and passwordless sign-in, both self-serve.",
+      "items": [
+        "TOTP two-factor — QR-code setup, 10 single-use backup codes, enable/disable from Settings",
+        "A password sign-in on a 2FA account redirects to a code challenge, with a 30-day \"trust this device\" option",
+        "Passkeys (WebAuthn) — register Touch ID, Windows Hello, or a hardware key, then sign in with no password",
+        "Manage registered passkeys from Settings; the TOTP QR and secret never leave the browser",
+        "Adding or removing a passkey emails the account owner and lands in the activity log"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,46 @@
+{
+  "FEATURES": [
+    {
+      "icon": "Layers",
+      "title": "Next.js 15 + Tailwind",
+      "description": "App Router, React 19, and TypeScript on Tailwind CSS, with a strict lint and build pipeline."
+    },
+    {
+      "icon": "Palette",
+      "title": "shadcn/ui components",
+      "description": "New York-style primitives on oklch design tokens, with light and dark parity out of the box."
+    },
+    {
+      "icon": "KeyRound",
+      "title": "Better-Auth + Google",
+      "description": "OAuth and email/password sign-in, database-backed sessions, Google One Tap ready."
+    },
+    {
+      "icon": "Database",
+      "title": "Postgres via Drizzle",
+      "description": "Separate connection configs for development, testing, and production, with reviewable SQL migrations."
+    },
+    {
+      "icon": "ShieldCheck",
+      "title": "Admin & impersonation",
+      "description": "A role-aware admin area with audit logging and safe, always-logged support impersonation."
+    },
+    {
+      "icon": "Flag",
+      "title": "Feature flags",
+      "description": "Toggle sign-up methods and maintenance mode live, from System Settings, without a redeploy."
+    }
+  ],
+  "SCREENS": [
+    { "label": "Dashboard overview", "href": "/dashboard" },
+    { "label": "Account settings", "href": "/dashboard/settings" },
+    { "label": "Admin home", "href": "/dashboard/admin" },
+    { "label": "User management", "href": "/dashboard/admin/users" },
+    { "label": "Audit logs", "href": "/dashboard/admin/activity-logs" },
+    { "label": "System settings", "href": "/dashboard/admin/settings" },
+    { "label": "Sign in", "href": "/login" },
+    { "label": "Sign up", "href": "/signup" },
+    { "label": "Maintenance", "href": "/maintenance" },
+    { "label": "Changelog", "href": "/changelog" }
+  ]
+}

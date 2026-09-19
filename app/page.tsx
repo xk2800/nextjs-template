@@ -9,79 +9,23 @@ import {
   Flag,
   ArrowRight,
   ChevronRight,
+  type LucideIcon,
 } from "lucide-react"
 
 import { auth } from "@/server/auth"
 import { Button } from "@/components/ui/button"
 import { SiteHeader } from "@/components/site/site-header"
 import { SiteFooter } from "@/components/site/site-footer"
+import { WindowChrome } from "@/components/site/window-chrome"
+import { FEATURES, SCREENS } from "./page-data.json"
 import packageJson from "../package.json"
 
-const DEPENDENCY_VERSIONS: Record<string, string> = {
-  ...packageJson.dependencies,
-  ...packageJson.devDependencies,
-}
+const FEATURE_ICONS: Record<string, LucideIcon> = { Layers, Palette, KeyRound, Database, ShieldCheck, Flag }
 
-function cleanVersion(spec: string | undefined): string | null {
-  return spec ? spec.replace(/^[\^~]/, "") : null
-}
-
-const FEATURES = [
-  {
-    icon: Layers,
-    title: "Next.js 15 + Tailwind",
-    description: `App Router, React 19, and TypeScript on Tailwind ${cleanVersion(DEPENDENCY_VERSIONS.tailwindcss) ?? ""}, with a strict lint and build pipeline.`,
-  },
-  {
-    icon: Palette,
-    title: "shadcn/ui components",
-    description: "New York-style primitives on oklch design tokens, with light and dark parity out of the box.",
-  },
-  {
-    icon: KeyRound,
-    title: "Better-Auth + Google",
-    description: "OAuth and email/password sign-in, database-backed sessions, Google One Tap ready.",
-  },
-  {
-    icon: Database,
-    title: "Postgres via Drizzle",
-    description: "Separate connection configs for development, testing, and production, with reviewable SQL migrations.",
-  },
-  {
-    icon: ShieldCheck,
-    title: "Admin & impersonation",
-    description: "A role-aware admin area with audit logging and safe, always-logged support impersonation.",
-  },
-  {
-    icon: Flag,
-    title: "Feature flags",
-    description: "Toggle sign-up methods and maintenance mode live, from System Settings, without a redeploy.",
-  },
-]
-
-const SCREENS = [
-  { label: "Dashboard overview", href: "/dashboard" },
-  { label: "Account settings", href: "/dashboard/settings" },
-  { label: "Admin home", href: "/dashboard/admin" },
-  { label: "User management", href: "/dashboard/admin/users" },
-  { label: "Audit logs", href: "/dashboard/admin/activity-logs" },
-  { label: "System settings", href: "/dashboard/admin/settings" },
-  { label: "Sign in", href: "/login" },
-  { label: "Sign up", href: "/signup" },
-  { label: "Maintenance", href: "/maintenance" },
-  { label: "Changelog", href: "/changelog" },
-]
-
-const PREVIEW_SESSIONS = [
-  { device: "MacBook Pro · Chrome", status: "Active now", live: true },
-  { device: "iPhone 16 · Safari", status: "2 hours ago", live: false },
-  { device: "Windows 11 · Edge", status: "4 days ago", live: false },
-]
+const HERO_FEATURES = FEATURES.slice(0, 4)
 
 const Home = async () => {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  })
+  const session = await auth.api.getSession({ headers: await headers() })
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -115,38 +59,20 @@ const Home = async () => {
             </div>
 
             <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-              <div className="flex items-center gap-2 border-b border-border/60 px-4 py-2.5">
-                <span className="size-2.5 rounded-full bg-destructive/60" />
-                <span className="size-2.5 rounded-full bg-yellow-500/60" />
-                <span className="size-2.5 rounded-full bg-green-500/60" />
-                <span className="ml-2 font-mono text-xs text-muted-foreground">/dashboard</span>
-              </div>
-              <div className="grid grid-cols-3 gap-px bg-border/60">
-                {[
-                  { label: "Users", value: "128" },
-                  { label: "Sessions", value: "34" },
-                  { label: "Sign-ups", value: "5" },
-                ].map((stat) => (
-                  <div key={stat.label} className="bg-card px-4 py-4">
-                    <p className="text-2xl font-semibold">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground">{stat.label}</p>
-                  </div>
-                ))}
-              </div>
+              <WindowChrome label="what's inside" />
               <div className="divide-y divide-border/60">
-                {PREVIEW_SESSIONS.map((s) => (
-                  <div key={s.device} className="flex items-center justify-between px-4 py-3 text-sm">
-                    <span>{s.device}</span>
-                    <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      {s.live && <span className="size-1.5 animate-pulse rounded-full bg-green-500" />}
-                      {s.status}
-                    </span>
-                  </div>
-                ))}
+                {HERO_FEATURES.map((feature) => {
+                  const Icon = FEATURE_ICONS[feature.icon]
+                  return (
+                    <div key={feature.title} className="flex items-center gap-3 px-4 py-3.5 text-sm">
+                      <Icon className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="font-medium">{feature.title}</span>
+                    </div>
+                  )
+                })}
               </div>
               <p className="border-t border-border/60 px-4 py-3 text-xs text-muted-foreground">
-                Example data — every column here maps to a real table in{" "}
-                <code className="font-mono">server/db/schema.ts</code>.
+                Plus {FEATURES.length - HERO_FEATURES.length} more below.
               </p>
             </div>
           </div>
@@ -161,13 +87,16 @@ const Home = async () => {
               The boilerplate, without the boilerplate look.
             </h2>
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {FEATURES.map((feature) => (
-                <div key={feature.title} className="rounded-xl border border-border bg-card p-5">
-                  <feature.icon className="size-5 text-foreground" />
-                  <h3 className="mt-4 font-semibold">{feature.title}</h3>
-                  <p className="mt-1.5 text-sm text-muted-foreground">{feature.description}</p>
-                </div>
-              ))}
+              {FEATURES.map((feature) => {
+                const Icon = FEATURE_ICONS[feature.icon]
+                return (
+                  <div key={feature.title} className="rounded-xl border border-border bg-card p-5">
+                    <Icon className="size-5 text-foreground" />
+                    <h3 className="mt-4 font-semibold">{feature.title}</h3>
+                    <p className="mt-1.5 text-sm text-muted-foreground">{feature.description}</p>
+                  </div>
+                )
+              })}
             </div>
           </div>
         </section>

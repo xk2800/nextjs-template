@@ -105,6 +105,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Login, Signup, Forgot Password, Reset Password, 2FA challenge (`/login/2fa`) — all under `app/(auth)/`, built from shared `authCard` / `authShell` components.
 - Google One Tap prompt (self-gating, opt-in).
 - "Sign in with a passkey" button on the login page (WebAuthn, passwordless).
+- OAuth callback double-hit recovery (`components/auth/loginErrorRecovery.tsx`) — silently retries a stale `please_restart_the_process` redirect instead of stranding the user.
 
 ### User dashboard (`/dashboard`)
 - Profile card, account details card.
@@ -144,7 +145,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - `RESEND_API_KEY` for transactional email.
 
 ### Distribution as a package
-- Publishes reusable auth/db/UI/query-helper modules to GitHub Packages as `@xk2800/nextjs-template`.
+- Publishes reusable auth/db/UI/query-helper modules to the npm registry as `@xk2800/nextjs-template`.
 - Selective `exports` map lets consumers import just what they need (`/auth`, `/auth-client`, `/db`, `/db/schema`, `/admin/queries`, `/sessions/queries`, `/users/queries`, `/activity/logger`, `/activity/queries`, `/settings/queries`, `/components/*`, `/lib/*`, `/styles/theme.css`).
 - UI components ship as raw `.tsx` (not pre-compiled) so `'use client'` boundaries survive — consumers add the package to `transpilePackages`.
 - Peer-dependency model keeps `next-themes`, `sonner`, and `@react-email/components`/`resend` optional, only required if those specific features are used.
@@ -154,6 +155,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Dockerfile for containerized deploys (Postgres SSL config, npm-based build).
 - Doppler integration as an opt-in alternative secrets source — every script has a `*:doppler` twin that injects secrets via `doppler run --` with no code changes required.
 - `bun --env-file=... server/test-connection/index.ts` for verifying DB connectivity per environment.
+- `bun run doctor` — checks runtime version, env validity, DB connectivity, and pending migrations in one command (`scripts/doctor.ts`, env schema split into `config/env-schema.ts` so it works outside Next's bundler).
 - Standalone `docs/` Next.js site for template documentation.
 
 ---
