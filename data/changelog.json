@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.5.3",
+    "date": "2026-9-25",
+    "type": "improvement",
+    "title": "0.5.3",
+    "changes": [
+      "0.5.3"
+    ]
+  },
+  {
     "version": "0.5.2",
     "date": "2026-9-25",
     "type": "improvement",
