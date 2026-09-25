@@ -1,5 +1,21 @@
 [
   {
+    "version": "0.5.2",
+    "date": "2026-9-25",
+    "type": "improvement",
+    "title": "feat: implement DataTablePagination for improved pagination handling in admin tables",
+    "changes": [
+      "feat: implement DataTablePagination for improved pagination handling in admin tables",
+      "refactor: migrate tables to DataTable component for improved consistency and functionality",
+      "Add initial HTML structure and animations for brag output composition",
+      "feat: enhance auth throttling by adding IP-based limits and updating device throttling logic",
+      "feat: add bun-types to dependencies and update tsconfig for type support",
+      "feat: update feature descriptions and add new data structure for features and screens",
+      "build: publish to npmjs instead of GitHub Packages",
+      "feat: extract env schema into standalone module, add doctor script"
+    ]
+  },
+  {
     "version": "0.5.1",
     "date": "2026-9-6",
     "type": "fix",
