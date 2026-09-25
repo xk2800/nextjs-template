@@ -7,7 +7,7 @@ import { Input } from '../../ui/input'
 import { Label } from '../../ui/label'
 import { Badge } from '../../ui/badge'
 import { Skeleton } from '../../ui/skeleton'
-import { DataTable, type Column } from '../../ui/data-table'
+import { DataTable, DataTablePagination, type Column } from '../../ui/data-table'
 import { toast } from 'sonner'
 import { formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
 import { Download } from 'lucide-react'
@@ -298,39 +298,19 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
           ) : logs.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No activity logs found</p>
           ) : (
-            <DataTable columns={columns} data={logs} getRowId={(log) => log.id} />
+            <DataTable columns={columns} data={logs} getRowId={(log) => log.id} pageSize={false} />
           )}
 
-          {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Page {pagination.page} of {pagination.pages}
-              </p>
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(page - 1)
-                    fetchLogs(page - 1)
-                  }}
-                  disabled={page === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(page + 1)
-                    fetchLogs(page + 1)
-                  }}
-                  disabled={page === pagination.pages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+          {pagination && (
+            <DataTablePagination
+              page={page}
+              pages={pagination.pages}
+              onPageChange={(p) => {
+                setPage(p)
+                fetchLogs(p)
+              }}
+              className="mt-6 pt-6"
+            />
           )}
         </CardContent>
       </Card>

@@ -7,7 +7,7 @@ import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
 import { Skeleton } from '../../ui/skeleton'
 import { Checkbox } from '../../ui/checkbox'
-import { DataTable, type Column } from '../../ui/data-table'
+import { DataTable, DataTablePagination, type Column } from '../../ui/data-table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -501,40 +501,21 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               ] satisfies Column<User>[]}
               data={users}
               getRowId={(user) => user.id}
+              pageSize={false}
             />
           )}
 
           {/* Pagination */}
-          {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Page {pagination.page} of {pagination.pages}
-              </p>
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(page - 1)
-                    fetchUsers(page - 1, search)
-                  }}
-                  disabled={page === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(page + 1)
-                    fetchUsers(page + 1, search)
-                  }}
-                  disabled={page === pagination.pages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+          {pagination && (
+            <DataTablePagination
+              page={page}
+              pages={pagination.pages}
+              onPageChange={(p) => {
+                setPage(p)
+                fetchUsers(p, search)
+              }}
+              className="mt-6 pt-6"
+            />
           )}
         </CardContent>
       </Card>
