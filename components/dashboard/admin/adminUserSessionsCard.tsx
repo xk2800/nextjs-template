@@ -3,14 +3,7 @@
 import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
 import { Button } from "../../ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../ui/table"
+import { DataTable, type Column } from "../../ui/data-table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +32,34 @@ interface AdminUserSessionsCardProps {
   userId: string
   initialSessions: Session[]
 }
+
+const baseColumns: Column<Session>[] = [
+  {
+    name: 'createdAt',
+    title: 'Created',
+    renderer: (session) => <span className="text-sm">{formatDateTime(session.createdAt)}</span>,
+  },
+  {
+    name: 'expiresAt',
+    title: 'Expires',
+    renderer: (session) => <span className="text-sm">{formatDateTime(session.expiresAt)}</span>,
+  },
+  {
+    name: 'deviceLabel',
+    title: 'Device',
+    renderer: (session) => <span className="text-sm">{session.deviceLabel}</span>,
+  },
+  {
+    name: 'location',
+    title: 'Location',
+    renderer: (session) => <span className="text-sm">{session.location}</span>,
+  },
+  {
+    name: 'ipAddress',
+    title: 'IP Address',
+    renderer: (session) => <span className="text-sm font-mono">{session.ipAddress || 'N/A'}</span>,
+  },
+]
 
 export default function AdminUserSessionsCard({ userId, initialSessions }: AdminUserSessionsCardProps) {
   const router = useRouter()
@@ -122,50 +143,26 @@ export default function AdminUserSessionsCard({ userId, initialSessions }: Admin
               No active sessions found
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Expires</TableHead>
-                    <TableHead>Device</TableHead>
-                    <TableHead>Location</TableHead>
-                    <TableHead>IP Address</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activeSessions.map((session) => (
-                    <TableRow key={session.id}>
-                      <TableCell className="text-sm">
-                        {formatDateTime(session.createdAt)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDateTime(session.expiresAt)}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {session.deviceLabel}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {session.location}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {session.ipAddress || 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setSessionToRevoke(session.id)}
-                        >
-                          Revoke
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              columns={[
+                ...baseColumns,
+                {
+                  name: 'actions',
+                  title: 'Actions',
+                  renderer: (session) => (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setSessionToRevoke(session.id)}
+                    >
+                      Revoke
+                    </Button>
+                  ),
+                },
+              ]}
+              data={activeSessions}
+              getRowId={(session) => session.id}
+            />
           )}
 
           {expiredSessions.length > 0 && (

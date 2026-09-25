@@ -7,14 +7,7 @@ import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
 import { Skeleton } from '../../ui/skeleton'
 import { Checkbox } from '../../ui/checkbox'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../ui/table'
+import { DataTable, type Column } from '../../ui/data-table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -352,141 +345,163 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
           ) : users.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No users found</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Select all users on this page"
+            <DataTable
+              columns={[
+                {
+                  name: 'select',
+                  title: (
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all users on this page"
+                    />
+                  ),
+                  minWidth: 40,
+                  renderer: (user) => (
+                    <Checkbox
+                      checked={selectedIds.has(user.id)}
+                      onCheckedChange={() => toggleSelectOne(user.id)}
+                      disabled={user.id === currentUserId}
+                      aria-label={`Select ${user.name || user.email}`}
+                    />
+                  ),
+                },
+                {
+                  name: 'name',
+                  title: 'Name',
+                  sticky: true,
+                  renderer: (user) => (
+                    <Link
+                      href={`/dashboard/admin/users/${user.id}`}
+                      className="inline-flex items-center gap-2 font-medium hover:underline"
+                    >
+                      <span
+                        className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                        title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
                       />
-                    </TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.has(user.id)}
-                          onCheckedChange={() => toggleSelectOne(user.id)}
-                          disabled={user.id === currentUserId}
-                          aria-label={`Select ${user.name || user.email}`}
-                        />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <Link
-                          href={`/dashboard/admin/users/${user.id}`}
-                          className="inline-flex items-center gap-2 hover:underline"
-                        >
-                          <span
-                            className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                            title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
-                          />
-                          {user.name || 'N/A'}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-sm">{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.banned ? (
-                          <Badge variant="destructive">Banned</Badge>
-                        ) : (
-                          <Badge variant="outline">Active</Badge>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}
-                      </TableCell>
-                      <TableCell className="text-sm">{formatDate(user.createdAt)}</TableCell>
-                      <TableCell className="text-right space-x-2">
+                      {user.name || 'N/A'}
+                    </Link>
+                  ),
+                },
+                {
+                  name: 'email',
+                  title: 'Email',
+                  renderer: (user) => <span className="text-sm">{user.email}</span>,
+                },
+                {
+                  name: 'role',
+                  title: 'Role',
+                  renderer: (user) => (
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  ),
+                },
+                {
+                  name: 'status',
+                  title: 'Status',
+                  renderer: (user) =>
+                    user.banned ? (
+                      <Badge variant="destructive">Banned</Badge>
+                    ) : (
+                      <Badge variant="outline">Active</Badge>
+                    ),
+                },
+                {
+                  name: 'lastLoginAt',
+                  title: 'Last Login',
+                  renderer: (user) => (
+                    <span className="text-sm">
+                      {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}
+                    </span>
+                  ),
+                },
+                {
+                  name: 'createdAt',
+                  title: 'Joined',
+                  renderer: (user) => <span className="text-sm">{formatDate(user.createdAt)}</span>,
+                },
+                {
+                  name: 'actions',
+                  title: 'Actions',
+                  minWidth: 340,
+                  renderer: (user) => (
+                    <div className="space-x-2 text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={user.id === currentUserId || user.banned}
+                        title={user.banned ? 'Cannot impersonate a banned user' : undefined}
+                        onClick={() => {
+                          setActionUserId(user.id)
+                          setActionType('impersonate')
+                        }}
+                      >
+                        Impersonate
+                      </Button>
+                      {user.role === 'admin' ? (
                         <Button
                           variant="outline"
                           size="sm"
-                          disabled={user.id === currentUserId || user.banned}
-                          title={user.banned ? 'Cannot impersonate a banned user' : undefined}
                           onClick={() => {
                             setActionUserId(user.id)
-                            setActionType('impersonate')
+                            setActionType('demote')
                           }}
                         >
-                          Impersonate
+                          Remove Admin
                         </Button>
-                        {user.role === 'admin' ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setActionUserId(user.id)
-                              setActionType('demote')
-                            }}
-                          >
-                            Remove Admin
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setActionUserId(user.id)
-                              setActionType('promote')
-                            }}
-                          >
-                            Make Admin
-                          </Button>
-                        )}
-                        {user.banned ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setActionUserId(user.id)
-                              setActionType('unban')
-                            }}
-                          >
-                            Unban
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setActionUserId(user.id)
-                              setActionType('ban')
-                            }}
-                          >
-                            Ban
-                          </Button>
-                        )}
+                      ) : (
                         <Button
-                          variant="destructive"
+                          variant="outline"
                           size="sm"
                           onClick={() => {
                             setActionUserId(user.id)
-                            setActionType('delete')
+                            setActionType('promote')
                           }}
                         >
-                          Delete
+                          Make Admin
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                      )}
+                      {user.banned ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType('unban')
+                          }}
+                        >
+                          Unban
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType('ban')
+                          }}
+                        >
+                          Ban
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setActionUserId(user.id)
+                          setActionType('delete')
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ),
+                },
+              ] satisfies Column<User>[]}
+              data={users}
+              getRowId={(user) => user.id}
+            />
           )}
 
           {/* Pagination */}

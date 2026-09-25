@@ -4,14 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card'
 import { Badge } from '../ui/badge'
 import { Skeleton } from '../ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table'
+import { DataTable, type Column } from '../ui/data-table'
 import { formatDateTime, actionBadgeVariant } from '../../lib/formatters'
 
 interface ActivityLog {
@@ -31,6 +24,59 @@ interface ActivityLog {
 interface ActivityLogsCardProps {
   isAdmin?: boolean
   initialLogs?: ActivityLog[]
+}
+
+const baseColumns: Column<ActivityLog>[] = [
+  {
+    name: 'action',
+    title: 'Action',
+    sticky: true,
+    renderer: (log) => (
+      <Badge variant={actionBadgeVariant[log.action] || 'outline'}>
+        {log.action.replace(/_/g, ' ')}
+      </Badge>
+    ),
+  },
+  {
+    name: 'description',
+    title: 'Description',
+    renderer: (log) => <span className="text-sm max-w-xs truncate block">{log.description}</span>,
+  },
+  {
+    name: 'deviceLabel',
+    title: 'Device',
+    renderer: (log) => <span className="text-sm">{log.deviceLabel || 'N/A'}</span>,
+  },
+  {
+    name: 'location',
+    title: 'Location',
+    renderer: (log) => <span className="text-sm">{log.location || 'N/A'}</span>,
+  },
+  {
+    name: 'ipAddress',
+    title: 'IP Address',
+    renderer: (log) => <span className="text-sm font-mono">{log.ipAddress || 'N/A'}</span>,
+  },
+  {
+    name: 'createdAt',
+    title: 'Time',
+    renderer: (log) => (
+      <span className="text-sm text-gray-600 dark:text-gray-400">
+        {formatDateTime(log.createdAt)}
+      </span>
+    ),
+  },
+]
+
+const userColumn: Column<ActivityLog> = {
+  name: 'user',
+  title: 'User',
+  renderer: (log) => (
+    <div className="text-sm">
+      <div className="font-medium">{log.userName || 'N/A'}</div>
+      <div className="text-xs text-gray-500">{log.userEmail}</div>
+    </div>
+  ),
 }
 
 export default function ActivityLogsCard({ isAdmin = false, initialLogs = [] }: ActivityLogsCardProps) {
@@ -79,53 +125,15 @@ export default function ActivityLogsCard({ isAdmin = false, initialLogs = [] }: 
         ) : logs.length === 0 ? (
           <p className="text-center text-gray-500 py-8">No activity logs found</p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Action</TableHead>
-                  {isAdmin && <TableHead>User</TableHead>}
-                  <TableHead>Description</TableHead>
-                  <TableHead>Device</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead>Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell>
-                      <Badge variant={actionBadgeVariant[log.action] || 'outline'}>
-                        {log.action.replace(/_/g, ' ')}
-                      </Badge>
-                    </TableCell>
-                    {isAdmin && (
-                      <TableCell className="text-sm">
-                        <div className="font-medium">{log.userName || 'N/A'}</div>
-                        <div className="text-xs text-gray-500">{log.userEmail}</div>
-                      </TableCell>
-                    )}
-                    <TableCell className="text-sm max-w-xs truncate">
-                      {log.description}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {log.deviceLabel || 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {log.location || 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-sm font-mono">
-                      {log.ipAddress || 'N/A'}
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                      {formatDateTime(log.createdAt)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DataTable
+            columns={
+              isAdmin
+                ? [baseColumns[0], userColumn, ...baseColumns.slice(1)]
+                : baseColumns
+            }
+            data={logs}
+            getRowId={(log) => log.id}
+          />
         )}
       </CardContent>
     </Card>

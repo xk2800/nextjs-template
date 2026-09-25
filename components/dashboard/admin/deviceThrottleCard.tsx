@@ -1,20 +1,9 @@
 import Link from "next/link"
 import { ShieldAlert } from "lucide-react"
-import {
-  getDeviceThrottleActivity,
-  type DeviceThrottleRow,
-} from "@xk2800/nextjs-template/admin/queries"
+import { getDeviceThrottleActivity } from "@xk2800/nextjs-template/admin/queries"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
 import { Badge } from "../../ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../ui/table"
-import { formatDateTime } from "../../../lib/formatters"
+import DeviceThrottleTable from "./deviceThrottleTable"
 
 // Live view of devices accumulating failed sign-ins / sign-up attempts, keyed
 // by FingerprintJS visitorId (see lib/auth-throttle.ts). Every column an admin
@@ -24,12 +13,6 @@ import { formatDateTime } from "../../../lib/formatters"
 interface DeviceThrottleCardProps {
   // Hidden on the Audit Logs page, where the full failed-login table is right below.
   showHistoryLink?: boolean
-}
-
-function statusBadge(row: DeviceThrottleRow) {
-  if (row.blocked && row.windowActive) return <Badge variant="destructive">Blocked</Badge>
-  if (row.windowActive) return <Badge variant="secondary">Watching</Badge>
-  return <Badge variant="outline">Cooled off</Badge>
 }
 
 export default async function DeviceThrottleCard({ showHistoryLink = true }: DeviceThrottleCardProps) {
@@ -58,55 +41,7 @@ export default async function DeviceThrottleCard({ showHistoryLink = true }: Dev
         {rows.length === 0 ? (
           <p className="text-sm text-gray-500 py-4">No abuse activity detected</p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Fingerprint</TableHead>
-                  <TableHead>IP address</TableHead>
-                  <TableHead>Device</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead className="text-right">Attempts</TableHead>
-                  <TableHead>Kind</TableHead>
-                  <TableHead>Target email</TableHead>
-                  <TableHead>Window started</TableHead>
-                  <TableHead>Last attempt</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.fingerprint}>
-                    <TableCell>{statusBadge(row)}</TableCell>
-                    <TableCell className="font-mono text-xs select-all whitespace-nowrap">
-                      {row.fingerprint}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs select-all">
-                      {row.ipAddress || "Unknown"}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {[row.browser, row.os].filter(Boolean).join(" · ") || "Unknown"}
-                      <span className="block text-xs text-muted-foreground">{row.deviceType}</span>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {[row.city, row.country].filter(Boolean).join(", ") || "Unknown"}
-                    </TableCell>
-                    <TableCell className="text-right font-medium tabular-nums">{row.count}</TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      {row.lastKind === "signup" ? "sign-up" : "sign-in"}
-                    </TableCell>
-                    <TableCell className="text-sm select-all">{row.lastEmail || "—"}</TableCell>
-                    <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
-                      {formatDateTime(row.windowStart)}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
-                      {formatDateTime(row.lastAttemptAt)}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <DeviceThrottleTable rows={rows} />
         )}
         {showHistoryLink && (
           <div className="mt-4 pt-4 border-t border-amber-200 dark:border-amber-900/40">

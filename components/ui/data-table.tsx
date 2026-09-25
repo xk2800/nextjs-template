@@ -50,7 +50,7 @@ export function ExpandedRow<TRow>({
   )
 }
 
-export type DataTableProps<TRow extends Record<string, unknown>> = {
+export type DataTableProps<TRow> = {
   columns: Column<TRow>[]
   data: TRow[]
   getRowId: (row: TRow) => string
@@ -66,7 +66,7 @@ export type DataTableProps<TRow extends Record<string, unknown>> = {
   className?: string
 }
 
-export function DataTable<TRow extends Record<string, unknown>>({
+export function DataTable<TRow>({
   columns,
   data,
   getRowId,
@@ -132,7 +132,8 @@ export function DataTable<TRow extends Record<string, unknown>>({
     <div
       ref={observe}
       data-slot="data-table"
-      className={cn("relative w-full", !collapseEnabled && "overflow-x-auto", className)}
+      // Always scrollable: if column 0 alone is wider than the container it scrolls instead of spilling out
+      className={cn("relative w-full overflow-x-auto", className)}
     >
       <table className="w-full caption-bottom text-sm">
         <TableHeader>
@@ -160,7 +161,7 @@ export function DataTable<TRow extends Record<string, unknown>>({
               <React.Fragment key={id}>
                 <TableRow>
                   {isCollapsed && (
-                    <TableCell className="w-8">
+                    <TableCell className="w-8 align-top">
                       <button
                         type="button"
                         onClick={() => toggleRow(id)}
@@ -178,7 +179,11 @@ export function DataTable<TRow extends Record<string, unknown>>({
                     </TableCell>
                   )}
                   {visible.map((col) => (
-                    <TableCell key={col.name} style={{ maxWidth: col.maxWidth }}>
+                    <TableCell
+                      key={col.name}
+                      className="whitespace-normal break-words align-top"
+                      style={{ maxWidth: col.maxWidth }}
+                    >
                       {renderCell(col, row)}
                     </TableCell>
                   ))}

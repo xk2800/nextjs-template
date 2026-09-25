@@ -12,9 +12,12 @@ export const MIN_CELL_WIDTH = 150
 /** Below this width, `sticky` columns stop being pinned and can be auto-hidden too. */
 export const STICKY_BREAKPOINT = 577
 
+/** Rendered width of the row-toggle column (w-8 + cell padding) shown once collapsed. */
+export const EXPANDER_WIDTH = 48
+
 export type Column<TRow = Record<string, unknown>> = {
   name: string
-  title: string
+  title: ReactNode
   minWidth?: number
   maxWidth?: number
   /** Pinned column — only kept from auto-hiding while width >= the sticky breakpoint. */
@@ -58,6 +61,7 @@ export function recalculateColumns<TRow>(
 
   let predicted = next.reduce((sum, c) => sum + cellW(c), 0)
   if (predicted <= width) return { columns: next, isCollapsed: false }
+  predicted += EXPANDER_WIDTH // collapsing adds the row-toggle column
 
   // Walk right -> left; stop at index 1 so column 0 always stays as an anchor.
   for (let i = next.length - 1; i >= 1 && predicted > width; i--) {

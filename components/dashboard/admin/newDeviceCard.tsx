@@ -1,17 +1,7 @@
-import Link from "next/link"
 import { MonitorSmartphone } from "lucide-react"
 import { getRecentNewDevices } from "@xk2800/nextjs-template/admin/queries"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../ui/table"
-import { formatDateTime } from "../../../lib/formatters"
-import RevokeAllSessionsButton from "./revokeAllSessionsButton"
+import NewDeviceTable from "./newDeviceTable"
 
 // First sign-in from a device for each account (written by
 // app/api/device-check/route.ts). The user and every admin also get an email;
@@ -37,51 +27,7 @@ export default async function NewDeviceCard() {
         {rows.length === 0 ? (
           <p className="text-sm text-gray-500 py-4">No new-device sign-ins recorded yet</p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Account</TableHead>
-                  <TableHead>Device</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>IP address</TableHead>
-                  <TableHead>When</TableHead>
-                  <TableHead className="text-right">Action</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {rows.map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell className="text-sm">
-                      <Link
-                        href={`/dashboard/admin/users/${row.userId}`}
-                        className="font-medium hover:underline"
-                      >
-                        {row.userName}
-                      </Link>
-                      <span className="block text-xs text-muted-foreground">{row.userEmail}</span>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {[row.browser, row.os].filter(Boolean).join(" · ") || "Unknown"}
-                      <span className="block text-xs text-muted-foreground">{row.deviceType}</span>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {[row.city, row.country].filter(Boolean).join(", ") || "Unknown"}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs select-all">
-                      {row.ipAddress || "Unknown"}
-                    </TableCell>
-                    <TableCell className="text-xs whitespace-nowrap text-muted-foreground">
-                      {formatDateTime(row.createdAt)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <RevokeAllSessionsButton userId={row.userId} label="Revoke sessions" />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <NewDeviceTable rows={rows} />
         )}
       </CardContent>
     </Card>

@@ -6,14 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
 import { Skeleton } from '../ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../ui/table'
+import { DataTable, type Column } from '../ui/data-table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +26,24 @@ type Passkey = {
   deviceType?: string | null
   createdAt?: Date | string | null
 }
+
+const columns: Column<Passkey>[] = [
+  { name: 'name', title: 'Name', sticky: true, renderer: (pk) => pk.name || 'Passkey' },
+  {
+    name: 'deviceType',
+    title: 'Type',
+    renderer: (pk) => (
+      <span className="text-sm text-muted-foreground">{pk.deviceType || '—'}</span>
+    ),
+  },
+  {
+    name: 'createdAt',
+    title: 'Added',
+    renderer: (pk) => (
+      <span className="text-sm">{pk.createdAt ? formatDateTime(pk.createdAt) : '—'}</span>
+    ),
+  },
+]
 
 export default function PasskeysCard() {
   const [passkeys, setPasskeys] = useState<Passkey[] | null>(null)
@@ -126,40 +137,26 @@ export default function PasskeysCard() {
               No passkeys registered yet.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Added</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {passkeys.map((pk) => (
-                    <TableRow key={pk.id}>
-                      <TableCell>{pk.name || 'Passkey'}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {pk.deviceType || '—'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {pk.createdAt ? formatDateTime(pk.createdAt) : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setToDelete(pk)}
-                        >
-                          Remove
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable
+              columns={[
+                ...columns,
+                {
+                  name: 'actions',
+                  title: 'Actions',
+                  renderer: (pk) => (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => setToDelete(pk)}
+                    >
+                      Remove
+                    </Button>
+                  ),
+                },
+              ]}
+              data={passkeys}
+              getRowId={(pk) => pk.id}
+            />
           )}
         </CardContent>
       </Card>

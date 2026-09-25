@@ -1,15 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
-import { Badge } from "../../ui/badge"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../../ui/table"
-import { formatDateTime } from "../../../lib/formatters"
 import { formatDeviceInfo, formatLocation, type DeviceType } from "../../../lib/request-info"
+import AdminUserLoginInfoTable from "./adminUserLoginInfoTable"
 
 interface LoginEvent {
   id: string
@@ -25,6 +16,20 @@ interface LoginEvent {
 }
 
 export default function AdminUserLoginInfoCard({ logins }: { logins: LoginEvent[] }) {
+  const rows = logins.map((login) => ({
+    id: login.id,
+    isRegistration: login.description.toLowerCase().includes('registered'),
+    device: formatDeviceInfo({
+      os: login.os,
+      browser: login.browser,
+      deviceType: (login.deviceType as DeviceType) || 'desktop',
+    }),
+    location: formatLocation({ country: login.country, city: login.city }),
+    referrerUrl: login.referrerUrl,
+    ipAddress: login.ipAddress,
+    createdAt: login.createdAt,
+  }))
+
   return (
     <Card>
       <CardHeader>
@@ -37,54 +42,7 @@ export default function AdminUserLoginInfoCard({ logins }: { logins: LoginEvent[
         {logins.length === 0 ? (
           <p className="text-center text-gray-500 py-8">No login history found</p>
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Event</TableHead>
-                  <TableHead>Device</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Landing URL</TableHead>
-                  <TableHead>IP Address</TableHead>
-                  <TableHead>Time</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {logins.map((login) => {
-                  const isRegistration = login.description.toLowerCase().includes('registered')
-
-                  return (
-                    <TableRow key={login.id}>
-                      <TableCell>
-                        <Badge variant={isRegistration ? 'default' : 'outline'}>
-                          {isRegistration ? 'Registered' : 'Login'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatDeviceInfo({
-                          os: login.os,
-                          browser: login.browser,
-                          deviceType: (login.deviceType as DeviceType) || 'desktop',
-                        })}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {formatLocation({ country: login.country, city: login.city })}
-                      </TableCell>
-                      <TableCell className="text-sm max-w-xs truncate">
-                        {login.referrerUrl || 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {login.ipAddress || 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatDateTime(login.createdAt)}
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </div>
+          <AdminUserLoginInfoTable rows={rows} />
         )}
       </CardContent>
     </Card>

@@ -22,10 +22,17 @@ const hidden = (r: { columns: Column[] }) =>
 
 // Does not fit -> rightmost columns hidden first, loop stops once the rest fit.
 {
-  // 4 * 150 = 600; at width 320 only two columns fit -> drop "d" then "c".
-  const r = recalculateColumns(cols("a", "b", "c", "d"), 320)
+  // 4 * 150 = 600; at width 350 two columns + the 48px toggle column fit -> drop "d" then "c".
+  const r = recalculateColumns(cols("a", "b", "c", "d"), 350)
   assert.deepEqual(hidden(r), ["c", "d"])
   assert.equal(r.isCollapsed, true)
+}
+
+// The toggle column that collapsing adds counts toward the fit: 2 * 150 = 300 fits
+// 320 on its own, but not once the 48px toggle column appears.
+{
+  const r = recalculateColumns(cols("a", "b", "c", "d"), 320)
+  assert.deepEqual(hidden(r), ["b", "c", "d"])
 }
 
 // Column 0 is never auto-hidden, even when a single column still overflows.
@@ -46,7 +53,7 @@ const withPin = (): Column[] => [
 // Sticky column stays pinned while active (width >= breakpoint), so a plain
 // column to its left is dropped instead.
 {
-  const r = recalculateColumns(withPin(), 600) // 750 > 600, sticky active
+  const r = recalculateColumns(withPin(), 650) // 750 > 650, sticky active
   assert.deepEqual(hidden(r), ["d"])
   assert.equal(r.columns[4].autoHide, false)
 }
@@ -66,9 +73,9 @@ const withPin = (): Column[] => [
 
 // The minCellWidth option feeds the fit sum and changes the outcome.
 {
-  assert.deepEqual(hidden(recalculateColumns(cols("a", "b", "c"), 320)), ["c"])
+  assert.deepEqual(hidden(recalculateColumns(cols("a", "b", "c"), 350)), ["c"])
   assert.deepEqual(
-    hidden(recalculateColumns(cols("a", "b", "c"), 320, { minCellWidth: 100 })),
+    hidden(recalculateColumns(cols("a", "b", "c"), 350, { minCellWidth: 100 })),
     [],
   )
 }
