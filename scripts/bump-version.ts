@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 type BumpType = 'patch' | 'minor' | 'major'
-type ChangelogType = 'feature' | 'improvement' | 'fix'
+type ChangelogType = 'feature' | 'improvement' | 'fix' | 'beta'
 
 interface ChangelogEntry {
   version: string
@@ -34,8 +34,8 @@ function commitMessagesBetween(range: string): string[] {
   return log
     .split('\n')
     .map((line) => line.replace(/^[0-9a-f]+\s+/, ''))
-    .filter((msg) => !/^\d+\.\d+\.\d+$/.test(msg))
-    .filter((msg) => !/^docs: update changelog for v\d+\.\d+\.\d+$/i.test(msg))
+    .filter((msg) => !/^\d+\.\d+\.\d+(-beta\.\d+)?$/.test(msg))
+    .filter((msg) => !/^docs: update changelog for v\d+\.\d+\.\d+(-beta\.\d+)?$/i.test(msg))
 }
 
 function todayDateString(): string {
@@ -54,11 +54,41 @@ function prependChangelogEntry(entry: ChangelogEntry) {
   writeFileSync(changelogPath, JSON.stringify([entry, ...existing], null, 2) + '\n')
 }
 
-function nextVersion(current: string, type: BumpType): string {
-  const [major, minor, patch] = current.split('.').map(Number)
+function inc(major: number, minor: number, patch: number, type: BumpType): string {
   if (type === 'major') return `${major + 1}.0.0`
   if (type === 'minor') return `${major}.${minor + 1}.0`
   return `${major}.${minor}.${patch + 1}`
+}
+
+// Mirrors `npm version`'s semver rules so the prompt shows the version npm
+// will actually produce. `npmArg` is what gets passed to `npm version`.
+export function nextVersion(
+  current: string,
+  type: BumpType,
+  beta: boolean
+): { version: string; npmArg: string } {
+  const m = current.match(/^(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/)
+  if (!m) throw new Error(`Unsupported version format: ${current}`)
+  const [major, minor, patch] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  const betaN = m[4] === undefined ? null : Number(m[4])
+
+  if (beta) {
+    // Already on a beta + "patch" → next beta of the same version.
+    if (betaN !== null && type === 'patch') {
+      return { version: `${major}.${minor}.${patch}-beta.${betaN + 1}`, npmArg: 'prerelease --preid beta' }
+    }
+    return { version: `${inc(major, minor, patch, type)}-beta.0`, npmArg: `pre${type} --preid beta` }
+  }
+
+  // Promoting a beta to stable drops the suffix when the bump is already
+  // "contained" in the beta (e.g. 0.6.0-beta.2 + minor → 0.6.0).
+  if (
+    betaN !== null &&
+    (type === 'patch' || (type === 'minor' && patch === 0) || (type === 'major' && minor === 0 && patch === 0))
+  ) {
+    return { version: `${major}.${minor}.${patch}`, npmArg: type }
+  }
+  return { version: inc(major, minor, patch, type), npmArg: type }
 }
 
 function isGhAvailable(): boolean {
@@ -89,21 +119,47 @@ function generateReleaseNotes(fromTag: string, toTag: string): string {
 async function main() {
   console.log(`Current version: ${pkg.version}\n`)
 
+  const previousTag = `v${pkg.version}`
+  let commits: string[]
+  try {
+    commits = commitMessagesBetween(`${previousTag}..HEAD`)
+  } catch {
+    // previousTag doesn't exist locally (e.g. first-ever release).
+    commits = commitMessagesBetween('HEAD')
+  }
+
+  const type = await select<ChangelogType>({
+    message: 'Release type',
+    default: inferChangelogType(commits),
+    choices: [
+      { name: 'feature', value: 'feature', description: 'A new capability or behavior' },
+      { name: 'improvement', value: 'improvement', description: 'An enhancement to something existing' },
+      { name: 'fix', value: 'fix', description: 'A bug fix' },
+      {
+        name: 'beta',
+        value: 'beta',
+        description: 'Test build — publishes x.y.z-beta.N under the npm "beta" tag, so `latest` is untouched',
+      },
+    ],
+  })
+  const isBeta = type === 'beta'
+  const alreadyBeta = pkg.version.includes('-beta.')
+
   const bumpType = await select<BumpType>({
     message: 'Select version bump type',
     choices: [
       {
-        name: `Patch  (${pkg.version} → ${nextVersion(pkg.version, 'patch')})`,
-        description: 'Bug fixes, no breaking changes',
+        name: `${isBeta && alreadyBeta ? 'Next beta' : 'Patch'}  (${pkg.version} → ${nextVersion(pkg.version, 'patch', isBeta).version})`,
+        description: isBeta && alreadyBeta ? 'Another beta of the same version' : 'Bug fixes, no breaking changes',
         value: 'patch',
       },
       {
-        name: `Minor  (${pkg.version} → ${nextVersion(pkg.version, 'minor')})`,
+        name: `Minor  (${pkg.version} → ${nextVersion(pkg.version, 'minor', isBeta).version})`,
         description: 'New features, backwards compatible',
         value: 'minor',
       },
       {
-        name: `Major  (${pkg.version} → ${nextVersion(pkg.version, 'major')})  — stable release`,
+        name: `Major  (${pkg.version} → ${nextVersion(pkg.version, 'major', isBeta).version})${isBeta ? '' : '  — stable release'}`,
         description: 'Breaking changes',
         value: 'major',
       },
@@ -133,7 +189,7 @@ async function main() {
     run('bun run build:lib')
   }
 
-  const target = nextVersion(pkg.version, bumpType)
+  const { version: target, npmArg } = nextVersion(pkg.version, bumpType, isBeta)
   const confirmBump = await confirm({
     message: `Bump ${pkg.version} → ${target} (creates a git commit + tag)?`,
     default: true,
@@ -143,7 +199,6 @@ async function main() {
     process.exit(1)
   }
 
-  const previousTag = `v${pkg.version}`
   const newTag = `v${target}`
 
   const doChangelog = await confirm({
@@ -151,23 +206,6 @@ async function main() {
     default: true,
   })
   if (doChangelog) {
-    let commits: string[]
-    try {
-      commits = commitMessagesBetween(`${previousTag}..HEAD`)
-    } catch {
-      // previousTag doesn't exist locally (e.g. first-ever release).
-      commits = commitMessagesBetween('HEAD')
-    }
-
-    const type = await select<ChangelogType>({
-      message: 'Changelog entry type',
-      default: inferChangelogType(commits),
-      choices: [
-        { name: 'feature', value: 'feature', description: 'A new capability or behavior' },
-        { name: 'improvement', value: 'improvement', description: 'An enhancement to something existing' },
-        { name: 'fix', value: 'fix', description: 'A bug fix' },
-      ],
-    })
     const title = await input({
       message: 'Changelog entry title',
       default: commits[0] ?? target,
@@ -186,16 +224,20 @@ async function main() {
     run(`git commit -m "docs: update changelog for ${newTag}"`)
   }
 
-  run(`npm version ${bumpType}`)
+  run(`npm version ${npmArg}`)
 
+  // Prereleases must go out under a non-`latest` dist-tag (npm refuses
+  // otherwise), so plain installs never pick up a beta.
+  const publishCmd = isBeta ? 'npm publish --tag beta' : 'npm publish'
   const doPublish = await confirm({
-    message: 'Publish to GitHub Packages now? (npm publish)',
+    message: `Publish to npm now? (${publishCmd})`,
     default: true,
   })
   if (doPublish) {
-    run('npm publish')
+    run(publishCmd)
+    if (isBeta) console.log(`\nInstall it with: bun add @xk2800/nextjs-template@beta  (or @${target})`)
   } else {
-    console.log('\nSkipped publish. Run when ready:\n  npm publish')
+    console.log(`\nSkipped publish. Run when ready:\n  ${publishCmd}`)
   }
 
   const doPush = await confirm({
@@ -220,12 +262,12 @@ async function main() {
   if (!isGhAvailable()) {
     console.log(
       `\nGitHub CLI ('gh') not found — skipping release creation. Install it or run manually:\n` +
-      `  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"`
+      `  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"${isBeta ? ' --prerelease' : ''}`
     )
   } else if (!pushed) {
     console.log(
       `\nSkipped release creation — ${newTag} isn't on origin yet. Push it first, then run:\n` +
-      `  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"`
+      `  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"${isBeta ? ' --prerelease' : ''}`
     )
   } else {
     const doRelease = await confirm({
@@ -233,14 +275,15 @@ async function main() {
       default: true,
     })
     if (doRelease) {
-      run(`gh release create ${newTag} --title "${newTag}" --notes-file "${notesFile}"`)
+      run(`gh release create ${newTag} --title "${newTag}" --notes-file "${notesFile}"${isBeta ? ' --prerelease' : ''}`)
     } else {
-      console.log(`\nSkipped release. Run when ready:\n  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"`)
+      console.log(`\nSkipped release. Run when ready:\n  gh release create ${newTag} --title ${newTag} --notes-file "${notesFile}"${isBeta ? ' --prerelease' : ''}`)
     }
   }
 }
 
-main().catch((err) => {
+// Guarded so the test can import nextVersion() without starting the prompts.
+if (import.meta.main) main().catch((err) => {
   // @inquirer/prompts rejects with an Error when the user cancels (Ctrl+C) — exit quietly.
   if (err instanceof Error && err.name === 'ExitPromptError') {
     console.log('\nCancelled.')

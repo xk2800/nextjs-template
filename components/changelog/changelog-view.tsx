@@ -5,7 +5,7 @@ import { SiteFooter } from "@/components/site/site-footer"
 export interface ChangelogEntry {
   version: string
   date: string
-  type?: "feature" | "improvement" | "fix"
+  type?: "feature" | "improvement" | "fix" | "beta"
   title?: string
   changes: string[]
 }
@@ -48,7 +48,7 @@ export function ChangelogView({
                 <p className="font-mono text-sm font-semibold">v{entry.version}</p>
                 <p className="mt-1 text-sm text-muted-foreground">{formatDate(entry.date)}</p>
                 {entry.type && (
-                  <Badge variant={entry.type === "feature" ? "default" : "outline"} className="mt-3">
+                  <Badge variant={entry.type === "feature" ? "default" : entry.type === "beta" ? "secondary" : "outline"} className="mt-3">
                     {entry.type}
                   </Badge>
                 )}

@@ -180,7 +180,7 @@
     "build": "npm run build:lib && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "bun lib/recalculate-columns.test.ts && bun lib/auth-throttle-limits.test.ts && bun lib/shared-devices.test.ts && bun lib/maintenance.test.ts",
+    "test": "bun lib/recalculate-columns.test.ts && bun lib/auth-throttle-limits.test.ts && bun lib/shared-devices.test.ts && bun lib/maintenance.test.ts && bun scripts/bump-version.test.ts",
     "build:lib": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "doctor": "bun --env-file=.env.development scripts/doctor.ts",

@@ -147,6 +147,7 @@ Feature-by-feature, in dependency order (foundations first). Each item: **files*
 
 - [ ] `Dockerfile` — multi-stage, non-root user, no secrets baked in; ⚠️ `Dockerfile-old` still present — delete?
 - [ ] `scripts/doctor.ts`, `scripts/bump-version.ts`, `scripts/test-2fa.ts`, `server/test-connection/index.ts`
+- [ ] `scripts/bump-version.ts` beta release type (+ `bump-version.test.ts`) — prerelease version, `npm publish --tag beta`, GitHub `--prerelease`; promoting beta → stable drops the suffix
 - [ ] Doppler scripts in `package.json` mirror the non-Doppler ones
 - [ ] `.dockerignore` / `.gitignore` exclude env files, `brag-output/` media
 - [ ] `.github/dependabot.yml`
