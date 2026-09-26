@@ -298,6 +298,6 @@
     "tsup": "^8.5.1",
     "tsx": "^4.19.4",
     "tw-animate-css": "^1.3.6",
-    "typescript": "^6.0.3"
+    "typescript": "^7.0.2"
   }
 }
