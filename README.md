@@ -189,7 +189,7 @@ export function AppleSignInButton({ callbackUrl }: { callbackUrl?: string }) {
 }
 ```
 
-Nothing else needs to change — `middleware.ts`, `auth/helpers` (`requireAuth`, `hasRole`), and `auth-client`'s `useSession` are all provider-agnostic; they work off the session cookie/token, not which provider created it.
+Nothing else needs to change — `proxy.ts`, `auth/helpers` (`requireAuth`, `hasRole`), and `auth-client`'s `useSession` are all provider-agnostic; they work off the session cookie/token, not which provider created it.
 
 #### Disabling Google or email/password instead
 
@@ -310,7 +310,7 @@ import { EmailTemplate } from "@xk2800/nextjs-template/components/email/email-te
 
 ### 6. Not importable — copy these patterns instead
 
-`app/api/auth/[...all]/route.ts` and `middleware.ts` are Next.js file-convention code, not library exports. Copy the pattern into your own project:
+`app/api/auth/[...all]/route.ts` and `proxy.ts` are Next.js file-convention code, not library exports. Copy the pattern into your own project:
 
 ```ts
 // app/api/auth/[...all]/route.ts

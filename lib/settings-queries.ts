@@ -3,6 +3,7 @@ import { db } from "../server/db"
 import { systemSettings } from "../server/db/schema"
 import { config } from "../config/env"
 import { eq } from "drizzle-orm"
+import { DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "./maintenance"
 
 const SETTINGS_ROW_ID = "default"
 // Short TTL: cheap reads (no DB round trip on every request), while an
@@ -23,6 +24,7 @@ function fallbackSettings(): SystemSettings {
     id: SETTINGS_ROW_ID,
     maintenanceMode: false,
     maintenanceMessage: null,
+    maintenanceExemptPaths: DEFAULT_MAINTENANCE_EXEMPT_PATHS,
     authEnableGoogle: config.AUTH_ENABLE_GOOGLE,
     authEnableEmailPassword: config.AUTH_ENABLE_EMAIL_PASSWORD,
     authEnableOneTap: config.AUTH_ENABLE_ONE_TAP,
@@ -87,7 +89,7 @@ export function invalidateSystemSettingsCache() {
 }
 
 export type SystemSettingsPatch = Partial<Pick<SystemSettings,
-  | 'maintenanceMode' | 'maintenanceMessage'
+  | 'maintenanceMode' | 'maintenanceMessage' | 'maintenanceExemptPaths'
   | 'authEnableGoogle' | 'authEnableEmailPassword' | 'authEnableOneTap'
   | 'enableSessionRevocation'
 >>

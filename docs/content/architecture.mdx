@@ -61,7 +61,7 @@ import { FileTree } from 'nextra/components'
   <FileTree.Folder name="data">
     <FileTree.File name="changelog.json" />
   </FileTree.Folder>
-  <FileTree.File name="middleware.ts — Route protection" />
+  <FileTree.File name="proxy.ts — Route protection + maintenance mode" />
   <FileTree.File name="better-auth.d.ts — Type extensions" />
   <FileTree.File name="drizzle.config.ts — Drizzle ORM config" />
 </FileTree>
@@ -94,15 +94,15 @@ The dashboard is a protected area with its own layout (`app/dashboard/layout.tsx
 - Logout button
 - Admin section (conditionally rendered for admin users)
 
-## Middleware
+## Proxy
 
-The middleware (`middleware.ts`) protects all `/dashboard` routes:
+The Proxy (`proxy.ts`, Next 16's rename of middleware) protects all `/dashboard` routes:
 
 1. Checks for the `better-auth.session_token` cookie (also checks `__Secure-` prefix variant for HTTPS)
 2. If no session cookie is found, redirects to `/login?callbackUrl=<original-url>`
 3. If authenticated, allows the request through
 
-This provides a fast, edge-compatible authentication check before the page even starts rendering.
+This provides a fast, optimistic authentication check before the page even starts rendering. It also enforces maintenance mode for every route not in the admin-configured exempt list.
 
 ## Environment Configuration
 

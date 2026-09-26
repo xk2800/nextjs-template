@@ -1,6 +1,7 @@
 import { boolean, check, integer, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createId } from '@paralleldrive/cuid2'
+import { DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "../../lib/maintenance";
 
 export const RoleEnum = pgEnum('roles', ['user', 'admin'])
 
@@ -197,6 +198,9 @@ export const systemSettings = pgTable("system_settings", {
   id: text("id").primaryKey().default("default"),
   maintenanceMode: boolean("maintenanceMode").notNull().default(false),
   maintenanceMessage: text("maintenanceMessage"),
+  // Path prefixes that stay reachable while maintenance mode is on (see
+  // lib/maintenance.ts — a few auth paths are always open on top of these).
+  maintenanceExemptPaths: text("maintenanceExemptPaths").array().notNull().default(DEFAULT_MAINTENANCE_EXEMPT_PATHS),
   authEnableGoogle: boolean("authEnableGoogle").notNull().default(true),
   authEnableEmailPassword: boolean("authEnableEmailPassword").notNull().default(true),
   authEnableOneTap: boolean("authEnableOneTap").notNull().default(false),

@@ -46,7 +46,7 @@
       "tagline": "Flip a switch instead of shipping a deploy.",
       "items": [
         "Turn Google, email/password, or One Tap sign-in on or off, live",
-        "Maintenance mode with a custom message — admins keep access, everyone else doesn't",
+        "Maintenance mode with a custom message and your own list of pages that stay open — admins keep access, everyone else doesn't",
         "Changes take effect within seconds, cached, and fail open if the database hiccups",
         "Every settings change is itself written to the activity feed"
       ]

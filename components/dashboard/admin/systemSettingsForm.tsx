@@ -9,6 +9,7 @@ import { Label } from "../../ui/label"
 import { Textarea } from "../../ui/textarea"
 import { Button } from "../../ui/button"
 import type { SystemSettings } from "@xk2800/nextjs-template/settings/queries"
+import { ALWAYS_OPEN_PATHS, DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "../../../lib/maintenance"
 
 interface ConfiguredAuthFlags {
   google: boolean
@@ -25,6 +26,8 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
   const router = useRouter()
   const [settings, setSettings] = useState(initialSettings)
   const [isSaving, setIsSaving] = useState(false)
+  const [exemptPathsText, setExemptPathsText] = useState(initialSettings.maintenanceExemptPaths.join('\n'))
+  const exemptPaths = exemptPathsText.split('\n').map((p) => p.trim()).filter(Boolean)
 
   // "Left enabled" means actually usable — configured (env) AND toggled on
   // (DB) — not just the DB toggle, which can look "on" while being fully
@@ -42,6 +45,7 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
         body: JSON.stringify({
           maintenanceMode: settings.maintenanceMode,
           maintenanceMessage: settings.maintenanceMessage,
+          maintenanceExemptPaths: exemptPaths,
           authEnableGoogle: settings.authEnableGoogle,
           authEnableEmailPassword: settings.authEnableEmailPassword,
           authEnableOneTap: settings.authEnableOneTap,
@@ -159,7 +163,8 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
         <CardHeader>
           <CardTitle>Maintenance Mode</CardTitle>
           <CardDescription>
-            Blocks the dashboard for non-admins and shows a maintenance page instead — admins keep full access
+            Blocks every page and API route except the paths kept open below, and shows a
+            maintenance page instead — admins keep full access
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -187,6 +192,29 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
               />
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="maintenance-exempt">Paths that stay open during maintenance</Label>
+            <p className="text-sm text-gray-500">
+              One per line. <code>/foo</code> also opens <code>/foo/...</code>; <code>/</code> opens
+              only the home page. Always open regardless: {ALWAYS_OPEN_PATHS.join(', ')}
+            </p>
+            <Textarea
+              id="maintenance-exempt"
+              value={exemptPathsText}
+              onChange={(e) => setExemptPathsText(e.target.value)}
+              rows={6}
+              className="font-mono text-sm"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setExemptPathsText(DEFAULT_MAINTENANCE_EXEMPT_PATHS.join('\n'))}
+            >
+              Reset to public pages
+            </Button>
+          </div>
         </CardContent>
       </Card>
 

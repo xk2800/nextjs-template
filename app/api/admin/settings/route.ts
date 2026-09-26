@@ -10,6 +10,10 @@ import { z } from "zod"
 const patchSchema = z.object({
   maintenanceMode: z.boolean().optional(),
   maintenanceMessage: z.string().max(2000).nullable().optional(),
+  maintenanceExemptPaths: z
+    .array(z.string().max(200).regex(/^\/\S*$/, "Paths must start with / and contain no spaces"))
+    .max(100)
+    .optional(),
   authEnableGoogle: z.boolean().optional(),
   authEnableEmailPassword: z.boolean().optional(),
   authEnableOneTap: z.boolean().optional(),

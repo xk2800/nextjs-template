@@ -46,7 +46,7 @@ server/
 config/env.ts         Zod-validated environment config (server-only)
 lib/                  Server query helpers, auth-client, formatters, csv export, resend wrapper, etc.
 types/auth/           Zod schemas for login/signup forms
-middleware.ts         Route protection for /dashboard/*
+proxy.ts              Next 16 Proxy (ex-middleware): /dashboard/* cookie gate + site-wide maintenance mode
 docs/                 Standalone documentation site (separate Next.js app)
 ```
 
@@ -68,7 +68,7 @@ The package is also exported piecemeal via `package.json#exports` (`/auth`, `/au
 - **Impersonation auditing:** Impersonation start/stop is logged to the activity log via database hooks (start) and a `before` hook reading the session prior to Better-Auth deleting it (stop), since the admin plugin's impersonation-stop path bypasses normal session-create hooks.
 - **Login activity capture:** Every real (non-impersonated) session creation logs an activity entry with IP, parsed user agent (OS/browser/device type via `ua-parser-js`), geo (country/city via `geoip-lite`), and referrer URL (captured via cookie before OAuth redirects, since the live referer header on an OAuth callback points at the provider, not the origin page).
 - **First-login detection:** Session count for the user distinguishes "new account registered and signed in" from "user logged in."
-- **Route protection:** `middleware.ts` guards `/dashboard/*`, checking for the Better-Auth session cookie (including `__Secure-` prefixed variant) and redirecting to `/login?callbackUrl=...`.
+- **Route protection:** `proxy.ts` guards `/dashboard/*`, checking for the Better-Auth session cookie (including `__Secure-` prefixed variant) and redirecting to `/login?callbackUrl=...`.
 - **Password reset:** Better-Auth-composed reset URL, delivered via a React Email template through Resend.
 - **Email verification:** Opt-in (`requireEmailVerification: false`). Users trigger it from the dashboard Account Details card via `authClient.sendVerificationEmail()`; Better-Auth composes the URL, mails it through Resend, and its `/api/auth/verify-email` callback flips `user.emailVerified` and auto-signs-in.
 - **Server-side session access:** `auth.api.getSession({ headers })`.
@@ -87,7 +87,7 @@ The package is also exported piecemeal via `package.json#exports` (`/auth`, `/au
 | `twoFactor` | Per-user TOTP secret + encrypted backup codes (`twoFactor` plugin); `user.twoFactorEnabled` flips true after first verification |
 | `passkey` | Registered WebAuthn credentials — public key, counter, device type, transports, AAGUID (`passkey` plugin) |
 | `activity_log` | Append-only audit trail — action enum (login, logout, login_failed, password_changed, email_changed, profile_updated, session_revoked, user_deleted, user_banned, user_unbanned, role_changed, impersonation_started/stopped, settings_changed), description, IP, user agent, parsed device/geo fields, metadata |
-| `system_settings` | Singleton row (`id = 'default'`, enforced via CHECK constraint) holding admin-editable runtime config: maintenance mode + message, auth method toggles (Google/email-password/One Tap), session-revocation toggle, `updatedBy` |
+| `system_settings` | Singleton row (`id = 'default'`, enforced via CHECK constraint) holding admin-editable runtime config: maintenance mode + message + exempt paths, auth method toggles (Google/email-password/One Tap), session-revocation toggle, `updatedBy` |
 | `device_fingerprint` | One row per (user, FingerprintJS `visitorId`) — answers "has this account signed in from this device before?" for new-device alerts, and (many accounts on one `visitorId`) the multi-account / trial-abuse signal. First-seen IP/UA/geo kept for context |
 | `auth_throttle` | Per-device fixed-window counter for `/sign-in/email` + `/sign-up/email` abuse, keyed by `visitorId` (not IP). Last IP/UA/email/kind kept so an admin can block the source |
 
@@ -115,13 +115,18 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Client-side heartbeat to keep `lastActiveAt` fresh.
 - Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys.
 
+### Maintenance mode
+- Enforced in `proxy.ts` for every page and API route except the admin-editable exempt list (`system_settings.maintenanceExemptPaths`, default: `/`, `/features`, `/changelog`, `/changelog-template`, `/privacy`, `/terms`). Blocked pages redirect to `/maintenance`; blocked API routes return `503`.
+- Always open regardless (`lib/maintenance.ts`): `/maintenance`, `/login`, `/forgot-password`, `/reset-password`, `/api/auth`, `/api/settings/public` — so admins can always sign in to turn it off.
+- Admins, and admins impersonating a user, bypass it. Changes apply within the 10s settings cache.
+
 ### Admin dashboard (`/dashboard/admin`)
 - Stats grid (aggregate user/session counts, etc.).
 - User management table — list, search, view detail, edit role, ban/unban (with reason), delete, bulk-ban, bulk-delete, CSV export.
 - Per-user detail view — login info, sessions, activity log, status card, impersonation controls and impersonation-log card.
 - Impersonation banner shown app-wide while an admin is impersonating a user.
 - System-wide activity log viewer with CSV export.
-- System Settings form — maintenance mode/message, live auth-method toggles (Google, Email/Password, One Tap), session-revocation toggle.
+- System Settings form — maintenance mode/message and the list of paths that stay open during it (defaults to the public pages), live auth-method toggles (Google, Email/Password, One Tap), session-revocation toggle.
 - Device security cards — **New devices** (first sign-in per account/device, with one-click session revoke), **Device throttle** (fingerprints hitting the sign-in/sign-up abuse limit), and **Shared devices** (one device fingerprint used by 3+ accounts — multi-account / trial-abuse signal, each account linked for a ban).
 - Route- and section-level `error.tsx` / `loading.tsx` boundaries throughout the admin tree.
 

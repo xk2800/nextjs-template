@@ -1,6 +1,4 @@
 import { requireAuth, hasRole } from "@/lib/auth-helpers"
-import { getSystemSettings } from "@/lib/settings-queries"
-import { redirect } from "next/navigation"
 import AppSidebar from "@/components/dashboard/appSidebar"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
@@ -23,16 +21,7 @@ export default async function DashboardLayout({
   // Full session validation - this is the security layer
   const session = await requireAuth()
   const isAdmin = hasRole(session.user.role, 'admin')
-
-  // Non-admins get bounced to a static maintenance page while it's on;
-  // admins pass through so they can reach /dashboard/admin/settings to turn
-  // it back off. This only covers the dashboard tree — see
-  // lib/settings-queries.ts's getSystemSettings() if you want broader
-  // (e.g. marketing-page) coverage in your own layouts.
-  const settings = await getSystemSettings()
-  if (settings.maintenanceMode && !isAdmin) {
-    redirect('/maintenance')
-  }
+  // Maintenance mode is enforced site-wide in proxy.ts.
 
   return (
     <SidebarProvider>

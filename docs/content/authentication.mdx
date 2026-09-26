@@ -153,14 +153,14 @@ Users have a `role` field with two possible values: `user` (default) and `admin`
 - Server-side enforcement uses `requireRole("admin")` from `lib/auth-helpers.ts`
 - Admin routes are at `/dashboard/admin/users` and `/api/admin/users`
 
-## Middleware Protection
+## Proxy Protection
 
-The Next.js middleware (`middleware.ts`) protects all `/dashboard/*` routes:
+The Next.js 16 Proxy (`proxy.ts`, formerly middleware) protects all `/dashboard/*` routes:
 
 1. Checks for `better-auth.session_token` cookie (and `__Secure-` variant)
 2. Redirects unauthenticated users to `/login?callbackUrl=<original-url>`
 
-This runs at the edge before any page rendering begins.
+This runs before any page rendering begins. The same file also enforces maintenance mode site-wide.
 
 ## Custom Type Extensions
 

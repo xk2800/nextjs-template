@@ -339,3 +339,30 @@ Not covered by `bun run test`. Needs a browser.
    `x-device-fingerprint`, and after sign-in `/api/device-check` is called once.
 5. Rebuild with `NEXT_PUBLIC_COOKIE_BANNER=false`. There's no banner and no
    footer link, and the fingerprint and One Tap behave as in step 4.
+
+---
+
+## Maintenance mode (site-wide, configurable exempt paths)
+
+Enforced in `proxy.ts`. Everything is blocked for non-admins except the paths
+in **Admin → System Settings → Paths that stay open during maintenance**
+(`system_settings.maintenanceExemptPaths`, default = public pages) plus the
+always-open auth paths in `lib/maintenance.ts`.
+
+### 1. Unit test (path matching)
+
+```bash
+bun lib/maintenance.test.ts   # or: bun run test
+```
+
+### 2. Manual
+
+Turn maintenance on in System Settings, then in a logged-out / non-admin
+browser:
+
+- `/`, `/features`, `/privacy`, `/login` → **200**
+- `/signup`, `/dashboard` → **307 → /maintenance**
+- `curl -i localhost:3000/api/heartbeat` → **503**
+- As an admin: `/dashboard/*` works normally.
+- Add `/signup` to the list and save → `/signup` opens within **~10s** (the
+  proxy has its own settings cache, so the save can't invalidate it instantly).
