@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.6.1-beta.0",
+    "date": "2026-9-26",
+    "type": "beta",
+    "title": "feat: add support for beta releases in version bumping and changelog",
+    "changes": [
+      "feat: add support for beta releases in version bumping and changelog"
+    ]
+  },
+  {
     "version": "0.6.0",
     "date": "2026-9-26",
     "type": "improvement",
