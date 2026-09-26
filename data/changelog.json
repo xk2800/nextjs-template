@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.6.0",
+    "date": "2026-9-26",
+    "type": "improvement",
+    "title": "feat: implement configurable maintenance mode with exempt paths",
+    "changes": [
+      "feat: implement configurable maintenance mode with exempt paths",
+      "feat: add cookie-consent banner and related functionality for GDPR compliance"
+    ]
+  },
+  {
     "version": "0.5.3",
     "date": "2026-9-25",
     "type": "improvement",
