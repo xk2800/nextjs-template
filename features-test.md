@@ -314,3 +314,28 @@ Not covered by `bun run test` — needs a real Google round trip.
    cleared once a session is detected).
 4. `http://localhost:3000/login?error=account_banned` (or any non-transient
    code) → static message, no session check, no Google retry.
+
+---
+
+## Cookie-consent banner
+
+`components/site/cookie-banner.tsx` (UI, mounted in `app/layout.tsx`) +
+`lib/cookie-consent.ts` (state in the `cookie_consent` cookie). Gates
+`getVisitorId()` (`lib/device-fingerprint.ts`) and `<OneTap />`.
+
+Not covered by `bun run test`. Needs a browser.
+
+### 1. In the browser
+
+1. Clear site cookies and open `/`. The banner appears bottom-center.
+2. **Necessary only** hides the banner and sets the `cookie_consent=necessary`
+   cookie (DevTools → Application → Cookies). Reload: no banner. Sign in with
+   email/password. The `/api/auth/sign-in/email` request has **no**
+   `x-device-fingerprint` header, `/api/device-check` is **not** called, and no
+   One Tap prompt appears when signed out (even with One Tap enabled).
+3. Footer → **Cookie settings** brings the banner back and removes the cookie.
+4. **Accept all** sets `cookie_consent=all`. Without a reload, the One Tap
+   prompt shows (if enabled and signed out), sign-in requests carry
+   `x-device-fingerprint`, and after sign-in `/api/device-check` is called once.
+5. Rebuild with `NEXT_PUBLIC_COOKIE_BANNER=false`. There's no banner and no
+   footer link, and the fingerprint and One Tap behave as in step 4.

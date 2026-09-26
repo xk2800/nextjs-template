@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { ExternalLink } from "lucide-react"
 
+import { CookieSettingsButton } from "@/components/site/cookie-banner"
 import { DOCS_URL, REPO_URL } from "@/lib/site"
 
 export function SiteFooter() {
@@ -23,6 +24,10 @@ export function SiteFooter() {
           <a href={DOCS_URL} className="transition-colors hover:text-foreground">
             Docs
           </a>
+          <Link href="/privacy" className="transition-colors hover:text-foreground">
+            Privacy
+          </Link>
+          <CookieSettingsButton className="cursor-pointer transition-colors hover:text-foreground" />
           <a href={REPO_URL} className="flex items-center gap-1.5 transition-colors hover:text-foreground">
             <ExternalLink className="size-4" />
             GitHub

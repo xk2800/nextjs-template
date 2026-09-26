@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "sonner";
 import OneTap from "@/components/auth/oneTap";
 import DeviceCheck from "@/components/auth/deviceCheck";
+import { CookieBanner } from "@/components/site/cookie-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -38,6 +39,7 @@ export default function RootLayout({
           <Toaster richColors position="top-right" />
           <OneTap />
           <DeviceCheck />
+          <CookieBanner />
         </ThemeProvider>
       </body>
     </html>

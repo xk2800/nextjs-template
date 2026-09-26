@@ -98,6 +98,7 @@ bun --env-file=.env.production server/test-connection/index.ts
 6. Two-factor auth (TOTP + backup codes) and passkeys (WebAuthn), managed from the dashboard Settings page
 7. Password reset and self-serve email verification, both via Resend-delivered React Email templates
 8. Security email alerts — new-device sign-ins and passkey add/remove, mirrored to the activity log
+9. Cookie-consent banner — "Necessary only" / "Accept all", with a "Cookie settings" link in the footer to change it later. The device fingerprint and Google One Tap only run after "Accept all"
 
 ## WIP
 
@@ -233,6 +234,30 @@ import OneTap from "@xk2800/nextjs-template/components/auth/oneTap";
 `<OneTap />` self-gates on `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` and on the current session (`useSession`), so it's safe to leave mounted permanently — it no-ops for signed-in users and for any project that hasn't turned the flag on, no conditional JSX needed on your end. Toggling the feature later is just flipping both env vars, no code changes.
 
 Your Google Cloud OAuth client also needs its **Authorized JavaScript origins** to include whatever origin you're testing/deploying from (e.g. `http://localhost:3000`) — One Tap validates the origin client-side, separately from the OAuth redirect URIs you already set up.
+
+**One Tap waits for cookie consent.** It only prompts once the visitor clicks "Accept all" in the cookie banner (see below). If you import `<OneTap />` without mounting `<CookieBanner />`, set `NEXT_PUBLIC_COOKIE_BANNER=false`. Otherwise nobody can consent and the prompt never shows.
+
+#### Cookie-consent banner
+
+On by default. `<CookieBanner />` (mounted in `app/layout.tsx`) asks once and stores the answer in the first-party `cookie_consent` cookie (`all` | `necessary`, 1 year). `<CookieSettingsButton />` (in the site footer) clears the answer so the banner comes back. Auth/session cookies and UI preferences are "necessary" and always on. Optional, and only after "Accept all":
+
+- **FingerprintJS device id**: `getVisitorId()` in `lib/device-fingerprint.ts` returns `null` without consent. New-device alerts are then skipped, and the sign-in/sign-up throttle falls back to its per-IP cap.
+- **Google One Tap**: see above.
+
+```tsx
+import { CookieBanner, CookieSettingsButton } from "@xk2800/nextjs-template/components/site/cookie-banner";
+```
+
+Gate your own analytics or marketing scripts the same way:
+
+```tsx
+import { useCookieConsent, hasOptionalConsent } from "@xk2800/nextjs-template/lib/cookie-consent";
+
+const consent = useCookieConsent(); // "all" | "necessary" | null (not chosen yet / on the server)
+if (consent === "all") { /* load analytics */ }
+```
+
+Don't need a banner (no EU/UK users, nothing optional)? Set `NEXT_PUBLIC_COOKIE_BANNER=false`. The banner and the footer link disappear, and consent is treated as granted, so nothing gated on it breaks.
 
 ### 5. Import what you need
 

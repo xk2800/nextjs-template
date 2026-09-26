@@ -100,6 +100,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 ### Public site
 - Landing page, features page (with copy-install button and scroll reveal), changelog page (+ changelog template), privacy policy, terms of service, maintenance page.
 - Site header/footer, logo, theme toggle (light/dark via `next-themes`).
+- Cookie-consent banner (`components/site/cookie-banner.tsx`, state in `lib/cookie-consent.ts`): "Necessary only" / "Accept all", stored in the `cookie_consent` cookie for 1 year and reopened from the footer's "Cookie settings". The FingerprintJS device id and Google One Tap only run after "Accept all"; without it the sign-in throttle uses its per-IP cap. Off with `NEXT_PUBLIC_COOKIE_BANNER=false`, which treats consent as granted.
 
 ### Auth pages
 - Login, Signup, Forgot Password, Reset Password, 2FA challenge (`/login/2fa`) — all under `app/(auth)/`, built from shared `authCard` / `authShell` components.
@@ -143,6 +144,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - `ENABLE_SESSION_REVOCATION` — seed value only; live value lives in `system_settings` once seeded, editable from admin UI.
 - `DB_DRIVER` (`pg` | `neon`) and `DATABASE_SSL` — dev typically uses local/Docker Postgres without SSL, production typically uses Neon.
 - `RESEND_API_KEY` for transactional email.
+- `NEXT_PUBLIC_COOKIE_BANNER` (default `true`): client-side switch for the cookie-consent banner.
 
 ### Distribution as a package
 - Publishes reusable auth/db/UI/query-helper modules to the npm registry as `@xk2800/nextjs-template`.
@@ -179,6 +181,7 @@ Three supported environments, each with its own `.env.<env>` file and matching D
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL |
 | `AUTH_ENABLE_GOOGLE` / `AUTH_ENABLE_EMAIL_PASSWORD` / `AUTH_ENABLE_ONE_TAP` | Auth method toggles |
 | `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client-side One Tap config |
+| `NEXT_PUBLIC_COOKIE_BANNER` | Cookie-consent banner on/off (default `true`) |
 | `ENABLE_SESSION_REVOCATION` | Seed value for the session-revocation setting |
 | `RESEND_API_KEY` | Transactional email |
 | `PORT` | Server port (default 3000) |

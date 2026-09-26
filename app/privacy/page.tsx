@@ -27,6 +27,25 @@ export default function PrivacyPage() {
             </p>
           </section>
           <section>
+            <h2 className="text-base font-semibold text-foreground">Cookies and similar technologies</h2>
+            <p className="mt-2">
+              <span className="font-medium text-foreground">Always on (necessary):</span> sign-in
+              session cookies, a 5-minute cookie remembering which page a sign-in started from, your
+              cookie choice itself, sidebar and theme preferences, and short-lived browser storage for
+              sign-in retries and &quot;what&apos;s new&quot; notices.
+            </p>
+            <p className="mt-2">
+              <span className="font-medium text-foreground">Only if you accept optional cookies:</span>{" "}
+              a device fingerprint (FingerprintJS) used to alert you about sign-ins from new devices, to
+              limit repeated failed sign-ins, and to spot one device creating many accounts; and Google
+              One Tap sign-in, which loads a Google script that may use Google&apos;s own cookies. If
+              you decline, failed sign-ins are limited by IP address instead.
+            </p>
+            <p className="mt-2">
+              You can change your choice at any time via &quot;Cookie settings&quot; in the footer.
+            </p>
+          </section>
+          <section>
             <h2 className="text-base font-semibold text-foreground">Where it&apos;s stored</h2>
             <p className="mt-2">
               In your own Postgres database, via the schema in{" "}

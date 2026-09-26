@@ -12,7 +12,8 @@
         "Role-based access — user and admin, enforced at the layout level",
         "Self-serve password reset — emailed link, single-use token, no support ticket",
         "Self-serve email verification — resend from the dashboard, Better-Auth callback flips the flag",
-        "OAuth callback double-hit recovery — a stale \"please restart the process\" redirect (browser Back, bfcache replay) silently retries instead of stranding you on an error page"
+        "OAuth callback double-hit recovery — a stale \"please restart the process\" redirect (browser Back, bfcache replay) silently retries instead of stranding you on an error page",
+        "Cookie-consent banner — \"Necessary only\" as easy to pick as \"Accept all\", changeable later from the footer; the device fingerprint and One Tap wait for consent, and a useCookieConsent() hook gates your own analytics"
       ]
     },
     {

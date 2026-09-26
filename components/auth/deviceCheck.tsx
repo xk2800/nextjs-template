@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { useSession } from '../../lib/auth-client'
 import { getVisitorId } from '../../lib/device-fingerprint'
+import { useCookieConsent } from '../../lib/cookie-consent'
 
 // Mount once (e.g. in the root layout). When a session is present it computes
 // a FingerprintJS device id and hands it to /api/device-check, which emails
@@ -15,9 +16,12 @@ import { getVisitorId } from '../../lib/device-fingerprint'
 export default function DeviceCheck() {
   const { data: session } = useSession()
   const userId = session?.user?.id
+  // The fingerprint needs optional-cookie consent (lib/device-fingerprint.ts);
+  // re-run when it's granted so the check doesn't wait for the next page load.
+  const consent = useCookieConsent()
 
   useEffect(() => {
-    if (!userId) return
+    if (!userId || consent !== 'all') return
 
     const run = async () => {
       try {
@@ -46,7 +50,7 @@ export default function DeviceCheck() {
     // Best-effort: fingerprinting or the network failing must never surface
     // to the user mid-app.
     run().catch(() => {})
-  }, [userId])
+  }, [userId, consent])
 
   return null
 }

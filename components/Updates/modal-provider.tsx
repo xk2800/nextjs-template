@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { UpdateModal } from './UpdateModal';
+import { useCookieConsent } from '@/lib/cookie-consent';
 
 const LOCAL_STORAGE_KEY = 'appUpdateInfo';
 
@@ -55,5 +56,9 @@ export function ModalProvider() {
     setIsModalOpen(false);
   };
 
-  return <UpdateModal isOpen={isModalOpen} onClose={handleClose} version={appVersion} />;
+  // Hold off until the cookie banner is answered — the modal's overlay would
+  // otherwise cover the banner and block it on a first visit.
+  const consent = useCookieConsent();
+
+  return <UpdateModal isOpen={isModalOpen && consent !== null} onClose={handleClose} version={appVersion} />;
 }
