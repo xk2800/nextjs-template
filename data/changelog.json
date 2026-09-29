@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.6.1-beta.3",
+    "date": "2026-9-29",
+    "type": "beta",
+    "title": "chore: add hooks/use-dimensions.ts to package.json files list",
+    "changes": [
+      "chore: add hooks/use-dimensions.ts to package.json files list"
+    ]
+  },
+  {
     "version": "0.6.1-beta.2",
     "date": "2026-9-29",
     "type": "beta",
