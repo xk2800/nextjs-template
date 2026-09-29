@@ -47,6 +47,7 @@
     "lib/cookie-consent.ts",
     "lib/device-fingerprint.ts",
     "lib/request-info.ts",
+    "hooks/use-dimensions.ts",
     "types/auth",
     "styles/theme.css",
     "README.md"
