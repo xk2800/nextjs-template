@@ -3,6 +3,16 @@
     "version": "0.6.1-beta.2",
     "date": "2026-9-29",
     "type": "beta",
+    "title": "chore: update dependencies and improve authentication logic",
+    "changes": [
+      "chore: update dependencies and improve authentication logic",
+      "chore: update bun.lockb file"
+    ]
+  },
+  {
+    "version": "0.6.1-beta.2",
+    "date": "2026-9-29",
+    "type": "beta",
     "title": "chore: update bun.lockb file",
     "changes": [
       "chore: update bun.lockb file"
