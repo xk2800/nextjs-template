@@ -73,7 +73,7 @@ export async function POST(request: Request) {
     const when = new Date().toUTCString()
 
     try {
-      await getResend().emails.send({
+      await (await getResend()).emails.send({
         from: EMAIL_FROM,
         to: [session.user.email],
         subject: "New sign-in from an unrecognized device",
@@ -110,9 +110,10 @@ export async function POST(request: Request) {
     try {
       const recipients = (await getAdminEmails()).filter((e) => e !== session.user.email)
       if (recipients.length) {
+        const resend = await getResend()
         await Promise.allSettled(
           recipients.map((to) =>
-            getResend().emails.send({
+            resend.emails.send({
               from: EMAIL_FROM,
               to: [to],
               subject: `New-device sign-in: ${session.user.email}`,

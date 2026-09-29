@@ -29,7 +29,7 @@ export async function POST(request: Request) {
       emailTemplate = EmailTemplate({ firstName: session.user.name || 'User' });
     }
 
-    const { data, error } = await getResend().emails.send({
+    const { data, error } = await (await getResend()).emails.send({
       from: EMAIL_FROM,
       to: [session.user.email],
       subject: 'Hello world',

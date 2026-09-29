@@ -1,13 +1,13 @@
 import "server-only"
 import { betterAuth, type BetterAuthOptions } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { createId } from "@paralleldrive/cuid2"
 import { eq, sql } from "drizzle-orm"
 import { db } from "./db"
 import { users, accounts, sessions, verifications, twoFactors, passkeys } from "./db/schema"
 import { config } from "@/config/env"
-import bcrypt from 'bcrypt'
 import { oneTap, admin as adminPlugin, twoFactor } from "better-auth/plugins";
-import { passkey } from "better-auth/plugins/passkey";
+import { passkey } from "@better-auth/passkey";
 import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/api"
 import { logActivity } from "@/lib/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
@@ -16,9 +16,8 @@ import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/l
 import { MAX_IP } from "@/lib/auth-throttle-limits"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
 import { getResend, EMAIL_FROM } from "@/lib/resend"
-import { EmailTemplateResetPassword } from "@/components/email/email-template-reset-password"
-import { EmailTemplateVerifyEmail } from "@/components/email/email-template-verify-email"
-import { EmailTemplatePasskeyChange } from "@/components/email/email-template-passkey-change"
+// Email templates are imported lazily where they're sent: they pull in
+// @react-email/components, an optional peer dep like resend.
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
@@ -81,7 +80,8 @@ async function notifyPasskeyChange(
 
     if (!config.RESEND_API_KEY) return
 
-    await getResend().emails.send({
+    const { EmailTemplatePasskeyChange } = await import("@/components/email/email-template-passkey-change")
+    await (await getResend()).emails.send({
       from: EMAIL_FROM,
       to: [user.email],
       subject: action === "added" ? "A passkey was added to your account" : "A passkey was removed from your account",
@@ -158,18 +158,12 @@ export function createAuth(overrides: AuthOverrides = {}) {
     emailAndPassword: {
       enabled: emailAndPasswordEnabled,
       requireEmailVerification: false,
-      // Use bcrypt to maintain compatibility with existing user passwords
-      async hash(password: string) {
-        return await bcrypt.hash(password, 10);
-      },
-      async verify({ hash, password }: { hash: string, password: string }) {
-        return await bcrypt.compare(password, hash);
-      },
       // `url` is fully composed by better-auth (baseURL + verification token +
       // callbackURL) — see app/(auth)/forgot-password and reset-password for
       // the pages this points at.
       async sendResetPassword({ user, url }) {
-        await getResend().emails.send({
+        const { EmailTemplateResetPassword } = await import("@/components/email/email-template-reset-password")
+        await (await getResend()).emails.send({
           from: EMAIL_FROM,
           to: [user.email],
           subject: "Reset your password",
@@ -186,7 +180,8 @@ export function createAuth(overrides: AuthOverrides = {}) {
     emailVerification: {
       autoSignInAfterVerification: true,
       async sendVerificationEmail({ user, url }) {
-        await getResend().emails.send({
+        const { EmailTemplateVerifyEmail } = await import("@/components/email/email-template-verify-email")
+        await (await getResend()).emails.send({
           from: EMAIL_FROM,
           to: [user.email],
           subject: "Confirm your email",
@@ -213,7 +208,9 @@ export function createAuth(overrides: AuthOverrides = {}) {
 
     // Advanced options
     advanced: {
-      generateId: () => require('@paralleldrive/cuid2').createId(),
+      database: {
+        generateId: () => createId(),
+      },
     },
 
     // Every new session row corresponds to a sign-in (credential or OAuth) —

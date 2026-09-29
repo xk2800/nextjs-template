@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.6.1-beta.1",
+    "date": "2026-9-29",
+    "type": "beta",
+    "title": "0.6.1-beta.1",
+    "changes": [
+      "0.6.1-beta.1"
+    ]
+  },
+  {
     "version": "0.6.1-beta.0",
     "date": "2026-9-26",
     "type": "beta",

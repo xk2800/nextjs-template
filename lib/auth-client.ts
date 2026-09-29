@@ -1,5 +1,6 @@
 import { createAuthClient } from "better-auth/react"
-import { oneTapClient, adminClient, twoFactorClient, passkeyClient } from "better-auth/client/plugins"
+import { oneTapClient, adminClient, twoFactorClient } from "better-auth/client/plugins"
+import { passkeyClient } from "@better-auth/passkey/client"
 import type { BetterAuthClientPlugin } from "better-auth/client"
 
 const oneTapEnabled = process.env.NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP === "true"
