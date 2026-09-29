@@ -454,8 +454,6 @@ export function createAuth(overrides: AuthOverrides = {}) {
     },
 
     plugins: [
-      // checks to see if oneTap is enabled and if google provider is available, then add the oneTap plugin
-      ...(config.AUTH_ENABLE_ONE_TAP && Boolean(socialProviders.google) ? [oneTap()] : []),
       // Registered for impersonation (auth.api.impersonateUser / stopImpersonating)
       // only — role/ban/delete stay on our own custom routes above. adminRoles
       // matches our existing role column so the plugin's own permission checks
@@ -482,6 +480,10 @@ export function createAuth(overrides: AuthOverrides = {}) {
         rpName: config.APP_NAME,
         origin: baseURL,
       }),
+      // checks to see if oneTap is enabled and if google provider is available, then add the oneTap plugin.
+      // Keep this spread last: a leading spread turns `plugins` from a tuple into a plain
+      // array and better-auth 1.7 then drops plugin fields (e.g. session.impersonatedBy).
+      ...(config.AUTH_ENABLE_ONE_TAP && Boolean(socialProviders.google) ? [oneTap()] : []),
     ]
   })
 }

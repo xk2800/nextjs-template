@@ -94,6 +94,10 @@ export const twoFactors = pgTable("twoFactor", {
   userId: text("userId")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  // Added in better-auth 1.7 (TOTP lockout). Defaults match the plugin's.
+  verified: boolean("verified").default(true),
+  failedVerificationCount: integer("failedVerificationCount").default(0),
+  lockedUntil: timestamp("lockedUntil"),
 });
 
 // Better-auth's passkey plugin — one row per registered WebAuthn credential.

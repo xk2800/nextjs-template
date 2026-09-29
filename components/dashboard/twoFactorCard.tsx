@@ -77,7 +77,8 @@ export default function TwoFactorCard() {
     setBusy(true)
     try {
       const { data, error } = await authClient.twoFactor.enable({ password })
-      if (error || !data) {
+      // method is 'otp' only when enabling email OTP; we always use TOTP
+      if (error || data?.method !== 'totp') {
         toast.error(error?.message || 'Could not start 2FA setup')
         return
       }
