@@ -204,6 +204,12 @@ export function createAuth(overrides: AuthOverrides = {}) {
           input: false, // Prevent users from setting their own role
         },
       },
+      // Self-service "Delete account" (dashboard Settings → Danger zone).
+      // Credential users confirm with their password; OAuth-only users have
+      // no password, so better-auth instead requires a session younger than
+      // `freshAge` (default 1 day). Every user-owned table cascades on delete.
+      // Impersonation and last-admin guards live in hooks.before below.
+      deleteUser: { enabled: true },
     },
 
     // Advanced options
@@ -362,6 +368,26 @@ export function createAuth(overrides: AuthOverrides = {}) {
           const flags = await getEffectiveAuthFlags()
           if (!flags.google || !flags.oneTap) {
             throw new APIError("FORBIDDEN", { message: "Google One Tap is currently disabled." })
+          }
+          return
+        }
+
+        if (ctx.path === "/delete-user") {
+          const current = await getSessionFromCtx(ctx, { disableCookieCache: true })
+          if (!current) return // better-auth's own session check rejects it
+          // An admin "viewing as" a user must not be able to destroy their account.
+          if (current.session.impersonatedBy) {
+            throw new APIError("FORBIDDEN", { message: "Stop impersonating before deleting an account." })
+          }
+          // Deleting the last admin would leave nobody able to reach the admin dashboard.
+          if ((current.user as { role?: string }).role === "admin") {
+            const [{ count }] = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(users)
+              .where(eq(users.role, "admin"))
+            if (Number(count) <= 1) {
+              throw new APIError("FORBIDDEN", { message: "You're the only admin. Promote another user to admin first." })
+            }
           }
           return
         }

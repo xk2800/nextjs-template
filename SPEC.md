@@ -113,7 +113,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Active sessions list with per-session revoke (device/IP/location shown via parsed user-agent + geoip).
 - Personal activity log feed (with skeleton loading states and error boundaries per section).
 - Client-side heartbeat to keep `lastActiveAt` fresh.
-- Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys.
+- Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys, plus a **Danger zone** with self-serve account deletion (Better-Auth `deleteUser`: password confirm for credential users, fresh session (<24h) for OAuth-only; blocked while impersonating and for the last admin; all user rows cascade).
 
 ### Maintenance mode
 - Enforced in `proxy.ts` for every page and API route except the admin-editable exempt list (`system_settings.maintenanceExemptPaths`, default: `/`, `/features`, `/changelog`, `/changelog-template`, `/privacy`, `/terms`). Blocked pages redirect to `/maintenance`; blocked API routes return `503`.

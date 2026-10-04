@@ -342,6 +342,25 @@ Not covered by `bun run test`. Needs a browser.
 
 ---
 
+## Delete account (self-serve)
+
+`components/dashboard/deleteAccountCard.tsx` (Settings → Danger zone) calls
+Better-Auth's `deleteUser` (`user.deleteUser.enabled` in `server/auth.ts`).
+Guards live in the `hooks.before` branch for `/delete-user`.
+
+Not covered by `bun run test`. Needs a browser or curl.
+
+1. Sign up a throwaway email/password user, open `/dashboard/settings` →
+   **Delete account**. A wrong password shows "Invalid password"; the right one
+   signs you out and lands on `/`. Signing in with that email now fails, and
+   its `session`, `account`, `passkey`, `activity_logs` rows are gone.
+2. Google-only user: the dialog asks you to type your email instead. Works on a
+   session under 24h old; on an older one it says to sign out and back in.
+3. As an admin, impersonate a user and try it: **403** "Stop impersonating…".
+4. As the only admin, try it on yourself: **403** "You're the only admin…".
+
+---
+
 ## Maintenance mode (site-wide, configurable exempt paths)
 
 Enforced in `proxy.ts`. Everything is blocked for non-admins except the paths

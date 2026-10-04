@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
 import TwoFactorCard from '@/components/dashboard/twoFactorCard'
 import PasskeysCard from '@/components/dashboard/passkeysCard'
+import DeleteAccountCard from '@/components/dashboard/deleteAccountCard'
 
 export default function SettingsPage() {
   const { theme, setTheme, systemTheme } = useTheme()
@@ -83,6 +84,14 @@ export default function SettingsPage() {
       </div>
       <TwoFactorCard />
       <PasskeysCard />
+
+      <div>
+        <h2 className="text-xl font-semibold">Danger zone</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
+          Irreversible actions on your account
+        </p>
+      </div>
+      <DeleteAccountCard />
     </div>
   )
 }

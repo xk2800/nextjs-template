@@ -99,6 +99,7 @@ bun --env-file=.env.production server/test-connection/index.ts
 7. Password reset and self-serve email verification, both via Resend-delivered React Email templates
 8. Security email alerts — new-device sign-ins and passkey add/remove, mirrored to the activity log
 9. Cookie-consent banner — "Necessary only" / "Accept all", with a "Cookie settings" link in the footer to change it later. The device fingerprint and Google One Tap only run after "Accept all"
+10. Self-serve account deletion from the dashboard Settings page (password-confirmed, cascades all user data)
 
 ## WIP
 

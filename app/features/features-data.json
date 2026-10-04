@@ -94,7 +94,8 @@
         "A password sign-in on a 2FA account redirects to a code challenge, with a 30-day \"trust this device\" option",
         "Passkeys (WebAuthn) — register Touch ID, Windows Hello, or a hardware key, then sign in with no password",
         "Manage registered passkeys from Settings; the TOTP QR and secret never leave the browser",
-        "Adding or removing a passkey emails the account owner and lands in the activity log"
+        "Adding or removing a passkey emails the account owner and lands in the activity log",
+        "Self-serve account deletion from Settings — password-confirmed (or a recent sign-in for Google-only accounts), wipes sessions, passkeys, and history"
       ]
     }
   ]
