@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.0-beta.0",
+    "date": "2026-10-5",
+    "type": "beta",
+    "title": "feat: add self-serve account deletion feature in settings",
+    "changes": [
+      "feat: add self-serve account deletion feature in settings"
+    ]
+  },
+  {
     "version": "0.6.1-beta.3",
     "date": "2026-9-29",
     "type": "beta",
