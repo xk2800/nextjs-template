@@ -11,8 +11,8 @@ A project created with `create-nextjs` contains two kinds of files:
 
 | Kind | Examples | Who owns it |
 |---|---|---|
-| **Your code** | everything in `app/`, `proxy.ts`, `components/site/`, any new file you create, `lib/site.ts`, `data/changelog.json` | You. Edit freely. |
-| **Re-exports of the package** | `server/auth.ts`, `server/db/*`, `config/env.ts`, `lib/auth-helpers.ts`, `lib/auth-client.ts`, `lib/*-queries.ts`, `lib/activity-logger.ts`, `lib/maintenance.ts`, `lib/cookie-consent.ts`, `lib/utils.ts`, and `components/{ui,auth,dashboard,email,theme,providers}/*` | `@xk2800/nextjs-template`. Each file is one line: `export * from '@xk2800/nextjs-template/…'`. |
+| **Your code** | everything in `app/`, `proxy.ts`, `components/site/` (except `cookie-banner.tsx`), any new file you create, `lib/site.ts`, `data/changelog.json` | You. Edit freely. |
+| **Re-exports of the package** | `server/auth.ts`, `server/db/*`, `config/env.ts`, `lib/auth-helpers.ts`, `lib/auth-client.ts`, `lib/*-queries.ts`, `lib/activity-logger.ts`, `lib/maintenance.ts`, `lib/cookie-consent.ts`, `lib/utils.ts`, `components/{ui,auth,dashboard,email,theme,providers}/*` and `components/site/cookie-banner.tsx` | `@xk2800/nextjs-template`. Each file is one line: `export * from '@xk2800/nextjs-template/…'`. |
 
 Your imports don't change: `import { auth } from "@/server/auth"` keeps working, and the code behind it comes from `node_modules`. `bun update @xk2800/nextjs-template` updates all of the re-exported files at once.
 

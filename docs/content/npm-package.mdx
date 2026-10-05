@@ -128,11 +128,12 @@ import OneTap from "@xk2800/nextjs-template/components/auth/oneTap"
 import SessionsCard from "@xk2800/nextjs-template/components/dashboard/sessionsCard"
 import DeleteAccountCard from "@xk2800/nextjs-template/components/dashboard/deleteAccountCard"
 import { ThemeProvider } from "@xk2800/nextjs-template/components/providers/theme-provider"
+import { CookieBanner, CookieSettingsButton } from "@xk2800/nextjs-template/components/site/cookie-banner"
 ```
 
 Dashboard cards take their data as props. Fetch it with the query helpers in a server component and pass it down.
 
-The cookie banner isn't in the package. Copy `components/site/cookie-banner.tsx` from the [template repo](https://github.com/xk2800/nextjs-template) into your app. It uses `lib/cookie-consent` from the package.
+Mount `<CookieBanner />` once in your root layout, and put `<CookieSettingsButton />` in your footer so visitors can change their choice.
 
 ## Adding a social provider
 

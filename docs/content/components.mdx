@@ -3,7 +3,7 @@ import { Callout } from 'nextra/components'
 # Components
 
 <Callout type="info">
-In a scaffolded project, everything in `components/ui`, `auth`, `dashboard`, `email`, `theme` and `providers` is a one-line re-export of the package. To restyle or change one, replace that file with your own code; it then stops receiving updates. Often it's easier to write a new component that wraps the shipped one. `components/site/` is your own code. See [Your project and the package](/architecture#your-project-and-the-package).
+In a scaffolded project, everything in `components/ui`, `auth`, `dashboard`, `email`, `theme` and `providers` is a one-line re-export of the package. To restyle or change one, replace that file with your own code; it then stops receiving updates. Often it's easier to write a new component that wraps the shipped one. `components/site/` is your own code, except `cookie-banner.tsx`, which is a re-export too. See [Your project and the package](/architecture#your-project-and-the-package).
 </Callout>
 
 ## UI primitives (`components/ui/`)

@@ -38,6 +38,7 @@
     "components/providers",
     "components/email",
     "components/dashboard",
+    "components/site/cookie-banner.tsx",
     "lib/utils.ts",
     "lib/auth-client.ts",
     "lib/formatters.ts",
