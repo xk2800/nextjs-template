@@ -27,18 +27,21 @@ If every provider ends up disabled, `createAuth()` throws "No auth provider is e
 
 ### Password reset and email verification
 
-These are wired to Resend, so they need `RESEND_API_KEY` and a valid `EMAIL_FROM` in `lib/resend.ts`.
+These are wired to Resend, so they need `RESEND_API_KEY` and `EMAIL_FROM`, the sender address, on a domain you've verified in Resend.
 
 - **Reset:** `/forgot-password` calls `authClient.requestPasswordReset()`, which emails a link to `/reset-password`.
 - **Verification** is opt-in: `requireEmailVerification` is `false`. Users send themselves a verification link from the dashboard, and clicking it sets `user.emailVerified`.
 
-To make verification mandatory, set `emailAndPassword.requireEmailVerification: true` in `server/auth.ts`.
+`createAuth()` doesn't take an option for mandatory verification. To require it, use your own copy of `server/auth.ts` and set `emailAndPassword.requireEmailVerification: true`. See [Customizing package code](/architecture#customizing-package-code).
 
 ### Adding another provider
 
-Pass extra `socialProviders` to `createAuth()`. They're merged with Google, not swapped in for it:
+In your project, `server/auth.ts` is a one-line re-export of the package. Replace it with a `createAuth()` call. Extra `socialProviders` are merged with Google, not swapped in for it, and you stay on the update path:
 
 ```ts
+// server/auth.ts
+import { createAuth } from "@xk2800/nextjs-template/auth"
+
 export const auth = createAuth({
   socialProviders: {
     github: { clientId: process.env.GITHUB_CLIENT_ID!, clientSecret: process.env.GITHUB_CLIENT_SECRET! },
@@ -46,7 +49,9 @@ export const auth = createAuth({
 })
 ```
 
-Then add a button that calls `authClient.signIn.social({ provider: "github" })`. `components/auth/socialLogin.tsx` only covers Google. In this repo you can edit `server/auth.ts` directly. For the package version, see [Using as a Package](/npm-package#adding-a-social-provider).
+`app/api/auth/[...all]/route.ts` already imports `@/server/auth`, so it picks this up. Then add a button that calls `authClient.signIn.social({ provider: "github", callbackURL: "/dashboard" })`. The built-in `socialLogin` only covers Google.
+
+`socialProviders` is the only option `createAuth()` accepts. Session policy, hashing and plugins are fixed.
 
 ## Sessions
 
@@ -112,9 +117,9 @@ If `signIn.email` returns `{ twoFactorRedirect: true }`, send the user to `/logi
 - Change roles from the admin dashboard. The API blocks changing your own role and demoting the last admin.
 - **First admin:** see [Quick Start](/#make-yourself-an-admin).
 
-## Hooks in `server/auth.ts`
+## Built-in auth behavior
 
-Built-in behavior you might want to change. All of it is in `hooks.before`, `hooks.after` and `databaseHooks`:
+The package's auth instance does all of this automatically, through `hooks.before`, `hooks.after` and `databaseHooks` in the template's `server/auth.ts`. To change any of it, use your own copy of that file (see [Customizing package code](/architecture#customizing-package-code)):
 
 - **Abuse throttle** on `/sign-in/email` and `/sign-up/email`. See [Security](/security#sign-in-throttle).
 - **Live provider kill-switch**: reads System Settings on every sign-in attempt.
@@ -126,4 +131,4 @@ Built-in behavior you might want to change. All of it is in `hooks.before`, `hoo
 
 ## Type extensions
 
-`better-auth.d.ts` adds `role` and `twoFactorEnabled` to the `User` type. If you add a field to `user.additionalFields`, add it there too.
+`better-auth.d.ts` adds `role` and `twoFactorEnabled` to the `User` type. If you add a field to `user.additionalFields` in your own `server/auth.ts`, add it there too.

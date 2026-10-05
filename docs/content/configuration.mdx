@@ -12,7 +12,7 @@ All server-side env vars are validated with Zod in `config/env-schema.ts` and ex
 | `.env.production` | `migrate:prod`, `studio:prod`, and your production host |
 | `.env.test` | `migrate:test` |
 
-Copy the matching `.env.*.example` to start. Real `.env.*` files are git-ignored.
+`create-nextjs` creates `.env.development` for you. For the other environments, copy the matching `.env.*.example`. Real `.env.*` files are git-ignored.
 
 ## Core
 
@@ -48,8 +48,7 @@ Changing `BETTER_AUTH_URL` (a new domain, for example) makes every existing pass
 | Variable | Default | Description |
 |---|---|---|
 | `RESEND_API_KEY` | — | Resend API key. Without it, password reset and verification emails fail, and security alerts are skipped. |
-
-The sender address is **not** an env var. Change `EMAIL_FROM` in `lib/resend.ts` to an address on a domain you've verified in Resend.
+| `EMAIL_FROM` | the template author's address | Sender for every email, e.g. `My App <noreply@myapp.com>`. **Set this.** It must be on a domain verified in *your* Resend account, so the default won't work for you. Leave it out entirely rather than leaving it blank. |
 
 ## Feature switches
 
@@ -94,6 +93,20 @@ config.DATABASE_URL
 config.AUTH_ENABLE_GOOGLE  // already a boolean
 ```
 
-Scripts that run outside Next.js (drizzle-kit, `scripts/*.ts`) can't import `config/env.ts`, because its `server-only` guard throws there. Import `envSchema` from `config/env-schema.ts` and parse `process.env` yourself, the way `scripts/doctor.ts` does.
+Scripts that run outside Next.js (drizzle-kit, `scripts/*.ts`) can't import `config/env.ts`, because its `server-only` guard throws there. Read `process.env` directly in those.
 
-To add a variable, add it to `envSchema` in `config/env-schema.ts`, then add it to every `.env.*.example`.
+### Adding your own variables
+
+`config` comes from the package and only knows the template's variables. Validate your own in a separate file, so the package's file stays on the update path:
+
+```ts
+// config/app-env.ts
+import "server-only"
+import { z } from "zod"
+
+export const appEnv = z.object({
+  STRIPE_SECRET_KEY: z.string().min(1),
+}).parse(process.env)
+```
+
+Add each new variable to every `.env.*.example` so the next person knows it exists.

@@ -32,40 +32,57 @@ if (!env.success) {
   ok(`env valid (DB_DRIVER=${env.data.DB_DRIVER})`);
 }
 
+// Not in envSchema: better-auth reads these itself (server/auth.ts), so a
+// missing secret otherwise only surfaces as a crash on the first request.
+console.log('\n--- auth ---');
+const secret = process.env.BETTER_AUTH_SECRET || process.env.AUTH_SECRET;
+if (!secret) fail('BETTER_AUTH_SECRET not set — generate one with `openssl rand -base64 32`');
+else if (secret.length < 32) warn('BETTER_AUTH_SECRET is shorter than 32 characters');
+else ok('auth secret set');
+if (!process.env.BETTER_AUTH_URL) {
+  warn('BETTER_AUTH_URL not set — falls back to http://localhost:3000 (OAuth callbacks and passkeys break anywhere else)');
+} else {
+  ok(`BETTER_AUTH_URL=${process.env.BETTER_AUTH_URL}`);
+}
+
 console.log('\n--- database ---');
 if (env.success && env.data.DATABASE_URL) {
   try {
+    // One query function per driver; everything below is driver-agnostic.
+    let query: (text: string) => Promise<Record<string, unknown>[]>;
+    let close = async () => {};
     if (env.data.DB_DRIVER === 'pg') {
       const { Pool } = await import('pg');
       const pool = new Pool({
         connectionString: env.data.DATABASE_URL,
         ssl: env.data.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
       });
-      await pool.query('SELECT 1');
-      ok('connected (pg)');
-
-      console.log('\n--- migrations ---');
-      const journal = JSON.parse(
-        readFileSync(join(import.meta.dirname, '../server/drizzle/meta/_journal.json'), 'utf-8')
-      );
-      const localCount = journal.entries.length;
-      const { rows } = await pool.query(
-        `SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations`
-      ).catch(() => ({ rows: [{ count: 0 }] }));
-      const appliedCount = rows[0].count;
-      if (appliedCount < localCount) {
-        warn(`${localCount - appliedCount} pending migration(s) — run \`bun run migrate:dev\``);
-      } else {
-        ok(`up to date (${localCount} migration(s) in repo, ${appliedCount} applied)`);
-      }
-      await pool.end();
+      query = async (text) => (await pool.query(text)).rows;
+      close = () => pool.end();
     } else {
       const { neon } = await import('@neondatabase/serverless');
       const sql = neon(env.data.DATABASE_URL);
-      await sql`SELECT 1`;
-      ok('connected (neon)');
-      warn('migration check skipped — only implemented for DB_DRIVER=pg for now');
+      query = (text) => sql.query(text);
     }
+
+    await query('SELECT 1');
+    ok(`connected (${env.data.DB_DRIVER})`);
+
+    console.log('\n--- migrations ---');
+    const journal = JSON.parse(
+      readFileSync(join(import.meta.dirname, '../server/drizzle/meta/_journal.json'), 'utf-8')
+    );
+    const localCount = journal.entries.length;
+    // No migrations table yet = nothing applied.
+    const rows = await query('SELECT count(*)::int AS count FROM drizzle.__drizzle_migrations')
+      .catch(() => [{ count: 0 }]);
+    const appliedCount = Number(rows[0].count);
+    if (appliedCount < localCount) {
+      warn(`${localCount - appliedCount} pending migration(s) — run \`bun run migrate:dev\` (or :prod)`);
+    } else {
+      ok(`up to date (${localCount} migration(s) in repo, ${appliedCount} applied)`);
+    }
+    await close();
   } catch (err) {
     fail(`could not connect: ${err instanceof Error ? err.message : err}`);
   }

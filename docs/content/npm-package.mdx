@@ -2,7 +2,11 @@ import { Callout, Steps } from 'nextra/components'
 
 # Using as a Package
 
-The reusable parts of this template (auth, db schema, query helpers and UI) are published to npm as **`@xk2800/nextjs-template`**. Use the package to add them to an existing Next.js app, or clone the repo to start a new one.
+The reusable parts of this template (auth, db schema, query helpers and UI) are published to npm as **`@xk2800/nextjs-template`**.
+
+<Callout type="info">
+**Starting a new project?** Use `npx @xk2800/create-nextjs` (or `bunx`) instead; see [Quick Start](/#quick-start). It sets up everything on this page for you, plus all the pages, routes and env. This page is for adding the package to an app you **already have**.
+</Callout>
 
 ## Setup
 
@@ -123,11 +127,12 @@ import EmailPasswordLogin from "@xk2800/nextjs-template/components/auth/emailPas
 import OneTap from "@xk2800/nextjs-template/components/auth/oneTap"
 import SessionsCard from "@xk2800/nextjs-template/components/dashboard/sessionsCard"
 import DeleteAccountCard from "@xk2800/nextjs-template/components/dashboard/deleteAccountCard"
-import { CookieBanner, CookieSettingsButton } from "@xk2800/nextjs-template/components/site/cookie-banner"
 import { ThemeProvider } from "@xk2800/nextjs-template/components/providers/theme-provider"
 ```
 
 Dashboard cards take their data as props. Fetch it with the query helpers in a server component and pass it down.
+
+The cookie banner isn't in the package. Copy `components/site/cookie-banner.tsx` from the [template repo](https://github.com/xk2800/nextjs-template) into your app. It uses `lib/cookie-consent` from the package.
 
 ## Adding a social provider
 

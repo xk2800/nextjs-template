@@ -1,6 +1,20 @@
 # Troubleshooting
 
-Start with `bun run doctor`. It catches a bad env, a dead database and pending migrations in one go.
+Start with `bun run doctor`. It checks your env, the auth secret and `BETTER_AUTH_URL`, the database connection, and pending migrations, for both `pg` and `neon`.
+
+## Creating a project
+
+**`ERR_TTY_INIT_FAILED`**
+`create-nextjs` needs an interactive terminal for its prompts. Run it in a real terminal, not in CI or an IDE task panel.
+
+**npx or bunx runs an old version**
+They can serve a cached copy. The CLI checks npm on start and offers to re-run the latest version; accept. You can also run `npx @xk2800/create-nextjs@latest` directly.
+
+**`git clone` fails**
+Check your network or proxy can reach GitHub. Without git installed, the CLI downloads a tarball instead.
+
+**`… already exists` / `… is not empty`**
+Pick a new project name, or run it with `.` from an empty folder.
 
 ## Setup
 
@@ -11,13 +25,16 @@ Set `BETTER_AUTH_SECRET` (or `AUTH_SECRET`) in your env file. Generate it with `
 Both `AUTH_ENABLE_GOOGLE` and `AUTH_ENABLE_EMAIL_PASSWORD` are `false`, and no provider was added through `createAuth()`. Turn at least one back on.
 
 **`This module cannot be imported from a Client Component` / `server-only` error in a script**
-`config/env.ts`, `server/db` and the `*-queries` modules are `server-only`. They throw outside Next.js: in drizzle-kit, in `bun scripts/…`, and in client components. In scripts, read `process.env` or parse `envSchema` from `config/env-schema.ts`. In client code, call an API route instead.
+`config/env.ts`, `server/db` and the `*-queries` modules are `server-only`. They throw outside Next.js: in drizzle-kit, in `bun scripts/…`, and in client components. In scripts, read `process.env` directly. In client code, call an API route instead.
+
+**I edited a file in `lib/` or `components/` and nothing changed**
+That file is probably a re-export of the package, or the package uses its own bundled copy of it (for example `lib/resend.ts` or `lib/auth-throttle-limits.ts`). See [Your project and the package](/architecture#your-project-and-the-package).
 
 **`column "…" does not exist` / `relation "…" does not exist`**
 Migrations haven't been applied to this database. Run `bun run migrate:dev` (or `:prod`).
 
 **Every SQL query is printed to the console**
-`logger: true` in `server/db/index.ts`. Turn it off there.
+The package's database client has Drizzle query logging on. It can't be turned off with configuration yet.
 
 ## Sign-in
 
@@ -62,7 +79,7 @@ UPDATE "user" SET roles = 'admin' WHERE email = 'you@example.com';
 
 **Reset or verification emails never arrive**
 - Is `RESEND_API_KEY` set?
-- Is `EMAIL_FROM` in `lib/resend.ts` an address on a domain you've verified in Resend? Resend rejects unverified senders.
+- Is `EMAIL_FROM` set to an address on a domain you've verified in Resend? Resend rejects unverified senders, and the default sender isn't on your domain.
 - Check the server logs and the Resend dashboard for the rejection reason.
 
 New-device and passkey alerts are skipped without a key. Password reset and verification **fail** without one.

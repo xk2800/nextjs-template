@@ -51,7 +51,7 @@ The check only runs after the visitor accepts optional cookies. Emails are skipp
 - **Sign-up:** every attempt counts, because mass sign-ups are the abuse being limited.
 - Over the limit, the endpoint returns `429` with "Too many attempts from this device".
 
-To tune the limits, edit `WINDOW_MS` and `MAX` in `lib/auth-throttle-limits.ts`. Throttled devices appear on the admin **Device throttle** card.
+The limits (`WINDOW_MS`, `MAX`) are fixed inside the package's auth. Editing your local `lib/auth-throttle-limits.ts` has no effect unless you also use your own `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)). Throttled devices appear on the admin **Device throttle** card.
 
 <Callout type="info">
 The client IP comes from `x-forwarded-for` (first entry), falling back to `x-real-ip`. Behind your own reverse proxy, make sure it sets one of these. Otherwise every request shares one IP, and the IP cap throttles everyone at once.

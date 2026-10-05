@@ -1,7 +1,30 @@
 {/* prettier-ignore */}
 import { FileTree } from 'nextra/components'
 
+import { Callout } from 'nextra/components'
+
 # Architecture
+
+## Your project and the package
+
+A project created with `create-nextjs` contains two kinds of files:
+
+| Kind | Examples | Who owns it |
+|---|---|---|
+| **Your code** | everything in `app/`, `proxy.ts`, `components/site/`, any new file you create, `lib/site.ts`, `data/changelog.json` | You. Edit freely. |
+| **Re-exports of the package** | `server/auth.ts`, `server/db/*`, `config/env.ts`, `lib/auth-helpers.ts`, `lib/auth-client.ts`, `lib/*-queries.ts`, `lib/activity-logger.ts`, `lib/maintenance.ts`, `lib/cookie-consent.ts`, `lib/utils.ts`, and `components/{ui,auth,dashboard,email,theme,providers}/*` | `@xk2800/nextjs-template`. Each file is one line: `export * from '@xk2800/nextjs-template/…'`. |
+
+Your imports don't change: `import { auth } from "@/server/auth"` keeps working, and the code behind it comes from `node_modules`. `bun update @xk2800/nextjs-template` updates all of the re-exported files at once.
+
+### Customizing package code
+
+- **To customize a re-exported file,** replace its one line with your own code. Copy the original from the [template repo](https://github.com/xk2800/nextjs-template) at the tag matching your installed version (`v<version>`), then edit it. From then on that file is yours and **stops receiving updates**, so only do this when you need to.
+- **Prefer configuration first.** Env vars ([Configuration](/configuration)), Admin → System Settings, and `createAuth()` overrides ([Authentication](/authentication#adding-another-provider)) all leave you on the update path.
+- **Some code can't be changed locally.** The package's server modules bundle their own helpers: `lib/resend.ts`, `lib/auth-throttle*.ts`, `lib/request-info.ts`. Your project has copies of those files, but editing them doesn't change what the package's auth does. To change that behavior, replace `server/auth.ts` as described above. The auth route `app/api/auth/[...all]/route.ts` imports `@/server/auth`, so your version is the one that handles sign-in.
+
+<Callout type="info">
+Working on the template repo itself? There are no re-exports there: every file is the real source, and the package is built from it with `tsup`.
+</Callout>
 
 ## Directory Structure
 
@@ -37,7 +60,7 @@ import { FileTree } from 'nextra/components'
     <FileTree.File name="auth-throttle*.ts — sign-in/sign-up abuse throttle" />
     <FileTree.File name="device-fingerprint.ts, cookie-consent.ts — consent-gated client helpers" />
     <FileTree.File name="request-info.ts — IP, user-agent and geoip parsing" />
-    <FileTree.File name="resend.ts — lazy Resend client + EMAIL_FROM" />
+    <FileTree.File name="resend.ts — lazy Resend client + EMAIL_FROM (from env)" />
   </FileTree.Folder>
   <FileTree.Folder name="components" defaultOpen>
     <FileTree.Folder name="ui — shadcn/ui primitives" />
@@ -51,13 +74,12 @@ import { FileTree } from 'nextra/components'
     <FileTree.File name="env-schema.ts — Zod schema (no server-only guard)" />
     <FileTree.File name="env.ts — parsed config (server-only)" />
   </FileTree.Folder>
-  <FileTree.Folder name="scripts — doctor, bump-version, manual test scripts" />
+  <FileTree.Folder name="scripts — doctor + manual test scripts" />
   <FileTree.Folder name="types/auth — login and signup Zod schemas" />
   <FileTree.Folder name="data — changelog.json" />
   <FileTree.Folder name="docs — this site (Nextra)" />
   <FileTree.File name="proxy.ts — maintenance mode + optimistic dashboard gate" />
   <FileTree.File name="better-auth.d.ts — type extensions" />
-  <FileTree.File name="tsup.config.ts — npm package build" />
 </FileTree>
 
 ## Request flow
@@ -118,10 +140,10 @@ await logActivity({
 })
 ```
 
-To add a new action type, add it in two places: `ActivityActionEnum` in `server/db/schema.ts` (a Postgres enum, so run `bun run generate` and migrate) and the `ActivityAction` union in `lib/activity-logger.ts`.
+The action types are a fixed Postgres enum that ships in the package. For your own events, use the closest existing action and put the details in `metadata`. A genuinely new action type needs your own copies of `server/db/schema.ts` (add it to `ActivityActionEnum`, then `bun run generate` and migrate) and `lib/activity-logger.ts` (add it to the `ActivityAction` union). See [Customizing package code](#customizing-package-code).
 
 ## TypeScript
 
 - Path alias `@/*` maps to the project root.
 - Strict mode is on.
-- `tsconfig.build.json` covers only the files that ship in the npm package. `bun run typecheck` uses it.
+- In the template repo only: `tsup.config.ts` builds the npm package, and `tsconfig.build.json` limits `bun run typecheck` to the files that ship in it. Scaffolded projects don't have either.

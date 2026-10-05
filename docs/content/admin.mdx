@@ -62,7 +62,7 @@ What stays reachable:
 A prefix matches the path and its sub-paths: `/docs` matches `/docs` and `/docs/a` but not `/docsfoo`. `/` matches only the home page.
 
 <Callout type="info">
-The always-open list exists so an admin can always sign in and turn maintenance off. If you add a new auth page, such as `/verify`, add it to `ALWAYS_OPEN_PATHS`.
+The always-open list exists so an admin can always sign in and turn maintenance off. It ships in the package. To keep a new page of your own reachable during maintenance, add it to the exempt list in System Settings.
 </Callout>
 
 ## Activity log

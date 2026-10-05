@@ -9,7 +9,7 @@ import { Callout } from 'nextra/components'
 - [ ] `DATABASE_URL` and `DB_DRIVER` set (`neon` for Neon, or `pg` with `DATABASE_SSL=true` for managed Postgres).
 - [ ] Migrations applied to the production database (see below).
 - [ ] The Google OAuth client has the production redirect URI: `https://your.app/api/auth/callback/google`.
-- [ ] `RESEND_API_KEY` set, a sending domain verified, and `EMAIL_FROM` in `lib/resend.ts` updated.
+- [ ] `RESEND_API_KEY` set, a sending domain verified, and `EMAIL_FROM` set to an address on it.
 - [ ] `APP_NAME` set to your product name. It's what users see in authenticator apps.
 - [ ] The first admin promoted (see [Quick Start](/#make-yourself-an-admin)).
 - [ ] Your reverse proxy forwards the client IP in `x-forwarded-for` or `x-real-ip`.
@@ -24,11 +24,13 @@ bun run migrate:prod                 # uses .env.production
 doppler run --config prd -- bun run migrate:doppler
 ```
 
-Run `bun --env-file=.env.production scripts/doctor.ts` afterwards to confirm nothing is pending (works with `DB_DRIVER=pg`).
+Run `bun --env-file=.env.production scripts/doctor.ts` before and after migrating. It checks the production env, auth secret, database connection and pending migrations.
+
+After `bun update @xk2800/nextjs-template`, run `bun run generate` and commit any new migration before deploying. A package release can change the schema.
 
 ## Docker
 
-The repo has a multi-stage `Dockerfile`: dependencies are installed with Bun, the app is built and run on `node:22-alpine`, and it uses Next's `output: "standalone"`. It works on any container host (Dokploy, Coolify, Fly, a plain VPS).
+If you picked the **Docker** module in `create-nextjs`, your project has a multi-stage `Dockerfile`: Bun installs the dependencies, and the app is built and run on `node:22-alpine` with Next's `output: "standalone"`. It works on any container host (Dokploy, Coolify, Fly, a plain VPS). If you skipped the module, copy `Dockerfile` and `.dockerignore` from the [template repo](https://github.com/xk2800/nextjs-template).
 
 ```bash
 docker build \
@@ -53,7 +55,6 @@ The app is a standard Next.js app and deploys without changes. On serverless hos
 
 - Use `DB_DRIVER=neon` with a Neon database. The HTTP driver avoids exhausting connection pools across function instances.
 - Set every variable in the host's env settings, including `NEXT_PUBLIC_*`, which must be present at build time.
-- `bun run build` also builds the npm package (`tsup`) first. If that bothers you, set the build command to `next build`.
 
 ## Secrets with Doppler
 

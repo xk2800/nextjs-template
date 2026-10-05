@@ -1,8 +1,8 @@
-import { Callout, Steps } from 'nextra/components'
+import { Callout, Steps, Tabs } from 'nextra/components'
 
 # Next.js Template
 
-A production-ready Next.js starter with authentication, an admin dashboard, security features (2FA, passkeys, device alerts) and a shadcn/ui component library. Clone it to start an app, or install the reusable parts from npm as [`@xk2800/nextjs-template`](/npm-package).
+A production-ready Next.js starter with authentication, an admin dashboard, security features (2FA, passkeys, device alerts) and a shadcn/ui component library. Create a project with **`@xk2800/create-nextjs`**. Your app's code stays yours, and the auth, database and UI logic come from the [`@xk2800/nextjs-template`](/npm-package) package, so you get fixes with a version bump.
 
 ## Tech Stack
 
@@ -21,40 +21,52 @@ A production-ready Next.js starter with authentication, an admin dashboard, secu
 
 ## Quick Start
 
-You need **Bun** and a **PostgreSQL** database (local, Docker or Neon).
+You need **[Bun](https://bun.sh)**, **Git**, and a **PostgreSQL** database (local, Docker or Neon).
 
 <Steps>
 
-### Clone and install
+### Create the project
+
+Run this from the folder you want the project created in:
+
+<Tabs items={['npx', 'bunx']}>
+  <Tabs.Tab>
+```bash
+npx @xk2800/create-nextjs
+```
+  </Tabs.Tab>
+  <Tabs.Tab>
+```bash
+bunx @xk2800/create-nextjs
+```
+  </Tabs.Tab>
+</Tabs>
+
+It asks for:
+
+- **Project name.** Used as the folder name and the `package.json` name. Enter `.` to use the current (empty) folder.
+- **Database driver.** `pg` for local or self-hosted Postgres, `neon` for Neon.
+- **Optional modules.** Doppler, Resend email and Docker (a `Dockerfile`).
+
+It then copies the template and creates `.env.development`. That file comes with a generated `BETTER_AUTH_SECRET` and `BETTER_AUTH_URL=http://localhost:3000`. The CLI also runs `bun install`, generates one initial migration and makes the first git commit.
+
+<Callout type="info">
+The CLI needs a real terminal for its prompts. It won't run in CI or in some IDE task panels (`ERR_TTY_INIT_FAILED`).
+</Callout>
+
+### Point it at your database
 
 ```bash
-git clone https://github.com/xk2800/nextjs-template.git
-cd nextjs-template
-bun install
+cd my-app
 ```
 
-### Create your env file
-
-```bash
-cp .env.development.example .env.development
-```
-
-At minimum, set:
+In `.env.development`, set `DATABASE_URL`:
 
 ```bash
 DATABASE_URL=postgres://user:pass@localhost:5432/myapp
-BETTER_AUTH_URL=http://localhost:3000
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-BETTER_AUTH_SECRET=   # output of: openssl rand -base64 32
 ```
 
-Google sign-in and email are optional at this point. See [Configuration](/configuration) for every variable.
-
-### Create the tables
-
-```bash
-bun run migrate:dev
-```
+Google sign-in and email are optional for now. See [Configuration](/configuration) for every variable.
 
 ### Check your setup
 
@@ -62,7 +74,13 @@ bun run migrate:dev
 bun run doctor
 ```
 
-This checks the env schema, the database connection and whether any migrations are still pending. Fix anything marked `✗` before moving on.
+This checks your env, the auth secret and the database connection. Fix anything marked `✗`. A warning that 1 migration is pending is expected here; the next step applies it.
+
+### Create the tables
+
+```bash
+bun run migrate:dev
+```
 
 ### Start the app
 
@@ -74,7 +92,7 @@ Open `http://localhost:3000` and sign up with email and password.
 
 ### Make yourself an admin
 
-New accounts are always `user`. Promote your own account once in SQL (or edit the row in `bun run studio:dev`):
+New accounts are always `user`. Promote your own account once in SQL, or edit the row in `bun run studio:dev`:
 
 ```sql
 UPDATE "user" SET roles = 'admin' WHERE email = 'you@example.com';
@@ -85,28 +103,38 @@ Sign out and back in, then open `/dashboard/admin`.
 </Steps>
 
 <Callout type="info">
-The role column is called `roles` in the database, while the TypeScript field and session object call it `role`. After the first admin exists, change roles from the admin dashboard instead.
+In SQL the role column is called `roles`. In TypeScript and on the session object it's `role`. After the first admin exists, change roles from the admin dashboard.
 </Callout>
+
+## Getting updates
+
+The template's auth, database, query and UI code comes from the `@xk2800/nextjs-template` package, so updating it is a dependency bump:
+
+```bash
+bun update @xk2800/nextjs-template
+bun run generate      # only if the release changed the schema
+bun run migrate:dev
+```
+
+See [Your project and the package](/architecture#your-project-and-the-package) for which files that covers and how to customize them.
 
 ## Scripts
 
 | Script | What it does |
 |---|---|
 | `bun dev` | Dev server with Turbopack |
-| `bun run build` | Builds the npm package (`tsup`), then `next build` |
-| `bun start` | Production server |
-| `bun run test` | Unit tests for pure logic (throttle limits, maintenance paths, etc.) |
-| `bun run typecheck` | `tsc --noEmit` against the package build config |
-| `bun run doctor` | Env, DB connection and pending-migration check (reads `.env.development`) |
-| `bun run generate` | Generate a migration from `server/db/schema.ts` |
-| `bun run migrate:dev` / `:prod` / `:test` | Apply migrations using `.env.development` / `.env.production` / `.env.test` |
+| `bun run build` / `bun start` | Production build and server |
+| `bun run doctor` | Checks env, auth secret, DB connection and pending migrations (reads `.env.development`) |
+| `bun run generate` | Generates a migration from `server/db/schema.ts` |
+| `bun run migrate:dev` / `:prod` / `:test` | Applies migrations using `.env.development` / `.env.production` / `.env.test` |
 | `bun run studio:dev` / `:prod` | Drizzle Studio |
-| `bun run *:doppler` | Same as above but secrets come from Doppler. See [Configuration](/configuration#doppler) |
-| `bun run docs:dev` | This docs site on port 3001 |
+| `bun run test` | Unit tests for pure logic |
+| `bun run typecheck` | `tsc --noEmit` |
+| `bun run *:doppler` | The same commands with secrets from Doppler (if you picked that module). See [Configuration](/configuration#doppler). |
 
 ## What's included
 
-- **Auth:** email/password, Google OAuth, Google One Tap, passkeys and TOTP 2FA, with password reset and email verification. Sessions are stored in the database. See [Authentication](/authentication).
+- **Auth:** email/password, Google OAuth, Google One Tap, passkeys, TOTP 2FA, password reset and email verification. Sessions are stored in the database. See [Authentication](/authentication).
 - **Security:** new-device email alerts, a sign-in/sign-up abuse throttle, active-session revocation, self-serve account deletion and a cookie-consent banner. See [Security Features](/security).
 - **Admin:** user management (role, ban, delete, bulk actions, CSV export), impersonation, a system-wide activity log, device-security cards, live auth toggles and maintenance mode. See [Admin & Maintenance](/admin).
 - **Activity log:** sign-ins, failed sign-ins, admin actions, passkey changes and impersonation are all recorded.
@@ -114,7 +142,7 @@ The role column is called `roles` in the database, while the TypeScript field an
 
 ## Where to go next
 
-- Building an app from this repo: [Configuration](/configuration), then [Architecture](/architecture).
-- Installing the npm package into an existing app: [Using as a Package](/npm-package).
-- Shipping to production: [Deployment](/deployment).
+- Set up your new project: [Configuration](/configuration), then [Architecture](/architecture).
+- Add the package to an app you already have: [Using as a Package](/npm-package).
+- Ship to production: [Deployment](/deployment).
 - Something broken: [Troubleshooting](/troubleshooting).

@@ -1,19 +1,26 @@
 # Next.js Template
 
-A production-ready Next.js 16 starter: Better-Auth (email/password, Google, One Tap, passkeys, TOTP 2FA), Drizzle + PostgreSQL, an admin dashboard, security features and shadcn/ui. Its reusable parts are also published as the npm package [`@xk2800/nextjs-template`](#using-as-a-package).
+A production-ready Next.js 16 starter: Better-Auth (email/password, Google, One Tap, passkeys, TOTP 2FA), Drizzle + PostgreSQL, an admin dashboard, security features and shadcn/ui. The reusable parts ship as the npm package [`@xk2800/nextjs-template`](#using-as-a-package), so projects get fixes with a version bump.
 
 **📚 Full documentation:** [`docs/content`](docs/content), or run it locally with `bun run docs:dev` (<http://localhost:3001>).
 
 ## Quick start
 
-Requires [Bun](https://bun.sh) and a PostgreSQL database.
+Requires [Bun](https://bun.sh), Git and a PostgreSQL database. Run this from the folder you want the project created in:
 
 ```bash
-git clone https://github.com/xk2800/nextjs-template.git && cd nextjs-template
-bun install
-cp .env.development.example .env.development   # set DATABASE_URL, BETTER_AUTH_URL, NEXT_PUBLIC_APP_URL, BETTER_AUTH_SECRET
+npx @xk2800/create-nextjs
+# or
+bunx @xk2800/create-nextjs
+```
+
+The CLI asks for a project name, a database driver (`pg` or `neon`) and optional modules (Doppler, Resend, Docker). It then creates `.env.development` with a generated secret, installs dependencies and makes the first commit. After that:
+
+```bash
+cd my-app
+# set DATABASE_URL in .env.development
+bun run doctor          # checks env, auth secret, DB connection, pending migrations
 bun run migrate:dev
-bun run doctor                                  # checks env, DB connection, pending migrations
 bun dev
 ```
 
@@ -48,6 +55,8 @@ UPDATE "user" SET roles = 'admin' WHERE email = 'you@example.com';
 
 ## Using as a package
 
+For a **new** project, use the CLI above. It wires all of this up for you. To add the package to an **existing** app:
+
 ```bash
 bun add @xk2800/nextjs-template
 ```
@@ -78,11 +87,12 @@ Peer dependencies, the full import list, migrations, adding providers and One Ta
 | | |
 |---|---|
 | `bun dev` | Dev server |
-| `bun run doctor` | Check env, DB and migrations |
+| `bun run doctor` | Check env, auth secret, DB connection and pending migrations |
+| `bun update @xk2800/nextjs-template` | Pull template updates (then `bun run generate`) |
 | `bun run generate` | Generate a migration from `server/db/schema.ts` |
 | `bun run migrate:dev` / `:prod` / `:test` | Apply migrations |
 | `bun run studio:dev` | Drizzle Studio |
 | `bun run test` | Unit tests |
 | `bun run *:doppler` | Any of the above with secrets from Doppler |
 
-Maintainers: publishing steps are in [PUBLISHING.md](PUBLISHING.md).
+**Working on the template itself:** clone this repo, copy `.env.development.example` to `.env.development`, then run `bun install`. Publishing steps are in [PUBLISHING.md](PUBLISHING.md).

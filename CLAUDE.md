@@ -6,6 +6,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Next.js 16 template with Better-Auth, Drizzle ORM and PostgreSQL, plus an admin dashboard and security features. The repo also publishes its reusable parts to npm as `@xk2800/nextjs-template` (built with `tsup`, see `tsup.config.ts`, the `exports` map in `package.json` and `PUBLISHING.md`).
 
+**End users scaffold projects with `npx/bunx @xk2800/create-nextjs`** (separate repo, `xk2800/create-nextjs`). It clones this repo at the `v<version>` tag of the latest published package, then replaces every package-provided file with a one-line re-export of the package. Those files are tsup entries, string `.ts` entries in `exports`, and every `.tsx` under the `components/*` **directories** listed in `files`. So:
+- Entries under `components/` in `files` must be directories. A single file there crashes the CLI (`readdirSync` → `ENOTDIR`).
+- Behavior that users should be able to change must be configurable (env, `system_settings`, `createAuth()` overrides). Code bundled into `dist/` can't be edited from a scaffolded app.
+- Scaffolded projects use this repo's `scripts/doctor.ts` as is (it imports the local `config/env-schema.ts`, so keep that file out of `exports` or the doctor validates against a shim). The CLI rewrites `.env.development` from `.env.development.example` (it fills in `PORT=`, `BASE_URL=`, `BETTER_AUTH_URL=`, `BETTER_AUTH_SECRET=`), so keep those keys as blank `KEY=` lines.
+
 **Full docs live in `docs/content/*.mdx`** (Nextra site, `bun run docs:dev`). Check them before guessing, and keep them current when behavior changes.
 
 **Tech stack:** Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript 6, Drizzle 0.45, Better-Auth 1.7 (admin, twoFactor, passkey and oneTap plugins), Tailwind 4 + shadcn/ui, Resend + React Email, Bun.

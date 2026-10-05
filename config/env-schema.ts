@@ -9,6 +9,9 @@ export const envSchema = z.object({
   PORT: z.string().default('3000').transform(Number),
   DATABASE_URL: z.string().default(''),
   RESEND_API_KEY: z.string().default(''),
+  // Sender for every transactional email. Must be on a domain verified in
+  // your Resend account.
+  EMAIL_FROM: z.string().default('Acme <onboarding@xavierkhew.xyz>'),
   // Display name for this deployment — shown as the authenticator-app label
   // (2FA issuer) and the passkey relying-party name. Consuming projects set
   // this in their own .env; defaults to the template name.

@@ -59,9 +59,31 @@ activity_actions: 'login' | 'logout' | 'login_failed' | 'password_changed'
                 | 'settings_changed' | 'passkey_added' | 'passkey_removed'
 ```
 
+## Adding your own tables
+
+In a scaffolded project, `server/db/schema.ts` starts as `export * from '@xk2800/nextjs-template/db/schema'`. **Keep that line and add your tables below it.** You still get the package's tables and their updates, and drizzle-kit sees both:
+
+```ts
+// server/db/schema.ts
+export * from '@xk2800/nextjs-template/db/schema'
+
+import { pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { createId } from "@paralleldrive/cuid2"
+import { users } from "@xk2800/nextjs-template/db/schema"
+
+export const projects = pgTable("project", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  name: text("name").notNull(),
+  ownerId: text("ownerId").notNull().references(() => users.id, { onDelete: "cascade" }),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+```
+
+Query them with the normal builder: `db.select().from(projects)`. `db.query.projects` (the relational API) only knows the package's tables.
+
 ## Changing the schema
 
-1. Edit `server/db/schema.ts`.
+1. Edit `server/db/schema.ts` (your tables, as above).
 2. Generate a migration:
    ```bash
    bun run generate
@@ -73,10 +95,10 @@ activity_actions: 'login' | 'logout' | 'login_failed' | 'password_changed'
    bun run migrate:prod   # .env.production
    bun run migrate:test   # .env.test
    ```
-4. Run `bun run doctor` to confirm nothing is pending. The check only works with `DB_DRIVER=pg`.
+When a package update changes the template's tables, the same `bun run generate` picks that up too. Run it after every `bun update @xk2800/nextjs-template`. A new project starts with one initial migration, which `create-nextjs` generates.
 
 <Callout type="warning">
-If you change a table that Better-Auth owns (`user`, `session`, `account`, `verification`, `twoFactor`, `passkey`), keep column names and types the way the plugin expects. Add custom user fields to `user.additionalFields` in `server/auth.ts` and to `better-auth.d.ts` as well.
+Don't change the template's own tables in place: they come from the package. To add columns to `user`, use your own copy of `server/db/schema.ts` and `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)). Then add the fields to `user.additionalFields` and `better-auth.d.ts`. Usually a separate table keyed by `userId` is simpler.
 </Callout>
 
 `drizzle.config.ts` reads `process.env.DATABASE_URL` directly instead of importing `config/env`, because drizzle-kit runs outside Next.js and the `server-only` guard would throw there.
@@ -91,7 +113,6 @@ bun run studio:prod   # careful: this is your live data
 ## Testing the connection
 
 ```bash
-bun run doctor                                                    # quick check (dev env)
-bun --env-file=.env.production scripts/doctor.ts                  # quick check (any env)
-bun --env-file=.env.development server/test-connection/index.ts   # insert/read/update/delete round-trip
+bun run doctor                                       # env, auth secret, connection, pending migrations (dev env)
+bun --env-file=.env.production scripts/doctor.ts     # same check against another env
 ```

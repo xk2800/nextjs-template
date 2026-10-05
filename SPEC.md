@@ -148,7 +148,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - `AUTH_ENABLE_GOOGLE`, `AUTH_ENABLE_EMAIL_PASSWORD`, `AUTH_ENABLE_ONE_TAP` (+ `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` for client-side gating).
 - `ENABLE_SESSION_REVOCATION` — seed value only; live value lives in `system_settings` once seeded, editable from admin UI.
 - `DB_DRIVER` (`pg` | `neon`) and `DATABASE_SSL` — dev typically uses local/Docker Postgres without SSL, production typically uses Neon.
-- `RESEND_API_KEY` for transactional email.
+- `RESEND_API_KEY` for transactional email, and `EMAIL_FROM` for the sender address (must be on a domain verified in Resend).
 - `NEXT_PUBLIC_COOKIE_BANNER` (default `true`): client-side switch for the cookie-consent banner.
 
 ### Distribution as a package
@@ -189,6 +189,7 @@ Three supported environments, each with its own `.env.<env>` file and matching D
 | `NEXT_PUBLIC_COOKIE_BANNER` | Cookie-consent banner on/off (default `true`) |
 | `ENABLE_SESSION_REVOCATION` | Seed value for the session-revocation setting |
 | `RESEND_API_KEY` | Transactional email |
+| `EMAIL_FROM` | Sender address for all email |
 | `PORT` | Server port (default 3000) |
 | `NODE_ENV` | `development` \| `production` \| `test` |
 

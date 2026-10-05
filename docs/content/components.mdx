@@ -1,4 +1,10 @@
+import { Callout } from 'nextra/components'
+
 # Components
+
+<Callout type="info">
+In a scaffolded project, everything in `components/ui`, `auth`, `dashboard`, `email`, `theme` and `providers` is a one-line re-export of the package. To restyle or change one, replace that file with your own code; it then stops receiving updates. Often it's easier to write a new component that wraps the shipped one. `components/site/` is your own code. See [Your project and the package](/architecture#your-project-and-the-package).
+</Callout>
 
 ## UI primitives (`components/ui/`)
 
@@ -11,7 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 ```
 
-Add more with `bunx shadcn@latest add <name>`. The config is in `components.json`.
+Add more with `bunx shadcn@latest add <name>`. The config is in `components.json`. Adding a component that already exists, such as `button`, overwrites the re-export with shadcn's source, and that file becomes yours.
 
 - `password-input` is an `Input` with a show/hide toggle.
 - `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `/dashboard/data-table` is a working example.
@@ -66,9 +72,11 @@ These are presentational components. Fetch data with the query helpers in a serv
 
 **Before sending real email:**
 
-1. Set `RESEND_API_KEY`.
-2. Verify a sending domain in Resend.
-3. Change `EMAIL_FROM` in `lib/resend.ts` to an address on that domain.
+1. Verify a sending domain in Resend.
+2. Set `RESEND_API_KEY`.
+3. Set `EMAIL_FROM` to an address on that domain, e.g. `My App <noreply@myapp.com>`.
+
+The auth emails (reset, verification, new device, passkey change) are sent by the package's auth, using its own copies of these templates. To change their wording or design, use your own `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)).
 
 Sending your own email:
 
