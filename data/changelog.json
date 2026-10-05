@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.8.0-beta.0",
+    "date": "2026-10-6",
+    "type": "beta",
+    "title": "feat: update documentation and include cookie-banner component details",
+    "changes": [
+      "feat: update documentation and include cookie-banner component details",
+      "Enhance README and documentation; update environment variables and CLI setup",
+      "feat: update database documentation and add deployment guide",
+      "feat: add DeleteAccountCard component import to dashboard"
+    ]
+  },
+  {
     "version": "0.7.0-beta.0",
     "date": "2026-10-5",
     "type": "beta",
