@@ -301,6 +301,7 @@ import SessionsCard from "@xk2800/nextjs-template/components/dashboard/sessionsC
 import AdminSection, { type AdminStats } from "@xk2800/nextjs-template/components/dashboard/adminSection";
 import ActivityLogsCard from "@xk2800/nextjs-template/components/dashboard/activityLogsCard";
 import DashboardHeader, { type DashboardNavLink } from "@xk2800/nextjs-template/components/dashboard/dashboardHeader"; // brandName, brandHref, navLinks are optional props
+import DeleteAccountCard from "@xk2800/nextjs-template/components/dashboard/deleteAccountCard"; // no props; needs sonner. The server side is already on in createAuth() / auth
 
 // optional feature UI (needs the matching optional peer dep)
 import { ThemeProvider } from "@xk2800/nextjs-template/components/providers/theme-provider"; // next-themes
