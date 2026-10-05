@@ -38,6 +38,7 @@
     "components/providers",
     "components/email",
     "components/dashboard",
+    "components/site/cookie-banner.tsx",
     "lib/utils.ts",
     "lib/auth-client.ts",
     "lib/formatters.ts",
@@ -128,6 +129,7 @@
     "./lib/formatters": "./lib/formatters.ts",
     "./lib/recalculate-columns": "./lib/recalculate-columns.ts",
     "./lib/maintenance": "./lib/maintenance.ts",
+    "./lib/cookie-consent": "./lib/cookie-consent.ts",
     "./styles/theme.css": "./styles/theme.css",
     "./components/*": "./components/*.tsx"
   },

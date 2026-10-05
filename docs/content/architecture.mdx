@@ -7,140 +7,121 @@ import { FileTree } from 'nextra/components'
 
 <FileTree>
   <FileTree.Folder name="app — Next.js App Router" defaultOpen>
-    <FileTree.Folder name="(auth)/login — Login page" />
-    <FileTree.Folder name="api" defaultOpen>
-      <FileTree.Folder name="auth/[...all] — Better-Auth handler" />
-      <FileTree.Folder name="admin/users — User management endpoints" />
-      <FileTree.Folder name="sessions/revoke" />
-      <FileTree.Folder name="activity-logs" />
-      <FileTree.Folder name="send — Email endpoint" />
+    <FileTree.Folder name="(auth) — login, login/2fa, signup, forgot-password, reset-password" />
+    <FileTree.Folder name="api — route handlers (see API Reference)" />
+    <FileTree.Folder name="dashboard — signed-in area" defaultOpen>
+      <FileTree.Folder name="admin — admin-only: stats, users, activity-logs, settings" />
+      <FileTree.Folder name="settings — theme, 2FA, passkeys, delete account" />
+      <FileTree.File name="layout.tsx — requireAuth() + nav" />
+      <FileTree.File name="page.tsx — profile, sessions, activity" />
     </FileTree.Folder>
-    <FileTree.Folder name="dashboard" defaultOpen>
-      <FileTree.Folder name="admin/users — Admin UI" />
-      <FileTree.Folder name="settings" />
-      <FileTree.Folder name="components" />
-      <FileTree.File name="layout.tsx — Protected layout with nav" />
-      <FileTree.File name="page.tsx — Dashboard home" />
-    </FileTree.Folder>
-    <FileTree.Folder name="changelog" />
-    <FileTree.File name="layout.tsx — Root layout" />
-    <FileTree.File name="page.tsx — Home page" />
+    <FileTree.Folder name="maintenance, features, changelog, privacy, terms — public pages" />
+    <FileTree.File name="layout.tsx — root layout: providers, cookie banner, One Tap" />
   </FileTree.Folder>
   <FileTree.Folder name="server" defaultOpen>
-    <FileTree.File name="auth.ts — Better-Auth configuration" />
+    <FileTree.File name="auth.ts — createAuth() factory + default auth instance" />
     <FileTree.Folder name="db" defaultOpen>
-      <FileTree.File name="schema.ts — Drizzle ORM schema" />
-      <FileTree.File name="index.ts — Database connection" />
+      <FileTree.File name="schema.ts — Drizzle schema (all tables)" />
+      <FileTree.File name="index.ts — db client (pg or neon, by DB_DRIVER)" />
     </FileTree.Folder>
-    <FileTree.Folder name="drizzle — Generated migrations" />
-    <FileTree.Folder name="test-connection" />
-  </FileTree.Folder>
-  <FileTree.Folder name="components" defaultOpen>
-    <FileTree.Folder name="auth — Authentication UI" />
-    <FileTree.Folder name="email — React Email templates" />
-    <FileTree.Folder name="theme — Theme toggle" />
-    <FileTree.Folder name="providers — Context providers" />
-    <FileTree.Folder name="Updates — Update notification modal" />
-    <FileTree.Folder name="ui — shadcn/ui components" />
+    <FileTree.Folder name="drizzle — generated SQL migrations" />
+    <FileTree.Folder name="test-connection — CRUD smoke test" />
   </FileTree.Folder>
   <FileTree.Folder name="lib" defaultOpen>
     <FileTree.File name="auth-client.ts — Better-Auth React client" />
-    <FileTree.File name="auth-helpers.ts — Server-side auth utilities" />
-    <FileTree.File name="activity-logger.ts — Activity logging" />
-    <FileTree.File name="session-queries.ts — Session DB queries" />
-    <FileTree.File name="activity-queries.ts — Activity log queries" />
-    <FileTree.File name="formatters.ts — Date and display formatters" />
-    <FileTree.File name="utils.ts — Tailwind CN utility" />
+    <FileTree.File name="auth-helpers.ts — requireAuth, requireRole, hasRole, normalizeCallbackUrl" />
+    <FileTree.File name="*-queries.ts — server-only DB reads (admin, session, user, activity, settings)" />
+    <FileTree.File name="activity-logger.ts — logActivity()" />
+    <FileTree.File name="settings-queries.ts — cached system_settings + effective auth flags" />
+    <FileTree.File name="maintenance.ts — maintenance path rules (pure)" />
+    <FileTree.File name="auth-throttle*.ts — sign-in/sign-up abuse throttle" />
+    <FileTree.File name="device-fingerprint.ts, cookie-consent.ts — consent-gated client helpers" />
+    <FileTree.File name="request-info.ts — IP, user-agent and geoip parsing" />
+    <FileTree.File name="resend.ts — lazy Resend client + EMAIL_FROM" />
+  </FileTree.Folder>
+  <FileTree.Folder name="components" defaultOpen>
+    <FileTree.Folder name="ui — shadcn/ui primitives" />
+    <FileTree.Folder name="auth — sign-in forms, social/passkey/One Tap, 2FA form" />
+    <FileTree.Folder name="dashboard — user cards; admin/ — admin cards and tables" />
+    <FileTree.Folder name="email — React Email templates" />
+    <FileTree.Folder name="site — header, footer, cookie banner" />
+    <FileTree.Folder name="theme, providers, Updates, changelog" />
   </FileTree.Folder>
   <FileTree.Folder name="config">
-    <FileTree.File name="env.ts — Zod environment validation" />
+    <FileTree.File name="env-schema.ts — Zod schema (no server-only guard)" />
+    <FileTree.File name="env.ts — parsed config (server-only)" />
   </FileTree.Folder>
-  <FileTree.Folder name="types">
-    <FileTree.File name="(auth)/loginSchema.ts — Login form schema" />
-  </FileTree.Folder>
-  <FileTree.Folder name="data">
-    <FileTree.File name="changelog.json" />
-  </FileTree.Folder>
-  <FileTree.File name="proxy.ts — Route protection + maintenance mode" />
-  <FileTree.File name="better-auth.d.ts — Type extensions" />
-  <FileTree.File name="drizzle.config.ts — Drizzle ORM config" />
+  <FileTree.Folder name="scripts — doctor, bump-version, manual test scripts" />
+  <FileTree.Folder name="types/auth — login and signup Zod schemas" />
+  <FileTree.Folder name="data — changelog.json" />
+  <FileTree.Folder name="docs — this site (Nextra)" />
+  <FileTree.File name="proxy.ts — maintenance mode + optimistic dashboard gate" />
+  <FileTree.File name="better-auth.d.ts — type extensions" />
+  <FileTree.File name="tsup.config.ts — npm package build" />
 </FileTree>
 
-## App Router
+## Request flow
 
-### Route Groups
+A request to a protected page passes three layers:
 
-The `(auth)` route group contains the login page without adding `/auth` to the URL path. The login page is accessible at `/login`.
+1. **`proxy.ts`** (Next 16's name for middleware) runs on every non-static route:
+   - **Maintenance mode.** If it's on and the path isn't exempt, the proxy redirects to `/maintenance`, or returns `503` for `/api/*`. Admins bypass it. See [Admin & Maintenance](/admin#maintenance-mode).
+   - **Dashboard gate.** `/dashboard/*` without a session cookie redirects to `/login?callbackUrl=…`. It only checks that the cookie exists, so it's cheap.
+2. **`app/dashboard/layout.tsx`** calls `requireAuth()`. That validates the session against the database, signs out banned users and redirects them to `/login?error=account_banned`.
+3. **`app/dashboard/admin/layout.tsx`** calls `requireRole('admin')`, which sends non-admins to `/dashboard`.
 
-### API Routes
+API routes don't go through the layouts. Each handler checks `auth.api.getSession()` and, for admin routes, `hasRole(role, 'admin')`, returning `401` or `403`. **Do the same in any route you add.**
 
-| Route | Method | Purpose |
-|---|---|---|
-| `/api/auth/[...all]` | ALL | Better-Auth catch-all handler |
-| `/api/admin/users` | GET | Paginated user list (admin only) |
-| `/api/admin/users/[userId]` | GET/PATCH | User details and modification |
-| `/api/admin/users/[userId]/ban` | POST | Ban/unban user |
-| `/api/admin/users/[userId]/sessions` | GET | User's sessions |
-| `/api/sessions/revoke` | POST | Revoke a session |
-| `/api/activity-logs` | GET | Fetch activity logs |
-| `/api/send` | POST | Send email via Resend |
+## Adding a protected page
 
-### Dashboard
+```tsx
+// app/dashboard/reports/page.tsx — the dashboard layout already ran requireAuth()
+import { requireAuth } from "@/lib/auth-helpers"
 
-The dashboard is a protected area with its own layout (`app/dashboard/layout.tsx`). It uses `requireAuth()` from `lib/auth-helpers.ts` to enforce authentication and includes:
+export default async function ReportsPage() {
+  const session = await requireAuth() // cached per request, so this is free
+  return <h1>Reports for {session.user.name}</h1>
+}
+```
 
-- Navigation header with links to Dashboard, Settings, and Home
-- Theme toggle and user display
-- Logout button
-- Admin section (conditionally rendered for admin users)
+For admin-only pages, put the page under `app/dashboard/admin/`, or call `requireRole('admin')`.
 
-## Proxy
+## Adding a protected API route
 
-The Proxy (`proxy.ts`, Next 16's rename of middleware) protects all `/dashboard` routes:
+```ts
+// app/api/reports/route.ts
+import { NextResponse } from "next/server"
+import { headers } from "next/headers"
+import { auth } from "@/server/auth"
+import { hasRole } from "@/lib/auth-helpers"
 
-1. Checks for the `better-auth.session_token` cookie (also checks `__Secure-` prefix variant for HTTPS)
-2. If no session cookie is found, redirects to `/login?callbackUrl=<original-url>`
-3. If authenticated, allows the request through
+export async function GET() {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!hasRole(session.user.role, "admin")) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  // ...
+}
+```
 
-This provides a fast, optimistic authentication check before the page even starts rendering. It also enforces maintenance mode for every route not in the admin-configured exempt list.
+## Logging activity
 
-## Environment Configuration
+Record anything an admin might later need to audit:
 
-Environment variables are validated at runtime using Zod in `config/env.ts`:
+```ts
+import { logActivity } from "@/lib/activity-logger"
 
-| Variable | Type | Default | Description |
-|---|---|---|---|
-| `NODE_ENV` | `development` \| `production` \| `test` | `development` | Runtime environment |
-| `PORT` | number | `3000` | Server port |
-| `DATABASE_URL` | string | — | PostgreSQL connection string |
-| `RESEND_API_KEY` | string | — | Resend email API key |
-| `ENABLE_SESSION_REVOCATION` | boolean | `true` | Enable/disable session revocation |
-| `AUTH_ENABLE_GOOGLE` | boolean | `true` | Enable/disable the Google OAuth provider (server and login/signup UI) |
-| `AUTH_ENABLE_EMAIL_PASSWORD` | boolean | `true` | Enable/disable the email/password provider (server and login/signup UI) |
+await logActivity({
+  userId: session.user.id,
+  action: "profile_updated",           // an ActivityAction value
+  description: "Changed display name",
+  metadata: { from: "Ann", to: "Anne" } // optional, stored as JSON text
+})
+```
 
-### Auth Environment Variables
-
-| Variable | Description |
-|---|---|
-| `AUTH_SECRET` | Secret for signing cookies and tokens |
-| `AUTH_GOOGLE_ID` | Google OAuth client ID |
-| `AUTH_GOOGLE_SECRET` | Google OAuth client secret |
-| `AUTH_ENABLE_GOOGLE` | Set to `false` in a consuming project's `.env.*` to disable Google login without forking `server/auth.ts` |
-| `AUTH_ENABLE_EMAIL_PASSWORD` | Set to `false` in a consuming project's `.env.*` to disable email/password login without forking `server/auth.ts` |
-| `BETTER_AUTH_URL` | Base URL for auth callbacks |
-| `NEXT_PUBLIC_APP_URL` | Client-side base URL |
-
-### Environment Files
-
-- `.env.development` — Local PostgreSQL
-- `.env.production` — Neon DB (serverless)
-- `.env.test` — Test database
-
-Example files (`.env.*.example`) are provided as templates.
+To add a new action type, add it in two places: `ActivityActionEnum` in `server/db/schema.ts` (a Postgres enum, so run `bun run generate` and migrate) and the `ActivityAction` union in `lib/activity-logger.ts`.
 
 ## TypeScript
 
-- **Path alias:** `@/*` maps to the project root
-- **Target:** ES2017
-- **Module resolution:** Bundler (Next.js style)
-- **Strict mode:** Enabled
+- Path alias `@/*` maps to the project root.
+- Strict mode is on.
+- `tsconfig.build.json` covers only the files that ship in the npm package. `bun run typecheck` uses it.

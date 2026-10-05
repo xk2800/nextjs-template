@@ -140,7 +140,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - `/api/admin/settings` — system settings CRUD.
 - `/api/admin/users`, `/[userId]`, `/[userId]/ban`, `/[userId]/role`, `/[userId]/sessions`, `/bulk-ban`, `/bulk-delete`, `/export` — full admin user management surface.
 - `/api/sessions/revoke` — user self-service session revocation.
-- `/api/settings/public` — public-safe subset of system settings (e.g. maintenance mode, enabled auth methods) for client consumption.
+- `/api/settings/public` — public-safe subset of system settings for logged-out clients (currently just `{ oneTapEnabled }`).
 - `/api/heartbeat` — updates `lastActiveAt`.
 - `/api/send` — transactional email sending.
 

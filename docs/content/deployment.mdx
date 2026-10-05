@@ -1,0 +1,60 @@
+import { Callout } from 'nextra/components'
+
+# Deployment
+
+## Production checklist
+
+- [ ] `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` set to the real `https://` origin. Passkeys bind to this, so pick the final domain before users register any.
+- [ ] A fresh `BETTER_AUTH_SECRET` (`openssl rand -base64 32`), not your dev value.
+- [ ] `DATABASE_URL` and `DB_DRIVER` set (`neon` for Neon, or `pg` with `DATABASE_SSL=true` for managed Postgres).
+- [ ] Migrations applied to the production database (see below).
+- [ ] The Google OAuth client has the production redirect URI: `https://your.app/api/auth/callback/google`.
+- [ ] `RESEND_API_KEY` set, a sending domain verified, and `EMAIL_FROM` in `lib/resend.ts` updated.
+- [ ] `APP_NAME` set to your product name. It's what users see in authenticator apps.
+- [ ] The first admin promoted (see [Quick Start](/#make-yourself-an-admin)).
+- [ ] Your reverse proxy forwards the client IP in `x-forwarded-for` or `x-real-ip`.
+
+## Migrations
+
+Deploys **don't** run migrations; neither the Dockerfile nor `next build` touches the database. Apply them before rolling out a release that needs them:
+
+```bash
+bun run migrate:prod                 # uses .env.production
+# or
+doppler run --config prd -- bun run migrate:doppler
+```
+
+Run `bun --env-file=.env.production scripts/doctor.ts` afterwards to confirm nothing is pending (works with `DB_DRIVER=pg`).
+
+## Docker
+
+The repo has a multi-stage `Dockerfile`: dependencies are installed with Bun, the app is built and run on `node:22-alpine`, and it uses Next's `output: "standalone"`. It works on any container host (Dokploy, Coolify, Fly, a plain VPS).
+
+```bash
+docker build \
+  --build-arg DATABASE_URL=postgres://... \
+  --build-arg BETTER_AUTH_URL=https://your.app \
+  --build-arg NEXT_PUBLIC_APP_URL=https://your.app \
+  --build-arg DB_DRIVER=pg \
+  -t myapp .
+
+docker run -p 3000:3000 --env-file .env.production myapp
+```
+
+<Callout type="warning">
+`NEXT_PUBLIC_*` values are baked into the client bundle at **build** time. The Dockerfile only passes `NEXT_PUBLIC_APP_URL` through as a build arg. If you use One Tap, a custom cookie-banner setting or `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, add matching `ARG`/`ENV` lines to the builder stage, or they'll silently fall back to their defaults.
+</Callout>
+
+All other (server) variables are read at runtime, so pass them with `docker run --env-file` or your host's env settings.
+
+## Vercel and other serverless hosts
+
+The app is a standard Next.js app and deploys without changes. On serverless hosts:
+
+- Use `DB_DRIVER=neon` with a Neon database. The HTTP driver avoids exhausting connection pools across function instances.
+- Set every variable in the host's env settings, including `NEXT_PUBLIC_*`, which must be present at build time.
+- `bun run build` also builds the npm package (`tsup`) first. If that bothers you, set the build command to `next build`.
+
+## Secrets with Doppler
+
+See [Configuration → Doppler](/configuration#doppler). In CI, set `DOPPLER_TOKEN` and use `doppler run --config prd -- <command>`.

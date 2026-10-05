@@ -1,0 +1,94 @@
+import { Callout } from 'nextra/components'
+
+# Security Features
+
+Everything on this page works out of the box. This page explains what each feature does, where it lives and what to configure.
+
+## Two-factor authentication
+
+TOTP (authenticator app) with backup codes, using Better-Auth's `twoFactor` plugin.
+
+- **Users enable it** under Dashboard → Settings → Security: password confirm, QR code, verify a code, save backup codes. Backup codes can be regenerated there.
+- **At sign-in**, once email/password succeeds, the user is sent to `/login/2fa` to enter a TOTP or backup code.
+- The authenticator app shows `APP_NAME` as the issuer.
+- Data: the `twoFactor` table plus `user.twoFactorEnabled`.
+
+## Passkeys
+
+WebAuthn sign-in (Touch ID, Windows Hello, security keys), using `@better-auth/passkey`.
+
+- Users register and remove passkeys under Settings → Security. Sign in with the **Sign in with a passkey** button on `/login`.
+- Each add or remove emails the user (if Resend is configured) and writes `passkey_added` or `passkey_removed` to the activity log.
+- The relying-party ID is derived from `BETTER_AUTH_URL`.
+
+<Callout type="warning">
+Passkeys are bound to the hostname in `BETTER_AUTH_URL`. Passkeys registered on `localhost` won't work in production, and moving domains invalidates every passkey.
+</Callout>
+
+## Active sessions
+
+Dashboard → **Active sessions** lists each session with its device, IP and approximate location. Users can revoke any of them except the current one, via `POST /api/sessions/revoke`.
+
+An admin can turn revocation off globally in System Settings, and the endpoint then returns `403`. Admins can also revoke any user's sessions from the user detail page.
+
+## New-device alerts
+
+1. After sign-in, `<DeviceCheck />` (mounted in the root layout) computes a FingerprintJS visitor ID and posts it to `/api/device-check`, once per browser session.
+2. If this (user, device) pair has never been seen, the server records it in `device_fingerprint`. It then emails **the user and every admin** and lists the device on the admin **New devices** card.
+
+The check only runs after the visitor accepts optional cookies. Emails are skipped without `RESEND_API_KEY`, but the device is still recorded.
+
+## Sign-in throttle
+
+`/sign-in/email` and `/sign-up/email` are rate-limited per device, in `hooks.before` in `server/auth.ts`:
+
+| Key | Limit | Window |
+|---|---|---|
+| FingerprintJS visitor ID (`x-device-fingerprint` header) | 10 | 15 min |
+| Client IP (backstop, for when the header is missing or spoofed) | 30 | 15 min |
+
+- **Sign-in:** failures count toward the limit, and a successful sign-in resets it.
+- **Sign-up:** every attempt counts, because mass sign-ups are the abuse being limited.
+- Over the limit, the endpoint returns `429` with "Too many attempts from this device".
+
+To tune the limits, edit `WINDOW_MS` and `MAX` in `lib/auth-throttle-limits.ts`. Throttled devices appear on the admin **Device throttle** card.
+
+<Callout type="info">
+The client IP comes from `x-forwarded-for` (first entry), falling back to `x-real-ip`. Behind your own reverse proxy, make sure it sets one of these. Otherwise every request shares one IP, and the IP cap throttles everyone at once.
+</Callout>
+
+## Shared-device detection
+
+The admin **Shared devices** card lists any fingerprint used by 3 or more accounts, a common sign of multi-accounting or trial abuse. Each account links to its detail page, where you can ban it.
+
+## Account deletion
+
+Dashboard → Settings → **Danger zone** lets users delete their own account, using Better-Auth's `deleteUser`.
+
+- Credential users confirm with their password. OAuth-only users need a session less than 24 hours old, otherwise they're asked to sign in again.
+- It's blocked while an admin is impersonating the user, and for the last remaining admin.
+- All of the user's rows cascade-delete.
+
+## Cookie consent
+
+`<CookieBanner />` (root layout) offers **Necessary only** or **Accept all** and stores the choice in the `cookie_consent` cookie for one year. **Cookie settings** in the footer reopens it.
+
+| Needs "Accept all" | Without it |
+|---|---|
+| FingerprintJS device ID | New-device alerts are skipped; the throttle uses its IP cap |
+| Google One Tap | The One Tap prompt doesn't appear |
+
+Gate your own analytics the same way:
+
+```tsx
+import { useCookieConsent } from "@/lib/cookie-consent"
+
+const consent = useCookieConsent() // "all" | "necessary" | null
+if (consent === "all") loadAnalytics()
+```
+
+If you don't need a banner, set `NEXT_PUBLIC_COOKIE_BANNER=false`. Consent is then treated as granted.
+
+## Open-redirect protection
+
+Every `callbackUrl` goes through `normalizeCallbackUrl()`, which drops anything off-origin. Use it for any redirect target you accept from a query string.

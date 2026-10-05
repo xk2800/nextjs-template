@@ -1,0 +1,99 @@
+import { Callout } from 'nextra/components'
+
+# Configuration
+
+All server-side env vars are validated with Zod in `config/env-schema.ts` and exposed through `config/env.ts` (which is `server-only`). A few others are read directly from `process.env`. This page lists every variable either way.
+
+## Env files
+
+| File | Used by |
+|---|---|
+| `.env.development` | `bun dev`, `migrate:dev`, `studio:dev`, `doctor` |
+| `.env.production` | `migrate:prod`, `studio:prod`, and your production host |
+| `.env.test` | `migrate:test` |
+
+Copy the matching `.env.*.example` to start. Real `.env.*` files are git-ignored.
+
+## Core
+
+| Variable | Default | Description |
+|---|---|---|
+| `DATABASE_URL` | — | Postgres connection string. **Required.** |
+| `DB_DRIVER` | `pg` | `pg` (node-postgres pool) or `neon` (Neon serverless HTTP driver). |
+| `DATABASE_SSL` | `false` | `pg` driver only: connect with SSL. Turn it on for managed Postgres; leave it off for local or Docker Postgres. |
+| `NODE_ENV` | `development` | `development`, `production` or `test`. |
+| `PORT` | `3000` | Server port. |
+| `APP_NAME` | `Next.js Template` | Shown as the authenticator-app label (2FA issuer) and the passkey relying-party name. |
+
+## Auth
+
+| Variable | Default | Description |
+|---|---|---|
+| `BETTER_AUTH_SECRET` *or* `AUTH_SECRET` | — | Signs cookies and tokens. **Required.** Generate with `openssl rand -base64 32`. Either name works. |
+| `BETTER_AUTH_URL` | `http://localhost:3000` | Public base URL of the app. It's used for OAuth callbacks and email links, and it **binds passkeys to this origin**. |
+| `NEXT_PUBLIC_APP_URL` | — | Same origin as above. Used to validate `callbackUrl` redirects. |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | — | Google OAuth client. `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are accepted as fallbacks. |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | — | Same client ID, exposed to the browser. Only needed for One Tap. |
+| `AUTH_ENABLE_GOOGLE` | `true` | `false` removes the Google provider from the server config and hides it in the UI. |
+| `AUTH_ENABLE_EMAIL_PASSWORD` | `true` | `false` removes email/password sign-in and sign-up. |
+| `AUTH_ENABLE_ONE_TAP` | `false` | Registers the One Tap plugin on the server. |
+| `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` | `false` | Enables the One Tap client plugin. Inlined at **build** time, so set it along with the line above. |
+
+<Callout type="warning">
+Changing `BETTER_AUTH_URL` (a new domain, for example) makes every existing passkey stop working. WebAuthn credentials are bound to that exact hostname.
+</Callout>
+
+## Email
+
+| Variable | Default | Description |
+|---|---|---|
+| `RESEND_API_KEY` | — | Resend API key. Without it, password reset and verification emails fail, and security alerts are skipped. |
+
+The sender address is **not** an env var. Change `EMAIL_FROM` in `lib/resend.ts` to an address on a domain you've verified in Resend.
+
+## Feature switches
+
+| Variable | Default | Description |
+|---|---|---|
+| `ENABLE_SESSION_REVOCATION` | `true` | Seed value only. See below. |
+| `NEXT_PUBLIC_COOKIE_BANNER` | `true` | `false` hides the cookie banner and treats consent as granted. |
+
+### Env vs. System Settings
+
+Four settings live in the `system_settings` table and can be changed from **Admin → System Settings** without a redeploy: Google, email/password, One Tap and session revocation. On first read, the row is seeded from the env vars above. After that, **the database wins**. Changing `ENABLE_SESSION_REVOCATION` in `.env` later has no effect.
+
+For the three auth methods, both switches must be on:
+
+```
+effective = env flag (provider registered at boot)  AND  DB flag (admin toggle)
+```
+
+So the admin toggle can turn a method off live, but it can't turn on a method whose env flag is `false`. The settings page tells you when that's the reason a toggle has no effect.
+
+## Doppler
+
+[Doppler](https://doppler.com) is an optional replacement for `.env.*` files. Nothing in the code changes; it just fills `process.env`.
+
+```bash
+brew install dopplerhq/cli/doppler
+doppler login
+doppler setup              # in the repo root; writes doppler.yaml (no secrets, safe to commit)
+
+bun run dev:doppler        # instead of bun dev
+bun run migrate:doppler    # instead of migrate:dev / :prod / :test
+```
+
+Every script has a `*:doppler` twin: `dev`, `build`, `start`, `generate`, `migrate` and `studio`. Pick a config explicitly with `doppler run --config prd -- bun run migrate:doppler`. Values Doppler injects take priority over `.env` files, so keeping a local `.env.development` as a fallback is safe.
+
+## Reading config in code
+
+```ts
+import { config } from "@/config/env"   // server code only
+
+config.DATABASE_URL
+config.AUTH_ENABLE_GOOGLE  // already a boolean
+```
+
+Scripts that run outside Next.js (drizzle-kit, `scripts/*.ts`) can't import `config/env.ts`, because its `server-only` guard throws there. Import `envSchema` from `config/env-schema.ts` and parse `process.env` yourself, the way `scripts/doctor.ts` does.
+
+To add a variable, add it to `envSchema` in `config/env-schema.ts`, then add it to every `.env.*.example`.

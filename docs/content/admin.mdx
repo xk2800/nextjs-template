@@ -1,0 +1,70 @@
+import { Callout } from 'nextra/components'
+
+# Admin & Maintenance
+
+The admin area is at `/dashboard/admin`. Its layout calls `requireRole('admin')`, and every `/api/admin/*` route checks the role itself and returns `403` otherwise. To create the first admin, see [Quick Start](/#make-yourself-an-admin).
+
+## Pages
+
+| Page | What's there |
+|---|---|
+| `/dashboard/admin` | Stats grid plus device-security cards: **New devices**, **Device throttle**, **Shared devices** |
+| `/dashboard/admin/users` | Search, paginate, change role, ban or unban, delete, bulk ban, bulk delete, CSV export, impersonate |
+| `/dashboard/admin/users/[userId]` | Login info, sessions (revoke one or all), activity, status, impersonation log |
+| `/dashboard/admin/activity-logs` | System-wide audit log with search, action and date filters, and CSV export |
+| `/dashboard/admin/settings` | System Settings: maintenance mode, auth toggles, session revocation |
+
+## User management rules
+
+These are enforced in the API, not just the UI:
+
+- You can't change your own role, ban yourself or delete yourself, and you can't include yourself in a bulk action.
+- You can't demote the last admin, and a bulk ban or bulk delete can't remove every admin.
+- **Banning** sets `banned`, `bannedAt` and `bannedReason`, then **deletes all of the user's sessions** so they're signed out immediately. A banned user who still has a cookie is signed out by `requireAuth()` and sent to `/login?error=account_banned`.
+- Every action writes an activity row (`role_changed`, `user_banned`, `user_unbanned`, `user_deleted`, `settings_changed`).
+
+## Impersonation
+
+**Impersonate** in the users table's row menu calls `authClient.admin.impersonateUser()` from Better-Auth's admin plugin. While it's active:
+
+- A banner across the whole app shows who you're impersonating and has a button to stop (`authClient.admin.stopImpersonating()`).
+- The session has `impersonatedBy` set to your admin ID, and the target's `lastLoginAt` is not updated.
+- Account deletion is blocked, and maintenance mode is bypassed.
+- Start and stop are logged under the **admin's** activity as `impersonation_started` and `impersonation_stopped`.
+
+## System Settings
+
+Stored in the `system_settings` single-row table and cached in-process for **10 seconds**. Changes take effect at once on the instance that saved them and within 10 seconds everywhere else.
+
+| Setting | Effect |
+|---|---|
+| Maintenance mode + message | See below |
+| Exempt paths | Path prefixes that stay reachable during maintenance |
+| Google / Email-password / One Tap | Live kill-switch for each sign-in method, combined with the env flag (both must be on) |
+| Session revocation | Lets users revoke their own sessions |
+
+If the database can't be reached, settings **fail open**: maintenance is off and auth flags fall back to the env values. A database outage can't lock admins out.
+
+## Maintenance mode
+
+`proxy.ts` enforces maintenance mode for every page and API route:
+
+- **Blocked pages** redirect to `/maintenance`, which shows the admin's message.
+- **Blocked API routes** return `503 { "error": "Down for maintenance" }`.
+- **Admins**, including admins who are impersonating, aren't blocked.
+
+What stays reachable:
+
+| Always open (hardcoded in `lib/maintenance.ts`) | Default exempt list (editable) |
+|---|---|
+| `/maintenance`, `/login` (incl. `/login/2fa`), `/forgot-password`, `/reset-password`, `/api/auth`, `/api/settings/public` | `/`, `/features`, `/changelog`, `/changelog-template`, `/privacy`, `/terms` |
+
+A prefix matches the path and its sub-paths: `/docs` matches `/docs` and `/docs/a` but not `/docsfoo`. `/` matches only the home page.
+
+<Callout type="info">
+The always-open list exists so an admin can always sign in and turn maintenance off. If you add a new auth page, such as `/verify`, add it to `ALWAYS_OPEN_PATHS`.
+</Callout>
+
+## Activity log
+
+The admin activity log shows rows from every user, while each user sees only their own on the dashboard. Login rows carry IP, OS, browser, device type, country, city and referrer. Both lists come from `lib/activity-queries.ts`. To add events, see [Logging activity](/architecture#logging-activity).

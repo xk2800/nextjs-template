@@ -3,8 +3,10 @@
 import Link from "next/link"
 import { useEffect, useState } from "react"
 
-import { Button } from "@/components/ui/button"
-import { COOKIE_BANNER_ENABLED, setCookieConsent, useCookieConsent } from "@/lib/cookie-consent"
+// Relative imports: this file ships raw in the npm package, where `@/` would
+// resolve against the consuming project instead.
+import { Button } from "../ui/button"
+import { COOKIE_BANNER_ENABLED, setCookieConsent, useCookieConsent } from "../../lib/cookie-consent"
 
 // Mount once in the root layout. Shows until the visitor picks an option;
 // "Necessary only" is as prominent as "Accept all" on purpose — GDPR requires

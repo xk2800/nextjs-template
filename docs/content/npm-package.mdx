@@ -1,0 +1,184 @@
+import { Callout, Steps } from 'nextra/components'
+
+# Using as a Package
+
+The reusable parts of this template (auth, db schema, query helpers and UI) are published to npm as **`@xk2800/nextjs-template`**. Use the package to add them to an existing Next.js app, or clone the repo to start a new one.
+
+## Setup
+
+<Steps>
+
+### Install
+
+```bash
+bun add @xk2800/nextjs-template
+```
+
+**Required peers:** `next`, `react`, `react-dom`, the Radix packages (`@radix-ui/react-*`), `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react` and `react-icons`. A shadcn/ui project usually has all of these already.
+
+**Optional peers.** Install one only if you use the feature that needs it:
+
+| Package | Needed for |
+|---|---|
+| `next-themes` | `ThemeProvider`, `ThemeToggle` |
+| `sonner` | Toasts in dashboard cards (session revoke, delete account, …) |
+| `resend`, `@react-email/components` | Any email: reset, verification, alerts |
+| `@fingerprintjs/fingerprintjs` | New-device alerts and the per-device throttle. Without it, the throttle uses only its IP cap. |
+| `react-qr-code` | The 2FA setup QR code |
+
+### Transpile the package
+
+UI components ship as raw `.tsx` so their `'use client'` boundaries survive. In `next.config.ts`:
+
+```ts
+const nextConfig: NextConfig = {
+  transpilePackages: ["@xk2800/nextjs-template"],
+}
+```
+
+### Add the theme and Tailwind source
+
+Tailwind v4 doesn't scan `node_modules`. In `app/globals.css`:
+
+```css
+@import "tailwindcss";
+@import "@xk2800/nextjs-template/styles/theme.css";
+@source "../node_modules/@xk2800/nextjs-template";
+```
+
+If you use `Dialog`, `AlertDialog` or `DropdownMenu`, also install and import `tw-animate-css` for open and close animations.
+
+### Mount the auth route
+
+Route files can't be exported from a package, so create this one yourself:
+
+```ts
+// app/api/auth/[...all]/route.ts
+import { auth } from "@xk2800/nextjs-template/auth"  // or your own, see below
+import { toNextJsHandler } from "better-auth/next-js"
+
+export const { GET, POST } = toNextJsHandler(auth)
+```
+
+To protect pages, copy `proxy.ts` from the repo as well.
+
+### Wire up migrations
+
+The package ships the schema but no migrations. drizzle-kit needs a local file:
+
+```ts
+// server/db/schema.ts
+export * from "@xk2800/nextjs-template/db/schema"
+```
+
+```ts
+// drizzle.config.ts — read process.env directly; config/env is server-only and throws under drizzle-kit
+import { defineConfig } from "drizzle-kit"
+
+export default defineConfig({
+  out: "./server/drizzle",
+  schema: "./server/db/schema.ts",
+  dialect: "postgresql",
+  dbCredentials: { url: process.env.DATABASE_URL! },
+})
+```
+
+Then run `drizzle-kit generate` and `drizzle-kit migrate`.
+
+### Set env vars
+
+The same variables as the template. See [Configuration](/configuration). `config/env` reads `process.env`, so `.env` files and Doppler both work.
+
+</Steps>
+
+## What you can import
+
+```ts
+// auth
+import { auth, createAuth } from "@xk2800/nextjs-template/auth"
+import { requireAuth, requireRole, hasRole, getCurrentSession } from "@xk2800/nextjs-template/auth/helpers"
+import { authClient, useSession } from "@xk2800/nextjs-template/auth-client"
+
+// db
+import { db } from "@xk2800/nextjs-template/db"
+import { users, sessions } from "@xk2800/nextjs-template/db/schema"
+
+// server-only query helpers (throw if imported into a Client Component)
+import { getAdminStats } from "@xk2800/nextjs-template/admin/queries"
+import { getUserSessions } from "@xk2800/nextjs-template/sessions/queries"
+import { logActivity } from "@xk2800/nextjs-template/activity/logger"
+import { getUserActivityLogs, getAllActivityLogs } from "@xk2800/nextjs-template/activity/queries"
+import { getSystemSettings } from "@xk2800/nextjs-template/settings/queries"
+
+// config, types, isomorphic helpers
+import { config } from "@xk2800/nextjs-template/config/env"
+import { LoginSchema } from "@xk2800/nextjs-template/types/auth/loginSchema"
+import { SignupSchema } from "@xk2800/nextjs-template/types/auth/signupSchema"
+import { formatDate, formatDateTime, getUserInitials } from "@xk2800/nextjs-template/lib/formatters"
+import { useCookieConsent } from "@xk2800/nextjs-template/lib/cookie-consent"
+
+// components (raw .tsx; any file under ui/, auth/, dashboard/, email/, theme/, providers/)
+import { Button } from "@xk2800/nextjs-template/components/ui/button"
+import EmailPasswordLogin from "@xk2800/nextjs-template/components/auth/emailPasswordLogin"
+import OneTap from "@xk2800/nextjs-template/components/auth/oneTap"
+import SessionsCard from "@xk2800/nextjs-template/components/dashboard/sessionsCard"
+import DeleteAccountCard from "@xk2800/nextjs-template/components/dashboard/deleteAccountCard"
+import { CookieBanner, CookieSettingsButton } from "@xk2800/nextjs-template/components/site/cookie-banner"
+import { ThemeProvider } from "@xk2800/nextjs-template/components/providers/theme-provider"
+```
+
+Dashboard cards take their data as props. Fetch it with the query helpers in a server component and pass it down.
+
+## Adding a social provider
+
+To add a provider (Apple, GitHub, …) in one project without forking, wrap `createAuth`:
+
+```ts
+// server/auth.ts (your project)
+import { createAuth } from "@xk2800/nextjs-template/auth"
+
+export const auth = createAuth({
+  socialProviders: {
+    apple: {
+      clientId: process.env.APPLE_CLIENT_ID!,
+      clientSecret: process.env.APPLE_CLIENT_SECRET!,
+    },
+  },
+})
+```
+
+Then:
+
+1. Point `app/api/auth/[...all]/route.ts` at **your** `auth`, not the package's. Otherwise the provider's callback will never work.
+2. Add a button: `authClient.signIn.social({ provider: "apple", callbackURL: "/dashboard" })`. The shipped `socialLogin` only does Google.
+
+Your providers are merged with Google. Only `socialProviders` can be overridden; session policy, hashing and schema stay fixed. The proxy, helpers and `useSession` work the same whichever provider signed the user in.
+
+## Turning providers off
+
+You don't need `createAuth` for this. Set the env flags in your project:
+
+```bash
+AUTH_ENABLE_GOOGLE=false
+AUTH_ENABLE_EMAIL_PASSWORD=false
+```
+
+A disabled provider is removed server-side, and the shipped forms hide it. Turning both off is only valid if you've added a provider through `createAuth`. Otherwise `createAuth` throws, because nobody could sign in.
+
+## Enabling One Tap
+
+```bash
+AUTH_ENABLE_ONE_TAP=true
+NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP=true
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...    # same client as AUTH_GOOGLE_ID
+```
+
+Mount `<OneTap />` once, in the root layout. It does nothing until it's enabled and the user is signed out. Add your origin to the Google client's **Authorized JavaScript origins**.
+
+<Callout type="warning">
+One Tap waits for cookie consent. If you mount `<OneTap />` without `<CookieBanner />`, set `NEXT_PUBLIC_COOKIE_BANNER=false`. Otherwise nobody can consent and the prompt never appears.
+</Callout>
+
+## Publishing a new version
+
+For maintainers: see `PUBLISHING.md` in the repo.

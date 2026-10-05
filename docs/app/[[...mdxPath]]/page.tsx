@@ -2,6 +2,9 @@ import { generateStaticParamsFor, importPage } from 'nextra/pages'
 import { useMDXComponents as getMDXComponents } from '../../mdx-components'
 
 export const generateStaticParams = generateStaticParamsFor('mdxPath')
+// Every page is prerendered; unknown paths 404 without running importPage
+// (which would log an error per bot probe in production).
+export const dynamicParams = false
 
 export async function generateMetadata(props: {
   params: Promise<{ mdxPath?: string[] }>

@@ -1,0 +1,99 @@
+# Troubleshooting
+
+Start with `bun run doctor`. It catches a bad env, a dead database and pending migrations in one go.
+
+## Setup
+
+**`BETTER_AUTH_SECRET is missing`**
+Set `BETTER_AUTH_SECRET` (or `AUTH_SECRET`) in your env file. Generate it with `openssl rand -base64 32`.
+
+**`No auth provider is enabled`**
+Both `AUTH_ENABLE_GOOGLE` and `AUTH_ENABLE_EMAIL_PASSWORD` are `false`, and no provider was added through `createAuth()`. Turn at least one back on.
+
+**`This module cannot be imported from a Client Component` / `server-only` error in a script**
+`config/env.ts`, `server/db` and the `*-queries` modules are `server-only`. They throw outside Next.js: in drizzle-kit, in `bun scripts/…`, and in client components. In scripts, read `process.env` or parse `envSchema` from `config/env-schema.ts`. In client code, call an API route instead.
+
+**`column "…" does not exist` / `relation "…" does not exist`**
+Migrations haven't been applied to this database. Run `bun run migrate:dev` (or `:prod`).
+
+**Every SQL query is printed to the console**
+`logger: true` in `server/db/index.ts`. Turn it off there.
+
+## Sign-in
+
+**Google: `redirect_uri_mismatch`**
+Add `{BETTER_AUTH_URL}/api/auth/callback/google` to the OAuth client's authorized redirect URIs, with the exact scheme, host and port.
+
+**Google One Tap never appears**
+Check, in order:
+1. `AUTH_ENABLE_ONE_TAP=true` **and** `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP=true`, and you rebuilt or restarted after setting the public one.
+2. `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is set.
+3. One Tap is on in Admin → System Settings.
+4. The visitor clicked **Accept all** in the cookie banner.
+5. Your origin is in the Google client's **Authorized JavaScript origins**.
+6. You're signed out. Google may also suppress the prompt after it's been dismissed a few times.
+
+**Passkey sign-in fails in production but works locally (or the reverse)**
+Passkeys are bound to the hostname in `BETTER_AUTH_URL`. A passkey registered on `localhost` can't be used on `your.app`. Register a new one on the right origin.
+
+**"Too many attempts from this device" (429)**
+The sign-in throttle tripped: 10 failures per device or 30 per IP in 15 minutes. Wait, or clear it:
+```sql
+DELETE FROM auth_throttle;
+```
+If everyone gets throttled together, your reverse proxy isn't forwarding the client IP. See [Security → Sign-in throttle](/security#sign-in-throttle).
+
+**Redirected to `/login?error=account_banned`**
+The account is banned. An admin can unban it from `/dashboard/admin/users`.
+
+**Toggling a sign-in method in System Settings does nothing**
+Its env flag is `false`. The admin toggle can only turn off methods the env has turned on. See [Env vs. System Settings](/configuration#env-vs-system-settings).
+
+**A revoked session still works for a few minutes**
+The session cookie is cached for 5 minutes. This is expected.
+
+**I'm not an admin / can't reach `/dashboard/admin`**
+Promote yourself in SQL, then sign out and back in:
+```sql
+UPDATE "user" SET roles = 'admin' WHERE email = 'you@example.com';
+```
+
+## Email
+
+**Reset or verification emails never arrive**
+- Is `RESEND_API_KEY` set?
+- Is `EMAIL_FROM` in `lib/resend.ts` an address on a domain you've verified in Resend? Resend rejects unverified senders.
+- Check the server logs and the Resend dashboard for the rejection reason.
+
+New-device and passkey alerts are skipped without a key. Password reset and verification **fail** without one.
+
+## Maintenance mode
+
+**Locked out by maintenance mode**
+`/login` always stays open. Sign in as an admin and turn it off in System Settings. If you can't, use SQL:
+```sql
+UPDATE system_settings SET "maintenanceMode" = false;
+```
+Allow up to 10 seconds for the settings cache to clear, or restart the server.
+
+**A new public page is stuck behind maintenance**
+Add its path to the exempt list in System Settings.
+
+## Package consumers
+
+**Components render unstyled**
+Add `@import "@xk2800/nextjs-template/styles/theme.css";` and `@source "../node_modules/@xk2800/nextjs-template";` to `globals.css`.
+
+**`'use client'` or JSX syntax errors from `node_modules/@xk2800/...`**
+Add the package to `transpilePackages` in `next.config.ts`.
+
+**`ERR_PACKAGE_PATH_NOT_EXPORTED`**
+You imported a path that isn't in the package's `exports` map. See [What you can import](/npm-package#what-you-can-import).
+
+**OAuth works for Google but not your added provider**
+`app/api/auth/[...all]/route.ts` still imports the package's `auth` instead of the one you built with `createAuth()`.
+
+## Docker
+
+**One Tap, the Google client ID or the cookie-banner setting are ignored in the container**
+`NEXT_PUBLIC_*` values are inlined at build time. Pass them as build args. See [Deployment → Docker](/deployment#docker).

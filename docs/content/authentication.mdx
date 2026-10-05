@@ -1,203 +1,129 @@
+import { Callout } from 'nextra/components'
+
 # Authentication
 
-## Overview
+Auth is [Better-Auth](https://better-auth.com) 1.7 with the Drizzle adapter. All config lives in `createAuth()` in `server/auth.ts`, and `auth` is the default instance. The HTTP handler is `app/api/auth/[...all]/route.ts`, which serves everything under `/api/auth/*`.
 
-Authentication is powered by [Better-Auth](https://better-auth.com) (v1.3.34) with a Drizzle ORM adapter. Sessions are stored in the database (not JWT-only), providing full session management capabilities including revocation.
+## Sign-in methods
 
-The configuration lives in `server/auth.ts`.
+| Method | On by default | Switch | Notes |
+|---|---|---|---|
+| Email + password | Yes | `AUTH_ENABLE_EMAIL_PASSWORD` | Better-Auth's default hashing (scrypt). Includes password reset. |
+| Google OAuth | Yes | `AUTH_ENABLE_GOOGLE` | Needs `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` |
+| Google One Tap | No | `AUTH_ENABLE_ONE_TAP` **and** `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` | Also needs Google enabled and cookie consent. |
+| Passkey (WebAuthn) | Yes | — | Users register a passkey in Settings first. |
+| TOTP 2FA | Per user | — | A second step after email/password sign-in. See [Security](/security#two-factor-authentication). |
 
-## Providers
+A disabled env flag removes the provider from the Better-Auth config, so its endpoints reject requests even if someone calls them directly. The login and signup pages hide it as well. Admins can also turn Google, email/password and One Tap off live from System Settings. See [Env vs. System Settings](/configuration#env-vs-system-settings).
 
-### Email & Password
+If every provider ends up disabled, `createAuth()` throws "No auth provider is enabled". It throws on the first use of `auth`, not on import.
 
-- Passwords hashed with **bcrypt** (10 rounds)
-- Stored in the `users.password` column
-- Email verification is not currently required (`requireEmailVerification: false`)
-- Set `AUTH_ENABLE_EMAIL_PASSWORD=false` in a consuming project's `.env.*` to disable this provider
+### Setting up Google OAuth
 
-```typescript
-emailAndPassword: {
-  enabled: config.AUTH_ENABLE_EMAIL_PASSWORD,
-  requireEmailVerification: false,
-  async hash(password: string) {
-    return await bcrypt.hash(password, 10);
+1. In Google Cloud Console, create an **OAuth client ID** of type *Web application*.
+2. Add this **Authorized redirect URI**: `{BETTER_AUTH_URL}/api/auth/callback/google`, for example `http://localhost:3000/api/auth/callback/google`.
+3. For One Tap, also add your origin under **Authorized JavaScript origins**.
+4. Put the ID and secret in `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`. For One Tap, also copy the ID to `NEXT_PUBLIC_GOOGLE_CLIENT_ID`.
+
+### Password reset and email verification
+
+These are wired to Resend, so they need `RESEND_API_KEY` and a valid `EMAIL_FROM` in `lib/resend.ts`.
+
+- **Reset:** `/forgot-password` calls `authClient.requestPasswordReset()`, which emails a link to `/reset-password`.
+- **Verification** is opt-in: `requireEmailVerification` is `false`. Users send themselves a verification link from the dashboard, and clicking it sets `user.emailVerified`.
+
+To make verification mandatory, set `emailAndPassword.requireEmailVerification: true` in `server/auth.ts`.
+
+### Adding another provider
+
+Pass extra `socialProviders` to `createAuth()`. They're merged with Google, not swapped in for it:
+
+```ts
+export const auth = createAuth({
+  socialProviders: {
+    github: { clientId: process.env.GITHUB_CLIENT_ID!, clientSecret: process.env.GITHUB_CLIENT_SECRET! },
   },
-  async verify({ hash, password }) {
-    return await bcrypt.compare(password, hash);
-  },
-}
+})
 ```
 
-### Google OAuth
+Then add a button that calls `authClient.signIn.social({ provider: "github" })`. `components/auth/socialLogin.tsx` only covers Google. In this repo you can edit `server/auth.ts` directly. For the package version, see [Using as a Package](/npm-package#adding-a-social-provider).
 
-Configured via environment variables, and included by default. Set `AUTH_ENABLE_GOOGLE=false` in a consuming project's `.env.*` to disable it — the provider is omitted from the Better-Auth config entirely, not just hidden in the UI:
+## Sessions
 
-```typescript
-socialProviders: {
-  ...(config.AUTH_ENABLE_GOOGLE ? {
-    google: {
-      clientId: process.env.AUTH_GOOGLE_ID || "",
-      clientSecret: process.env.AUTH_GOOGLE_SECRET || "",
-    },
-  } : {}),
-}
+| Setting | Value |
+|---|---|
+| Lifetime | 30 days |
+| Refreshed in DB | every 24 h of activity |
+| Cookie cache | 5 minutes |
+
+Sessions live in the `session` table, so they can be listed and revoked. Because of the 5-minute cookie cache, a revoked session can stay valid for up to 5 minutes in places that read the cached cookie.
+
+Each new session (sign-in) updates `user.lastLoginAt` and writes a `login` activity row with IP, device and geo data. A client heartbeat keeps `user.lastActiveAt` current.
+
+## Server-side usage
+
+```ts
+import { getCurrentSession, requireAuth, requireRole, hasRole } from "@/lib/auth-helpers"
+
+const session = await getCurrentSession()   // session or null
+const session = await requireAuth()         // redirects to /login; signs out banned users
+const session = await requireRole("admin")  // also redirects non-admins to /dashboard
+hasRole(session.user.role, "admin")         // boolean, for conditional UI
 ```
 
-Both toggles default to `true`, so existing projects and the package's own app see no change unless they opt out. The `app/(auth)/login/page.tsx` and `app/(auth)/signup/page.tsx` pages read the same `config/env.ts` flags to decide which login methods to render.
+`getCurrentSession` and `requireAuth` are wrapped in React `cache()`, so calling them from both a layout and a page costs one lookup.
 
-### Guarding against zero enabled providers
+Inside route handlers, call Better-Auth directly:
 
-`createAuth()` checks the *final* merged provider list — `socialProviders` after `overrides.socialProviders` is applied, plus `emailAndPassword.enabled` — and throws only if that combination is genuinely empty:
+```ts
+import { auth } from "@/server/auth"
+import { headers } from "next/headers"
 
-```typescript
-const hasEnabledSocialProvider = Object.values(socialProviders).some(Boolean)
-
-if (!hasEnabledSocialProvider && !emailAndPasswordEnabled) {
-  throw new Error("No auth provider is enabled — ...")
-}
+const session = await auth.api.getSession({ headers: await headers() })
 ```
 
-This means:
+### Redirect safety
 
-- `AUTH_ENABLE_GOOGLE=false` + `AUTH_ENABLE_EMAIL_PASSWORD=false`, no override → throws. There'd be zero ways to sign in.
-- Same two flags `false`, but `createAuth({ socialProviders: { apple: {...} } })` → works. Apple is a valid replacement provider.
+Always pass user-supplied `callbackUrl` values through `normalizeCallbackUrl()` before redirecting. It drops anything that isn't same-origin and returns `/dashboard` in its place.
 
-The check is intentionally scoped to `createAuth()`, not `config/env.ts` — `config/env.ts` is evaluated before any `createAuth()` overrides exist, so it has no way to know whether a project plans to add its own provider. It cannot gate this safely, so it doesn't try.
+## Client-side usage
 
-The package's own default `export const auth` (used by the shipped `/login`, `/signup`, and `app/api/auth/[...all]/route.ts`) is built lazily via `createAuth()` with no overrides — so if *that* combination has nothing enabled, the throw fires the first time `auth` is actually used (not merely imported), which is exactly the "you didn't enable any built-in provider and didn't add your own" case.
+```tsx
+"use client"
+import { authClient, useSession } from "@/lib/auth-client"
 
-## Session Management
+const { data: session, isPending } = useSession()
 
-| Setting               | Value     | Description                                    |
-| --------------------- | --------- | ---------------------------------------------- |
-| `expiresIn`           | 30 days   | Session lifetime                               |
-| `updateAge`           | 24 hours  | How often session is refreshed in the database |
-| `cookieCache.enabled` | `true`    | Hybrid cookie caching for performance          |
-| `cookieCache.maxAge`  | 5 minutes | Cookie cache duration                          |
-
-Sessions are database-backed, meaning you can:
-
-- List all active sessions for a user
-- Revoke individual sessions
-- Track IP address and user agent per session
-
-The session revocation endpoint is at `POST /api/sessions/revoke`.
-
-## Server-Side Usage
-
-Access the current session in server components or API routes:
-
-```typescript
-import { auth } from "@/server/auth";
-import { headers } from "next/headers";
-
-const session = await auth.api.getSession({
-  headers: await headers(),
-});
-
-if (session) {
-  const { user } = session;
-  console.log(user.name, user.email, user.role);
-}
+await authClient.signIn.email({ email, password })
+await authClient.signIn.social({ provider: "google", callbackURL: "/dashboard" })
+await authClient.signIn.passkey()
+await authClient.signOut()
 ```
 
-### Auth Helper Functions
+The client has the admin, twoFactor and passkey plugins loaded, plus One Tap when it's enabled. So `authClient.admin.*`, `authClient.twoFactor.*` and `authClient.passkey.*` are available.
 
-The `lib/auth-helpers.ts` module provides convenience functions:
+<Callout type="info">
+If `signIn.email` returns `{ twoFactorRedirect: true }`, send the user to `/login/2fa`. `components/auth/emailPasswordLogin.tsx` already does this.
+</Callout>
 
-```typescript
-import { getCurrentSession, requireAuth, requireRole } from "@/lib/auth-helpers";
+## Roles
 
-// Get session (returns null if not authenticated)
-const session = await getCurrentSession();
+- `user` (default) or `admin`. The field has `input: false`, so users can't set it during sign-up.
+- Change roles from the admin dashboard. The API blocks changing your own role and demoting the last admin.
+- **First admin:** see [Quick Start](/#make-yourself-an-admin).
 
-// Require authentication (redirects to /login if not authenticated)
-const session = await requireAuth();
+## Hooks in `server/auth.ts`
 
-// Require a specific role (redirects if unauthorized)
-const session = await requireRole("admin");
-```
+Built-in behavior you might want to change. All of it is in `hooks.before`, `hooks.after` and `databaseHooks`:
 
-## Client-Side Usage
+- **Abuse throttle** on `/sign-in/email` and `/sign-up/email`. See [Security](/security#sign-in-throttle).
+- **Live provider kill-switch**: reads System Settings on every sign-in attempt.
+- **Account deletion guards**: blocks deletion while impersonating and blocks deleting the last admin.
+- **Login logging**: sets `lastLoginAt` and writes the activity row, including referrer and geo.
+- **Impersonation audit**: logs `impersonation_started` and `impersonation_stopped`.
+- **Passkey change emails**: sent on add or remove.
+- **OAuth double-callback recovery**: `onAPIError.errorURL = "/login"`, so a duplicate callback lands the user signed in instead of on an error page.
 
-The auth client is configured in `lib/auth-client.ts`:
+## Type extensions
 
-```typescript
-import { authClient, useSession } from "@/lib/auth-client";
-
-// In React components — get current session
-const { data: session, isPending } = useSession();
-
-// Sign in with email/password
-await authClient.signIn.email({
-  email: "user@example.com",
-  password: "password123",
-});
-
-// Sign in with Google
-await authClient.signIn.social({
-  provider: "google",
-  callbackURL: "/",
-});
-
-// Sign out
-await authClient.signOut();
-```
-
-## Role-Based Access Control
-
-Users have a `role` field with two possible values: `user` (default) and `admin`.
-
-- The `role` field has `input: false` in the Better-Auth config, preventing users from setting their own role
-- Roles can only be changed by administrators via the admin API
-- Server-side enforcement uses `requireRole("admin")` from `lib/auth-helpers.ts`
-- Admin routes are at `/dashboard/admin/users` and `/api/admin/users`
-
-## Proxy Protection
-
-The Next.js 16 Proxy (`proxy.ts`, formerly middleware) protects all `/dashboard/*` routes:
-
-1. Checks for `better-auth.session_token` cookie (and `__Secure-` variant)
-2. Redirects unauthenticated users to `/login?callbackUrl=<original-url>`
-
-This runs before any page rendering begins. The same file also enforces maintenance mode site-wide.
-
-## Custom Type Extensions
-
-The `better-auth.d.ts` file extends Better-Auth's default types:
-
-```typescript
-declare module "better-auth" {
-  interface User {
-    role: string;
-    isTwoFactorEnabled?: boolean;
-  }
-  interface Session {
-    user: User & {
-      /* full user fields */
-    };
-  }
-}
-```
-
-## API Route
-
-All Better-Auth endpoints are handled by a single catch-all route:
-
-```
-app/api/auth/[...all]/route.ts
-```
-
-This exposes endpoints like `/api/auth/sign-in/email`, `/api/auth/sign-in/social`, `/api/auth/sign-out`, `/api/auth/session`, and more.
-
-## Required Environment Variables
-
-| Variable                     | Description                                                    | Example                   |
-| ---------------------------- | -------------------------------------------------------------- | ------------------------- |
-| `AUTH_SECRET`                | Secret for signing cookies/tokens                              | `openssl rand -base64 32` |
-| `AUTH_GOOGLE_ID`             | Google OAuth client ID                                         | From Google Cloud Console |
-| `AUTH_GOOGLE_SECRET`         | Google OAuth client secret                                     | From Google Cloud Console |
-| `AUTH_ENABLE_GOOGLE`         | Disable Google login for this project (default `true`)         | `false`                   |
-| `AUTH_ENABLE_EMAIL_PASSWORD` | Disable email/password login for this project (default `true`) | `false`                   |
-| `BETTER_AUTH_URL`            | Base URL for auth callbacks                                    | `http://localhost:3000`   |
-| `NEXT_PUBLIC_APP_URL`        | Client-side base URL                                           | `http://localhost:3000`   |
+`better-auth.d.ts` adds `role` and `twoFactorEnabled` to the `User` type. If you add a field to `user.additionalFields`, add it there too.

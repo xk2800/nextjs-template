@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001 --turbopack",
-    "build": "next build",
+    "dev": "next dev -p 3001 --webpack",
+    "build": "next build --webpack && pagefind --site .next/server/app --output-path public/_pagefind",
     "start": "next start -p 3001",
     "postinstall": "node scripts/patch-nextra.mjs"
   },
@@ -13,14 +13,13 @@
     "nextra": "^4.6.0",
     "nextra-theme-docs": "^4.6.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "shiki": "^3.2.1"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.3.0",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
-    "postcss": "^8.5.15",
-    "tailwindcss": "^4.3.0",
+    "pagefind": "^1.5.2",
     "typescript": "^5.0.0"
   }
 }
