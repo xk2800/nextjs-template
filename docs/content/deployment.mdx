@@ -1,4 +1,4 @@
-import { Callout } from 'nextra/components'
+import { Callout } from "nextra/components";
 
 # Deployment
 
@@ -10,9 +10,18 @@ import { Callout } from 'nextra/components'
 - [ ] Migrations applied to the production database (see below).
 - [ ] The Google OAuth client has the production redirect URI: `https://your.app/api/auth/callback/google`.
 - [ ] `RESEND_API_KEY` set, a sending domain verified, and `EMAIL_FROM` set to an address on it.
-- [ ] `APP_NAME` set to your product name. It's what users see in authenticator apps.
+- [ ] `APP_NAME` set to your product name. It's what users see in authenticator apps and as the installed-app name.
+- [ ] `app/favicon.ico` replaced with your own (the installed-app icons are built from it), and the colors in `app/manifest.ts` set to your brand.
 - [ ] The first admin promoted (see [Quick Start](/#make-yourself-an-admin)).
 - [ ] Your reverse proxy forwards the client IP in `x-forwarded-for` or `x-real-ip`.
+
+## Installable app (PWA) <Badge>Beta</Badge>
+
+`app/manifest.ts` serves `/manifest.webmanifest` and Next.js links it from every page, so browsers offer **Install app** (Chrome and Edge on desktop and Android, and Add to Home Screen on iOS). It uses `APP_NAME` for the name and opens in a standalone window at `/`. It's your own code, so edit it freely.
+
+The 192px and 512px icons (`/icons/icon-192.png`, `/icons/icon-512.png`) are generated from `app/favicon.ico` at build time by `app/icons/[file]/route.tsx`. Replace the favicon and rebuild, and they follow. The favicon needs a PNG-encoded image inside it (most icon tools add one; use 256px or larger so the 512px icon stays sharp). An old BMP-only `.ico` fails the build with a message saying so. Both the name and the icons are fixed at build time, so changing `APP_NAME` also needs a rebuild.
+
+There's no service worker, so the app doesn't work offline. If you add one, don't cache `/api/auth/*` or `/dashboard`, or users can see stale or signed-out pages.
 
 ## Migrations
 
@@ -43,9 +52,7 @@ docker build \
 docker run -p 3000:3000 --env-file .env.production myapp
 ```
 
-<Callout type="warning">
-`NEXT_PUBLIC_*` values are baked into the client bundle at **build** time. The Dockerfile only passes `NEXT_PUBLIC_APP_URL` through as a build arg. If you use One Tap, a custom cookie-banner setting or `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, add matching `ARG`/`ENV` lines to the builder stage, or they'll silently fall back to their defaults.
-</Callout>
+<Callout type="warning">`NEXT_PUBLIC_*` values are baked into the client bundle at **build** time. The Dockerfile only passes `NEXT_PUBLIC_APP_URL` through as a build arg. If you use One Tap, a custom cookie-banner setting or `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, add matching `ARG`/`ENV` lines to the builder stage, or they'll silently fall back to their defaults.</Callout>
 
 All other (server) variables are read at runtime, so pass them with `docker run --env-file` or your host's env settings.
 

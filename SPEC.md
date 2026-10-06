@@ -100,6 +100,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 ### Public site
 - Landing page, features page (with copy-install button and scroll reveal), changelog page (+ changelog template), privacy policy, terms of service, maintenance page.
 - Site header/footer, logo, theme toggle (light/dark via `next-themes`).
+- Installable web app (Beta): `app/manifest.ts` (name from `APP_NAME`, 192/512px icons generated from `app/favicon.ico` at build time by `app/icons/[file]/route.tsx`, `display: standalone`). Manifest only, no service worker or offline support.
 - Cookie-consent banner (`components/site/cookie-banner.tsx`, state in `lib/cookie-consent.ts`): "Necessary only" / "Accept all", stored in the `cookie_consent` cookie for 1 year and reopened from the footer's "Cookie settings". The FingerprintJS device id and Google One Tap only run after "Accept all"; without it the sign-in throttle uses its per-IP cap. Off with `NEXT_PUBLIC_COOKIE_BANNER=false`, which treats consent as granted.
 
 ### Auth pages

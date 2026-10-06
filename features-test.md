@@ -342,6 +342,26 @@ Not covered by `bun run test`. Needs a browser.
 
 ---
 
+## Installable app (PWA manifest)
+
+`app/manifest.ts` + `app/icons/[file]/route.tsx` (icons generated from
+`app/favicon.ico`).
+
+Not covered by `bun run test`.
+
+1. `curl -s http://localhost:3000/manifest.webmanifest` returns JSON with
+   `name` equal to `APP_NAME` and both icons.
+   `/icons/icon-192.png` and `/icons/icon-512.png` are PNGs of that size
+   showing the favicon; `/icons/icon-64.png` is a 404. After replacing
+   `app/favicon.ico` and rebuilding, both icons show the new one.
+2. View source on `/`: there's a `<link rel="manifest" href="/manifest.webmanifest">`.
+3. Chrome → DevTools → Application → Manifest shows no errors, and the
+   address bar shows the install icon. Installing opens `/` in its own window.
+4. Turn on maintenance mode: `/manifest.webmanifest` and the icons still load
+   (the `proxy.ts` matcher skips paths with a file extension).
+
+---
+
 ## Delete account (self-serve)
 
 `components/dashboard/deleteAccountCard.tsx` (Settings → Danger zone) calls

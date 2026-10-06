@@ -23,7 +23,7 @@ All server-side env vars are validated with Zod in `config/env-schema.ts` and ex
 | `DATABASE_SSL` | `false` | `pg` driver only: connect with SSL. Turn it on for managed Postgres; leave it off for local or Docker Postgres. |
 | `NODE_ENV` | `development` | `development`, `production` or `test`. |
 | `PORT` | `3000` | Server port. |
-| `APP_NAME` | `Next.js Template` | Shown as the authenticator-app label (2FA issuer) and the passkey relying-party name. |
+| `APP_NAME` | `Next.js Template` | Shown as the authenticator-app label (2FA issuer), the passkey relying-party name and the installed-app name (`app/manifest.ts`). |
 
 ## Auth
 
