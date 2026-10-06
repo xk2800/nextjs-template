@@ -359,8 +359,14 @@ Not covered by `bun run test`.
    address bar shows the install icon. Installing opens `/` in its own window.
 4. Offline mode (production build only: `bun run build && bun run start`).
    Open `/`, then DevTools → Application → Service workers shows `sw.js`
-   activated. Network → Offline, then load `/features` or `/dashboard`: the
-   "You're offline" page appears. Switch back online: it reloads by itself.
+   activated. Visit `/features`, then Application → Cache storage →
+   `pages-v1` lists `/` and `/features`. Network → Offline:
+   - `/features` and `/` load the saved copy, fully styled, and clicking the
+     header's Features link works too.
+   - `/changelog` (not visited yet) and `/dashboard` show "You're offline".
+     Switch back online: it reloads by itself.
+   - While signed in, the saved `/` shows the signed-out header (copies are
+     fetched without cookies).
    Under `bun dev`, no worker is registered.
 5. Turn on maintenance mode: `/manifest.webmanifest` and the icons still load
    (the `proxy.ts` matcher skips paths with a file extension).

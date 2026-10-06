@@ -23,11 +23,24 @@ The 192px and 512px icons (`/icons/icon-192.png`, `/icons/icon-512.png`) are gen
 
 ### Offline mode
 
-In production builds, `app/layout.tsx` registers `public/sw.js`. If a page load fails because there's no network, the worker shows a built-in "You're offline" page instead of the browser's error screen. That page reloads by itself when the connection comes back. The worker caches nothing, so no signed-in pages or data stay on the device, and a deploy never serves an old page. API calls and assets go straight to the network.
+In production builds, `app/layout.tsx` registers `public/sw.js`. It does two things:
+
+- **Saved pages.** Pages listed in `OFFLINE_PAGES` at the top of `sw.js` are saved each time someone visits them, and the saved copy is shown when they're offline. A page only works offline after it has been visited once. By default the list is `/`, `/features`, `/changelog`, `/privacy` and `/terms`. Add or remove paths to change it.
+- **Offline page.** Any other page load that fails without a network shows a built-in "You're offline" page instead of the browser's error screen. It reloads by itself when the connection comes back.
+
+```js filename="public/sw.js"
+const OFFLINE_PAGES = ["/", "/features", "/changelog", "/privacy", "/terms"];
+```
+
+<Callout type="warning">
+Only list public pages. Never add `/dashboard` or `/api/*`. Saved copies are fetched without cookies (signed out), so a protected page would only save the login redirect anyway, but keep the list public so nothing personal ends up on a shared device.
+</Callout>
+
+Because copies are saved signed out, a signed-in visitor who goes offline sees the signed-out version of the page (for example, the header shows **Log in**). The worker also caches the `/_next/static` JS, CSS and font files those pages need. They're content-hashed, so they never go stale, and the cache keeps the newest 300. To clear every saved page and file, change `VERSION` in `sw.js`; the old caches are deleted the next time a visitor loads the site. Saving a page costs one extra signed-out request to your server per visit to a listed page. API calls and everything else go straight to the network.
 
 The worker isn't registered under `bun dev`. To test it, run `bun run build && bun run start`, open the site once, then go offline (DevTools → Network → Offline) and load any page.
 
-To try it under `bun dev` instead (handy when editing `sw.js`), register it by hand from the browser console: `navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })`. Tick "Update on reload" in DevTools → Application → Service Workers so edits are picked up, and click **Unregister** there when you're done, or the worker stays active on `localhost` for later dev sessions.
+To try it under `bun dev` instead (handy when editing `sw.js`), register it by hand from the browser console: `navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })`. Tick "Update on reload" in DevTools → Application → Service Workers so edits are picked up, and click **Unregister** there when you're done, or the worker stays active on `localhost` for later dev sessions. Dev JS files aren't always content-hashed, so the worker's asset cache can serve old code after you edit the app. Use **Clear site data** (Application → Storage) if the page looks out of date.
 
 To remove offline mode, delete `public/sw.js` and the `register-sw` script in `app/layout.tsx`. Visitors who already have the worker keep it until it's unregistered, so to switch it off for them, replace `sw.js` with one that calls `self.registration.unregister()`.
 
