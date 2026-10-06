@@ -21,7 +21,17 @@ import { Callout } from "nextra/components";
 
 The 192px and 512px icons (`/icons/icon-192.png`, `/icons/icon-512.png`) are generated from `app/favicon.ico` at build time by `app/icons/[file]/route.tsx`. Replace the favicon and rebuild, and they follow. The favicon needs a PNG-encoded image inside it (most icon tools add one; use 256px or larger so the 512px icon stays sharp). An old BMP-only `.ico` fails the build with a message saying so. Both the name and the icons are fixed at build time, so changing `APP_NAME` also needs a rebuild.
 
-There's no service worker, so the app doesn't work offline. If you add one, don't cache `/api/auth/*` or `/dashboard`, or users can see stale or signed-out pages.
+### Offline mode
+
+In production builds, `app/layout.tsx` registers `public/sw.js`. If a page load fails because there's no network, the worker shows a built-in "You're offline" page instead of the browser's error screen. That page reloads by itself when the connection comes back. The worker caches nothing, so no signed-in pages or data stay on the device, and a deploy never serves an old page. API calls and assets go straight to the network.
+
+The worker isn't registered under `bun dev`. To test it, run `bun run build && bun run start`, open the site once, then go offline (DevTools → Network → Offline) and load any page.
+
+To try it under `bun dev` instead (handy when editing `sw.js`), register it by hand from the browser console: `navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })`. Tick "Update on reload" in DevTools → Application → Service Workers so edits are picked up, and click **Unregister** there when you're done, or the worker stays active on `localhost` for later dev sessions.
+
+To remove offline mode, delete `public/sw.js` and the `register-sw` script in `app/layout.tsx`. Visitors who already have the worker keep it until it's unregistered, so to switch it off for them, replace `sw.js` with one that calls `self.registration.unregister()`.
+
+If you extend it to cache pages, only cache public ones. Never cache `/dashboard` or `/api/*`, or a signed-out user on a shared device can see the previous user's pages.
 
 ## Migrations
 

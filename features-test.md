@@ -345,7 +345,7 @@ Not covered by `bun run test`. Needs a browser.
 ## Installable app (PWA manifest)
 
 `app/manifest.ts` + `app/icons/[file]/route.tsx` (icons generated from
-`app/favicon.ico`).
+`app/favicon.ico`) + `public/sw.js` (offline page).
 
 Not covered by `bun run test`.
 
@@ -357,7 +357,12 @@ Not covered by `bun run test`.
 2. View source on `/`: there's a `<link rel="manifest" href="/manifest.webmanifest">`.
 3. Chrome → DevTools → Application → Manifest shows no errors, and the
    address bar shows the install icon. Installing opens `/` in its own window.
-4. Turn on maintenance mode: `/manifest.webmanifest` and the icons still load
+4. Offline mode (production build only: `bun run build && bun run start`).
+   Open `/`, then DevTools → Application → Service workers shows `sw.js`
+   activated. Network → Offline, then load `/features` or `/dashboard`: the
+   "You're offline" page appears. Switch back online: it reloads by itself.
+   Under `bun dev`, no worker is registered.
+5. Turn on maintenance mode: `/manifest.webmanifest` and the icons still load
    (the `proxy.ts` matcher skips paths with a file extension).
 
 ---

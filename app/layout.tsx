@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ModalProvider } from "@/components/Updates/modal-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
@@ -41,6 +42,12 @@ export default function RootLayout({
           <DeviceCheck />
           <CookieBanner />
         </ThemeProvider>
+        {/* Offline mode (public/sw.js). Skipped in dev so it can't get in the way of HMR. */}
+        {process.env.NODE_ENV === "production" && (
+          <Script id="register-sw" strategy="afterInteractive">
+            {`if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })`}
+          </Script>
+        )}
       </body>
     </html>
   );

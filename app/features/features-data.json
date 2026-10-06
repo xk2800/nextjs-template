@@ -73,7 +73,7 @@
         "Docker support out of the box",
         "A versioned changelog and an automated release script",
         "`bun run doctor` — one command checks runtime version, env validity, DB connectivity, and pending migrations, for a fast \"just cloned this\" sanity check",
-        "Installable as an app (Beta) — a web manifest named from APP_NAME, so browsers offer \"Install app\"; its icons are generated from your favicon"
+        "Installable as an app (Beta) — a web manifest named from APP_NAME, so browsers offer \"Install app\"; its icons are generated from your favicon, and losing the connection shows an offline page instead of the browser error"
       ]
     },
     {
