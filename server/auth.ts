@@ -16,8 +16,8 @@ import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/l
 import { MAX_IP } from "@/lib/auth-throttle-limits"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
 import { getResend, EMAIL_FROM } from "@/lib/resend"
-// Email templates are imported lazily where they're sent: they pull in
-// @react-email/components, an optional peer dep like resend.
+// Email templates are imported lazily where they're sent, so
+// @react-email/components only loads when an email goes out.
 
 type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so

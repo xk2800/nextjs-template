@@ -40,7 +40,7 @@ bun run <dev|build|start|generate|migrate|studio>:doppler   # same, secrets from
 - **DB:** `server/db/index.ts` uses `DB_DRIVER` (`pg` | `neon`) to pick the driver. Tables: `user`, `session`, `account`, `verification`, `twoFactor`, `passkey`, `activity_log`, `device_fingerprint`, `auth_throttle`, `system_settings`. The role column is named **`roles`** in SQL and `role` in TS.
 - **Env:** Zod schema in `config/env-schema.ts` (no guard, safe for scripts), parsed and `server-only` in `config/env.ts`. drizzle-kit and `scripts/*` must not import `config/env.ts` or `server/db`.
 - **Activity actions:** a new action goes in both `ActivityActionEnum` (`server/db/schema.ts`, needs a migration) and the `ActivityAction` union (`lib/activity-logger.ts`).
-- **Package constraints:** components under `components/` ship as raw `.tsx`. Files that ship must use **relative imports, not `@/`**. Server-only modules are tsup entries; anything new that ships must be added to `files`, `exports` (and `typesVersions` for dist entries).
+- **Package constraints:** components under `components/` ship as raw `.tsx`. Files that ship must use **relative imports, not `@/`**. Server-only modules are tsup entries; anything new that ships must be added to `files`, `exports` (and `typesVersions` for dist entries). A new import in shipped code needs a `dependencies` entry (or a required peer, if the app must share one copy) in the same commit; never an optional peer, because those aren't installed on upgrade.
 
 ## Workflow
 

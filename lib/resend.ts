@@ -6,8 +6,8 @@ import { config } from "@/config/env"
 // bundled auth, so a local edit here would never reach their auth emails.
 export const EMAIL_FROM = config.EMAIL_FROM
 
-// resend is an optional peer dep: loaded on first send so projects that never
-// send email don't need it installed.
+// Loaded on first send, so projects that never send email don't pay for it
+// at startup.
 let resend: Resend | undefined
 export async function getResend() {
   if (!resend) {

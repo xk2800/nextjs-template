@@ -2,9 +2,8 @@
 // cached for the page's lifetime — the library's get() isn't cheap and the
 // login form, signup form and deviceCheck.tsx all want the same value.
 //
-// @fingerprintjs/fingerprintjs is an optional peer dep: if it isn't installed
-// (or is blocked in the browser), this resolves to null and callers carry on
-// without a fingerprint.
+// If @fingerprintjs/fingerprintjs fails to load (e.g. it's blocked in the
+// browser), this resolves to null and callers carry on without a fingerprint.
 //
 // Also resolves to null until the visitor accepts optional cookies (see
 // lib/cookie-consent.ts) — not cached, so it starts working the moment they

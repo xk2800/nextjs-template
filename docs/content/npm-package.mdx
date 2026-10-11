@@ -18,17 +18,10 @@ The reusable parts of this template (auth, db schema, query helpers and UI) are 
 bun add @xk2800/nextjs-template
 ```
 
-**Required peers:** `next`, `react`, `react-dom`, the Radix packages (`@radix-ui/react-*`), `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react` and `react-icons`. A shadcn/ui project usually has all of these already.
+That one command is enough with Bun, npm or pnpm. Nothing the package imports has to be added by hand, on install or on a later upgrade:
 
-**Optional peers.** Install one only if you use the feature that needs it:
-
-| Package | Needed for |
-|---|---|
-| `next-themes` | `ThemeProvider`, `ThemeToggle` |
-| `sonner` | Toasts in dashboard cards (session revoke, delete account, …) |
-| `resend`, `@react-email/components` | Any email: reset, verification, alerts |
-| `@fingerprintjs/fingerprintjs` | New-device alerts and the per-device throttle. Without it, the throttle uses only its IP cap. |
-| `react-qr-code` | The 2FA setup QR code |
+- **Dependencies** come with the package: `resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs`, `react-qr-code` and the server libraries (Better-Auth, Drizzle, …).
+- **Peers** are shared with your app, so there's only one copy: `next`, `react`, `react-dom`, the Radix packages (`@radix-ui/react-*`), `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`, `next-themes` and `sonner`. Bun, npm and pnpm install any you're missing. Yarn classic (v1) doesn't, so add them yourself there.
 
 ### Transpile the package
 

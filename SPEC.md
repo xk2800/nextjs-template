@@ -14,14 +14,14 @@ Version `0.5.0` · A production-oriented Next.js starter/template that also publ
 | Styling | Tailwind CSS 4 + `tw-animate-css` |
 | Components | Shadcn/ui (Radix UI primitives, `class-variance-authority`, `clsx`, `tailwind-merge`) |
 | Icons | `lucide-react`, `react-icons` |
-| Theming | `next-themes` (light/dark toggle, optional peer dep) |
+| Theming | `next-themes` (light/dark toggle, peer dep) |
 | ORM | Drizzle ORM 0.45 + `drizzle-kit` |
 | Database | PostgreSQL — self-hosted `pg` driver for dev/Docker, `@neondatabase/serverless` for production (Neon), switchable via `DB_DRIVER` |
 | Auth | Better-Auth 1.3.34 (database-backed sessions, not JWT-only) |
 | Password hashing | bcrypt (10 rounds) |
 | ID generation | `@paralleldrive/cuid2` |
-| Email | Resend + `@react-email/components` (optional peer deps) |
-| Toasts | `sonner` (optional peer dep) |
+| Email | Resend + `@react-email/components` (dependencies of the package) |
+| Toasts | `sonner` (peer dep) |
 | Device/geo parsing | `ua-parser-js`, `geoip-lite` |
 | Validation | Zod 4 |
 | Runtime / package manager | Bun (dev/scripts), Node.js runtime in production |
@@ -156,7 +156,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Publishes reusable auth/db/UI/query-helper modules to the npm registry as `@xk2800/nextjs-template`.
 - Selective `exports` map lets consumers import just what they need (`/auth`, `/auth-client`, `/db`, `/db/schema`, `/admin/queries`, `/sessions/queries`, `/users/queries`, `/activity/logger`, `/activity/queries`, `/settings/queries`, `/components/*`, `/lib/*`, `/styles/theme.css`).
 - UI components ship as raw `.tsx` (not pre-compiled) so `'use client'` boundaries survive — consumers add the package to `transpilePackages`.
-- Peer-dependency model keeps `next-themes`, `sonner`, and `@react-email/components`/`resend` optional, only required if those specific features are used.
+- No optional peers: everything the shipped code imports is either a dependency of the package (`resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs`, `react-qr-code`) or a required peer shared with the app (`next-themes`, `sonner`, React, Radix, …), so installs and upgrades never need a manual `bun add`.
 - Documented extension points: adding a social provider without forking (`createAuth({ socialProviders })`), disabling built-in providers via env flags, enabling One Tap.
 
 ### Ops / deployment

@@ -15,7 +15,7 @@ This repo doubles as a **public npm library** published to the **public npm regi
 | Publish whitelist   | `package.json` → `"files"`                                               | Only `dist/`, the component folders, 3 `lib/` files, `styles/theme.css`, and the README go into the tarball. The app itself (`app/`, `docs/`, configs, migrations) is never published.                                             |
 | Theme tokens        | `styles/theme.css`                                                       | A standalone copy of the shadcn theme variables (`--background`, `--primary`, oklch colors, dark mode) for consumers to import.                                                                                                    |
 | Pre-publish safety  | `"prepublishOnly"` script                                                | Automatically runs typecheck + `tsup` build before every publish, so you can't publish a stale or broken `dist/`.                                                                                                                  |
-| Peer dependencies   | `package.json` → `"peerDependencies"`                                    | React, Next, Radix, clsx, etc. are peers so the consumer's versions are used (no duplicate React). `next-themes`, `sonner`, `@react-email/components` are optional — only needed if you use the components that import them.       |
+| Peer dependencies   | `package.json` → `"peerDependencies"`                                    | React, Next, Radix, clsx, etc. are peers so the consumer's versions are used (no duplicate React). None are optional: package managers never install optional peers, so a new one would break upgrades. Anything the shipped code imports goes in `dependencies` (or here, if the app must share one copy, like `next-themes` and `sonner`) in the same commit.       |
 
 ---
 
@@ -96,13 +96,7 @@ Assumes a Next.js 15/16 + Tailwind 4 app (e.g. `bunx create-next-app@latest`).
 bun add @xk2800/nextjs-template
 ```
 
-No `.npmrc`, no token, no GitHub account needed — it's a normal public npm install. Bun/npm auto-install the required peer dependencies (Radix, clsx, tailwind-merge, lucide-react, …). **Yarn classic (v1) does not** — if yarn ever runs an install in the project it will _remove_ auto-installed peers; stick to one package manager per project (see Troubleshooting). Add the **optional** peers only if you use the components that need them:
-
-```bash
-bun add next-themes   # if using components/providers/theme-provider or components/theme/theme-toggle
-bun add sonner        # if using components/dashboard/sessionsCard
-bun add @react-email/components resend   # if using components/email/*
-```
+No `.npmrc`, no token, no GitHub account needed — it's a normal public npm install. Bun/npm auto-install the required peer dependencies (Radix, clsx, tailwind-merge, lucide-react, …). **Yarn classic (v1) does not** — if yarn ever runs an install in the project it will _remove_ auto-installed peers; stick to one package manager per project (see Troubleshooting). `resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs` and `react-qr-code` are regular dependencies, so they come with the package.
 
 ### Step 2 — `next.config.ts`: transpile the package
 
