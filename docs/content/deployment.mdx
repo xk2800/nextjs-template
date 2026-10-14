@@ -21,6 +21,25 @@ import { Callout } from "nextra/components";
 
 The 192px and 512px icons (`/icons/icon-192.png`, `/icons/icon-512.png`) are generated from `app/favicon.ico` at build time by `app/icons/[file]/route.tsx`. Replace the favicon and rebuild, and they follow. The favicon needs a PNG-encoded image inside it (most icon tools add one; use 256px or larger so the 512px icon stays sharp). An old BMP-only `.ico` fails the build with a message saying so. Both the name and the icons are fixed at build time, so changing `APP_NAME` also needs a rebuild.
 
+### Install instructions
+
+**Settings → This device** shows `InstallAppCard` (`components/dashboard/installAppCard.tsx`). It reads the visitor's OS and browser and shows only the steps for that combination:
+
+| Detected | What it shows |
+|---|---|
+| iPhone / iPad, any browser | **Share** → **Add to Home Screen** → **Add**. iOS has no install button, so these steps are the only way. |
+| Android: Chrome, Edge, Firefox, others | **⋮** menu → **Install app** / **Add to Home screen** |
+| Android: Samsung Internet | **☰** menu → **Add page to** → **Home screen** |
+| Desktop: Chrome or Edge | The install icon in the address bar, or the browser menu |
+| Mac: Safari | **File** → **Add to Dock** (macOS Sonoma or later) |
+| Desktop: Firefox and others | A note that the browser can't install apps, with which browsers can |
+
+Where the browser offers one-click install (Chrome and Edge, on Android and desktop), an **Install app** button appears above the steps. The `app/layout.tsx` script keeps the browser's install event so the button still works after moving between pages. Once the app runs installed, the card shows a confirmation instead. Detection lives in the exported `detectInstallTarget()` (tested in `lib/install-target.test.ts`); the card renders after page load because the server can't see the visitor's device.
+
+<Callout type="info">
+Projects created before this card existed get the component when they update the package, but not the settings section or the layout script, because those are your own files. Add `<InstallAppCard />` to `app/dashboard/settings/page.tsx`, and add `addEventListener("beforeinstallprompt", (e) => { window.__pwaInstallPrompt = e })` to the `register-sw` script in `app/layout.tsx`. Without that line the button still appears, but only when the event fires while the settings page is open.
+</Callout>
+
 ### Offline mode
 
 In production builds, `app/layout.tsx` registers `public/sw.js`. It does two things:

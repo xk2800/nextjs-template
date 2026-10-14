@@ -42,10 +42,11 @@ export default function RootLayout({
           <DeviceCheck />
           <CookieBanner />
         </ThemeProvider>
-        {/* Offline mode (public/sw.js). Skipped in dev so it can't get in the way of HMR. */}
+        {/* Offline mode (public/sw.js), and keeps the install prompt for InstallAppCard. Skipped in dev so it can't get in the way of HMR. */}
         {process.env.NODE_ENV === "production" && (
           <Script id="register-sw" strategy="afterInteractive">
-            {`if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })`}
+            {`if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
+addEventListener("beforeinstallprompt", (e) => { window.__pwaInstallPrompt = e })`}
           </Script>
         )}
       </body>

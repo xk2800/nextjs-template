@@ -345,7 +345,8 @@ Not covered by `bun run test`. Needs a browser.
 ## Installable app (PWA manifest)
 
 `app/manifest.ts` + `app/icons/[file]/route.tsx` (icons generated from
-`app/favicon.ico`) + `public/sw.js` (offline page).
+`app/favicon.ico`) + `public/sw.js` (offline page) +
+`components/dashboard/installAppCard.tsx` (Settings → This device).
 
 Not covered by `bun run test`.
 
@@ -371,6 +372,15 @@ Not covered by `bun run test`.
 5. Turn on maintenance mode: `/manifest.webmanifest` and the icons still load
    (the `proxy.ts` matcher skips paths with a file extension).
 
+6. Install card: Settings → **This device**. `bun lib/install-target.test.ts`
+   covers detection. In the browser, DevTools device mode (or a different UA)
+   changes what it shows: "Safari on iPhone / iPad" with 3 Share steps;
+   "Samsung Internet on Android" with the ☰ menu; "Chrome on this computer"
+   with the address-bar install icon; desktop Firefox says it can't install.
+   In a production build in Chrome or Edge, an **Install app** button appears
+   (also after reaching Settings via a client-side link). Installing, then
+   opening Settings in the installed app, shows "You're using the installed
+   app on this device." instead of the steps.
 ---
 
 ## Delete account (self-serve)
