@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.8.0-beta.1",
+    "date": "2026-10-14",
+    "type": "beta",
+    "title": "feat: add installable app functionality with user-specific installation instructions and update documentation",
+    "changes": [
+      "feat: add installable app functionality with user-specific installation instructions and update documentation",
+      "feat: update package dependencies and clarify peer dependency requirements in documentation",
+      "feat: enhance offline mode functionality and documentation",
+      "feat: implement offline mode with service worker and custom offline page",
+      "feat: add PWA support with installable app manifest and icons"
+    ]
+  },
+  {
     "version": "0.8.0-beta.0",
     "date": "2026-10-6",
     "type": "beta",
