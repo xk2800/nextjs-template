@@ -69,7 +69,7 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationData | null>(initialPagination)
   const [actionUserId, setActionUserId] = useState<string | null>(null)
-  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | 'impersonate' | null>(null)
+  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | 'tester' | 'untester' | 'impersonate' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -228,6 +228,22 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
             body: JSON.stringify({ role: 'user' }),
           })
           successMessage = 'Admin access removed'
+          break
+        case 'tester':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'tester' }),
+          })
+          successMessage = 'User marked as tester'
+          break
+        case 'untester':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'user' }),
+          })
+          successMessage = 'Tester role removed'
           break
       }
 
@@ -426,7 +442,7 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                   title: 'Actions',
                   minWidth: 340,
                   renderer: (user) => (
-                    <div className="space-x-2 text-right">
+                    <div className="flex flex-wrap justify-end gap-2">
                       <Button
                         variant="outline"
                         size="sm"
@@ -460,6 +476,18 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                           }}
                         >
                           Make Admin
+                        </Button>
+                      )}
+                      {user.role !== 'admin' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType(user.role === 'tester' ? 'untester' : 'tester')
+                          }}
+                        >
+                          {user.role === 'tester' ? 'Remove Tester' : 'Make Tester'}
                         </Button>
                       )}
                       {user.banned ? (
@@ -530,6 +558,8 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               {actionType === 'unban' && 'Unban User?'}
               {actionType === 'promote' && 'Promote to Admin?'}
               {actionType === 'demote' && 'Remove Admin Access?'}
+              {actionType === 'tester' && 'Make Tester?'}
+              {actionType === 'untester' && 'Remove Tester Role?'}
               {actionType === 'impersonate' && 'Impersonate User?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -540,6 +570,10 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               {actionType === 'unban' && 'This will restore the user access.'}
               {actionType === 'promote' &&
                 'This will grant the user full admin dashboard access.'}
+              {actionType === 'tester' &&
+                'Marks this account as a test account. It gets no admin access.'}
+              {actionType === 'untester' &&
+                'Turns this test account back into a regular user.'}
               {actionType === 'demote' &&
                 "This will revoke the user's admin dashboard access."}
               {actionType === 'impersonate' &&

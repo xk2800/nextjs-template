@@ -66,7 +66,7 @@ export async function PATCH(
     }
 
     // Prevent demoting the last remaining admin
-    if (oldRole === 'admin' && role === 'user') {
+    if (oldRole === 'admin' && role !== 'admin') {
       const admins = await db
         .select()
         .from(users)

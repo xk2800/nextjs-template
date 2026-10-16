@@ -3,7 +3,9 @@ import { sql } from "drizzle-orm";
 import { createId } from '@paralleldrive/cuid2'
 import { DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "../../lib/maintenance";
 
-export const RoleEnum = pgEnum('roles', ['user', 'admin'])
+// 'tester' is a regular user account flagged for testing; apps can use it to
+// keep test accounts apart from real users. It has no admin access.
+export const RoleEnum = pgEnum('roles', ['user', 'admin', 'tester'])
 
 export const ActivityActionEnum = pgEnum('activity_actions', [
   'login',

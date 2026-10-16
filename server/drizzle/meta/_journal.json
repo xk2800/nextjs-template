@@ -120,6 +120,13 @@
       "when": 1790695850402,
       "tag": "0016_spooky_vector",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792174751731,
+      "tag": "0017_add_tester_role",
+      "breakpoints": true
     }
   ]
 }
