@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.8.0-beta.2",
+    "date": "2026-10-17",
+    "type": "beta",
+    "title": "Add Storybook stories for various components",
+    "changes": [
+      "Add Storybook stories for various components",
+      "feat: add 'tester' role and update user role management functionality"
+    ]
+  },
+  {
     "version": "0.8.0-beta.1",
     "date": "2026-10-14",
     "type": "beta",
