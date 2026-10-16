@@ -93,6 +93,7 @@ Peer dependencies, the full import list, migrations, adding providers and One Ta
 | `bun run migrate:dev` / `:prod` / `:test` | Apply migrations |
 | `bun run studio:dev` | Drizzle Studio |
 | `bun run test` | Unit tests |
+| `bun run storybook` | Storybook for every component (mock data, no DB needed) |
 | `bun run *:doppler` | Any of the above with secrets from Doppler |
 
 **Working on the template itself:** clone this repo, copy `.env.development.example` to `.env.development`, then run `bun install`. Publishing steps are in [PUBLISHING.md](PUBLISHING.md).

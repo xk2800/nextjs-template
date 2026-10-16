@@ -52,3 +52,7 @@ next-env.d.ts
 
 # library build output (npm package)
 /dist
+
+# storybook
+/storybook-static
+*storybook.log

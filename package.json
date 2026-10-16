@@ -186,6 +186,8 @@
     "lint": "next lint",
     "test": "bun lib/recalculate-columns.test.ts && bun lib/auth-throttle-limits.test.ts && bun lib/shared-devices.test.ts && bun lib/maintenance.test.ts && bun lib/install-target.test.ts && bun scripts/bump-version.test.ts",
     "build:lib": "tsup",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
     "doctor": "bun --env-file=.env.development scripts/doctor.ts",
     "prepublishOnly": "bun run typecheck && bun run build:lib",
@@ -251,6 +253,8 @@
     "@radix-ui/react-label": "^2.1.8",
     "@radix-ui/react-separator": "^1.1.8",
     "@radix-ui/react-slot": "^1.2.4",
+    "@storybook/addon-docs": "10.6.2",
+    "@storybook/nextjs-vite": "10.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
     "@types/geoip-lite": "^1.4.4",
@@ -274,11 +278,13 @@
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
     "sonner": "^2.0.7",
+    "storybook": "10.6.2",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4",
     "tsup": "^8.5.1",
     "tsx": "^4.19.4",
     "tw-animate-css": "^1.3.6",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4"
   }
 }

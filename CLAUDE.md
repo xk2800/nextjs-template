@@ -21,6 +21,7 @@ A Next.js 16 template with Better-Auth, Drizzle ORM and PostgreSQL, plus an admi
 bun dev                          # dev server
 bun run doctor                   # env + DB connection + pending-migration check
 bun run test                     # unit tests for pure logic (lib/*.test.ts, scripts/*.test.ts)
+bun run storybook                # Storybook on :6006; stories in stories/ (not components/, which ships), DB/auth mocked in .storybook/mocks.ts
 bun run typecheck                # tsc against tsconfig.build.json (package files)
 bun run generate                 # drizzle migration from server/db/schema.ts
 bun run migrate:dev|prod|test    # apply migrations with .env.development|production|test
