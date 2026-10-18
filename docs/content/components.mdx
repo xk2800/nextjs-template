@@ -49,6 +49,7 @@ These are presentational components. Fetch data with the query helpers in a serv
 | `activityLogsCard` / `activityLogsSection` | Personal activity |
 | `twoFactorCard`, `passkeysCard`, `deleteAccountCard` | Settings → Security and Danger zone |
 | `installAppCard` | Settings → This device. Install steps for the visitor's own OS and browser, an **Install app** button where the browser supports it, and a confirmation once it runs installed. See [Installable app](/deployment#installable-app-pwa-beta). |
+| `feedbackDialog` (Beta) | **Feedback** button in the dashboard header. It opens a bug report / general feedback form that posts to `/api/feedback`. The layout renders it only when a destination is configured. See [Feedback](/configuration#feedback-beta). |
 | `impersonationBanner`, `heartbeat` | App-wide helpers |
 | `sectionErrorFallback`, `*Skeleton` | Error boundary fallback and loading states |
 | `admin/*` | Admin stats, users table, user detail cards, device cards, settings form |

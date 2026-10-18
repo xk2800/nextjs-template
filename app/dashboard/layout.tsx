@@ -5,6 +5,8 @@ import { Separator } from "@/components/ui/separator"
 import { ThemeToggle } from "@/components/theme/theme-toggle"
 import Heartbeat from "@/components/dashboard/heartbeat"
 import ImpersonationBanner from "@/components/dashboard/impersonationBanner"
+import FeedbackDialog from "@/components/dashboard/feedbackDialog"
+import { config } from "@/config/env"
 
 // Every route under /dashboard is session-gated and reads live, per-user
 // data (auth, activity logs, system settings) — none of it is ever safe to
@@ -40,6 +42,7 @@ export default async function DashboardLayout({
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <div className="flex-1" />
+          {(config.FEEDBACK_DISCORD_WEBHOOK_URL || config.FEEDBACK_EMAIL) && <FeedbackDialog />}
           <ThemeToggle />
         </header>
 

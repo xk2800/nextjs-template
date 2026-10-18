@@ -426,3 +426,35 @@ browser:
 - As an admin: `/dashboard/*` works normally.
 - Add `/signup` to the list and save → `/signup` opens within **~10s** (the
   proxy has its own settings cache, so the save can't invalidate it instantly).
+
+---
+
+## Feedback form (Discord webhook / email)
+
+Route: `app/api/feedback/route.ts`. UI: `components/dashboard/feedbackDialog.tsx`
+in the dashboard header.
+
+### Setup
+
+In Discord, open *Channel settings → Integrations → Webhooks → New Webhook* and
+copy its URL. Add it to `.env.development` and restart `bun dev`:
+
+```bash
+FEEDBACK_DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+# and/or
+FEEDBACK_EMAIL=you@example.com   # needs RESEND_API_KEY + a verified EMAIL_FROM
+```
+
+### Manual
+
+1. With neither var set, the dashboard header has **no** Feedback button.
+   `POST /api/feedback` returns **503**.
+2. With a var set, open **Feedback**, pick *Bug report*, type `@everyone test` and send.
+   You get the toast "Thanks!". In Discord, a red embed appears with the user, page and
+   user agent, and **nobody is pinged**.
+3. Send again within 30s → toast "Please wait a moment…" (**429**).
+4. Logged out: `curl -i -X POST localhost:3000/api/feedback -H 'content-type: application/json' -d '{"type":"bug","message":"x"}'` → **401**.
+5. Set the webhook URL to a bad one (e.g. delete the webhook in Discord) and send. You get
+   the toast "Failed to send feedback" (**502**), and you can retry right away (the
+   cooldown isn't used up).
+6. Email: the message arrives at `FEEDBACK_EMAIL`. Replying goes to the user.

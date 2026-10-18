@@ -25,6 +25,7 @@ During maintenance, non-exempt routes return `503` to non-admins.
 | `/api/activity-logs` | GET | `?limit=50&offset=0` | Your activity. Admins get every user's activity. |
 | `/api/heartbeat` | POST | — | Updates `user.lastActiveAt`. Called by `<Heartbeat />` in the dashboard layout. |
 | `/api/device-check` | POST | `{ visitorId }` | Records the device and sends a new-device alert the first time it's seen. Called by `<DeviceCheck />`. |
+| `/api/feedback` | POST | `{ type: "bug" \| "feedback", message, page? }` | Sends a message (1–2000 chars) to `FEEDBACK_DISCORD_WEBHOOK_URL` and/or `FEEDBACK_EMAIL`. Returns `503` if neither is set, `429` if the user sent one in the last 30s, and `502` if every destination failed. See [Feedback](/configuration#feedback-beta). |
 | `/api/send` | POST | `{ template?: "1" \| "2" \| "welcome" }` | Demo: emails a sample template to the signed-in user. |
 
 ## Admin (role `admin`)

@@ -116,6 +116,8 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Client-side heartbeat to keep `lastActiveAt` fresh.
 - Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys, plus a **Danger zone** with self-serve account deletion (Better-Auth `deleteUser`: password confirm for credential users, fresh session (<24h) for OAuth-only; blocked while impersonating and for the last admin; all user rows cascade).
 
+- Feedback button (Beta) in the dashboard header (`components/dashboard/feedbackDialog.tsx`, shown only when `FEEDBACK_DISCORD_WEBHOOK_URL` or `FEEDBACK_EMAIL` is set): a bug report / general feedback dialog that posts to `/api/feedback`. The route needs a session, validates the message (1–2000 chars) and limits each user to one message per 30s (in memory, per instance). It delivers to a Discord webhook (an embed with mentions disabled) and/or Resend email (Reply-To is the user). Nothing is stored. It succeeds if any destination succeeds.
+
 ### Maintenance mode
 - Enforced in `proxy.ts` for every page and API route except the admin-editable exempt list (`system_settings.maintenanceExemptPaths`, default: `/`, `/features`, `/changelog`, `/changelog-template`, `/privacy`, `/terms`). Blocked pages redirect to `/maintenance`; blocked API routes return `503`.
 - Always open regardless (`lib/maintenance.ts`): `/maintenance`, `/login`, `/forgot-password`, `/reset-password`, `/api/auth`, `/api/settings/public` — so admins can always sign in to turn it off.
