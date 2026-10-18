@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.8.0-beta.3",
+    "date": "2026-10-18",
+    "type": "beta",
+    "title": "feat: add feedback form to dashboard with Discord and email integration",
+    "changes": [
+      "feat: add feedback form to dashboard with Discord and email integration",
+      "feat: add Dockerfile for Storybook static build and nginx serving"
+    ]
+  },
+  {
     "version": "0.8.0-beta.2",
     "date": "2026-10-17",
     "type": "beta",
