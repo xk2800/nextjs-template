@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.8.0-beta.4",
+    "date": "2026-10-18",
+    "type": "beta",
+    "title": "feat: implement feedback API route with Discord and email integration",
+    "changes": [
+      "feat: implement feedback API route with Discord and email integration"
+    ]
+  },
+  {
     "version": "0.8.0-beta.3",
     "date": "2026-10-18",
     "type": "beta",
