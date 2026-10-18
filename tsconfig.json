@@ -38,6 +38,9 @@
   ],
   "exclude": [
     "node_modules",
-    "docs"
+    "docs",
+    "stories",
+    ".storybook",
+    "storybook-static"
   ]
 }

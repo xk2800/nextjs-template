@@ -112,6 +112,7 @@ export const mockSettings = {
   authEnableEmailPassword: true,
   authEnableOneTap: false,
   enableSessionRevocation: true,
+  feedbackAttachErrors: true,
   updatedAt: ago(60),
   updatedBy: null as string | null,
 }
