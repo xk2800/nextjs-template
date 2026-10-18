@@ -16,6 +16,7 @@ export default defineConfig({
     "admin/queries": "lib/admin-queries.ts",
     "users/queries": "lib/user-queries.ts",
     "settings/queries": "lib/settings-queries.ts",
+    "api/feedback": "lib/feedback-route.ts",
   },
   format: ["cjs", "esm"],
   dts: true,

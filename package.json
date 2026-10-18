@@ -19,6 +19,8 @@
     "./dist/auth/index.mjs",
     "./dist/activity/logger.js",
     "./dist/activity/logger.mjs",
+    "./dist/api/feedback.js",
+    "./dist/api/feedback.mjs",
     "./dist/activity/queries.js",
     "./dist/activity/queries.mjs",
     "./dist/sessions/queries.js",
@@ -100,6 +102,11 @@
       "import": "./dist/activity/logger.mjs",
       "require": "./dist/activity/logger.js"
     },
+    "./api/feedback": {
+      "types": "./dist/api/feedback.d.ts",
+      "import": "./dist/api/feedback.mjs",
+      "require": "./dist/api/feedback.js"
+    },
     "./activity/queries": {
       "types": "./dist/activity/queries.d.ts",
       "import": "./dist/activity/queries.mjs",
@@ -161,6 +168,9 @@
       ],
       "activity/logger": [
         "dist/activity/logger.d.ts"
+      ],
+      "api/feedback": [
+        "dist/api/feedback.d.ts"
       ],
       "activity/queries": [
         "dist/activity/queries.d.ts"
