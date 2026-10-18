@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.8.0-beta.6",
+    "date": "2026-10-18",
+    "type": "beta",
+    "title": "feat: add new database schema for user authentication and activity logging",
+    "changes": [
+      "feat: add new database schema for user authentication and activity logging"
+    ]
+  },
+  {
     "version": "0.8.0-beta.5",
     "date": "2026-10-18",
     "type": "beta",
