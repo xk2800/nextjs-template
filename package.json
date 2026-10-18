@@ -102,6 +102,11 @@
       "import": "./dist/activity/logger.mjs",
       "require": "./dist/activity/logger.js"
     },
+    "./errors": {
+      "types": "./dist/errors.d.ts",
+      "import": "./dist/errors.mjs",
+      "require": "./dist/errors.js"
+    },
     "./api/feedback": {
       "types": "./dist/api/feedback.d.ts",
       "import": "./dist/api/feedback.mjs",
@@ -168,6 +173,9 @@
       ],
       "activity/logger": [
         "dist/activity/logger.d.ts"
+      ],
+      "errors": [
+        "dist/errors.d.ts"
       ],
       "api/feedback": [
         "dist/api/feedback.d.ts"

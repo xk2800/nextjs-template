@@ -3,6 +3,7 @@ import { auth } from "@/server/auth"
 import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth-helpers"
 import { getUsersFiltered } from "@/lib/user-queries"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -36,9 +37,8 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Error fetching users:', error)
     return NextResponse.json(
-      { error: "Failed to fetch users" },
+      { error: unexpectedErrorMessage(error, "Failed to fetch users") },
       { status: 500 }
     )
   }

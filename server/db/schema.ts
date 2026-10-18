@@ -1,4 +1,4 @@
-import { boolean, check, integer, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createId } from '@paralleldrive/cuid2'
 import { DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "../../lib/maintenance";
@@ -211,6 +211,9 @@ export const systemSettings = pgTable("system_settings", {
   authEnableEmailPassword: boolean("authEnableEmailPassword").notNull().default(true),
   authEnableOneTap: boolean("authEnableOneTap").notNull().default(false),
   enableSessionRevocation: boolean("enableSessionRevocation").notNull().default(true),
+  // Attach the error a user hit to feedback they send from it (see
+  // lib/feedback-route.ts). Off = only what the user typed is sent.
+  feedbackAttachErrors: boolean("feedbackAttachErrors").notNull().default(true),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   // Who last changed a setting. This row doesn't "belong" to that admin the
   // way sessions/activityLogs belong to their user, so deleting that admin's
@@ -218,4 +221,16 @@ export const systemSettings = pgTable("system_settings", {
   updatedBy: text("updatedBy").references(() => users.id, { onDelete: "set null" }),
 }, (table) => [
   check("system_settings_singleton", sql`${table.id} = 'default'`),
+]);
+// Technical detail of unexpected errors, keyed by the short ref the user sees
+// ("... (ref: K7Q2PX)", see lib/errors.ts). Never sent to the browser: the
+// feedback route looks a ref up and attaches the detail to the report it
+// sends to Discord/email. Rows older than 30 days are pruned on insert.
+export const errorRefs = pgTable("error_refs", {
+  ref: text("ref").primaryKey(),
+  message: text("message").notNull(),
+  detail: text("detail").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => [
+  index("error_refs_created_at_idx").on(table.createdAt),
 ]);

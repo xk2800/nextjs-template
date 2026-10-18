@@ -4,6 +4,7 @@ import { EmailTemplateWelcome } from '@/components/email/email-template-welcome'
 import { getResend, EMAIL_FROM } from '@/lib/resend';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
+import { unexpectedErrorMessage } from '@/lib/errors';
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({
@@ -37,18 +38,18 @@ export async function POST(request: Request) {
     });
 
     if (error) {
-      console.error('Resend API error:', error);
-      return Response.json({ error }, { status: 500 });
+      return Response.json(
+        { error: { message: unexpectedErrorMessage(error, 'Failed to send email') } },
+        { status: 500 }
+      );
     }
 
     console.log('Email sent successfully:', data);
     return Response.json(data);
   } catch (error) {
-    console.error('Failed to send email:', error);
-    return Response.json({
-      error: {
-        message: error instanceof Error ? error.message : 'Unknown error occurred'
-      }
-    }, { status: 500 });
+    return Response.json(
+      { error: { message: unexpectedErrorMessage(error, 'Failed to send email') } },
+      { status: 500 }
+    );
   }
 }

@@ -29,6 +29,11 @@ export type FeedbackDialogProps = {
   /** Pre-filled each time the dialog opens, e.g. the error the user just hit. */
   defaultType?: FeedbackType
   defaultMessage?: string
+  /**
+   * The error the user hit, sent alongside their message (not editable). The
+   * server only forwards it when "Attach error details" is on in System Settings.
+   */
+  errorDetails?: string
   /** Render the "Feedback" header button. Default `true`. */
   showTrigger?: boolean
 }
@@ -43,6 +48,7 @@ export default function FeedbackDialog({
   onOpenChange,
   defaultType = "feedback",
   defaultMessage = "",
+  errorDetails,
   showTrigger = true,
 }: FeedbackDialogProps = {}) {
   const pathname = usePathname()
@@ -75,7 +81,7 @@ export default function FeedbackDialog({
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ type, message, page: pathname }),
+        body: JSON.stringify({ type, message, page: pathname, error: errorDetails }),
       })
       const data = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(data.error || "Failed to send feedback")

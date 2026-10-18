@@ -6,6 +6,7 @@ import { ThemeToggle } from "@/components/theme/theme-toggle"
 import Heartbeat from "@/components/dashboard/heartbeat"
 import ImpersonationBanner from "@/components/dashboard/impersonationBanner"
 import FeedbackDialog from "@/components/dashboard/feedbackDialog"
+import { ErrorFeedbackHost } from "@/components/dashboard/errorFeedback"
 import { config } from "@/config/env"
 
 // Every route under /dashboard is session-gated and reads live, per-user
@@ -38,6 +39,7 @@ export default async function DashboardLayout({
       <SidebarInset>
         <Heartbeat />
         <ImpersonationBanner />
+        {(config.FEEDBACK_DISCORD_WEBHOOK_URL || config.FEEDBACK_EMAIL) && <ErrorFeedbackHost />}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />

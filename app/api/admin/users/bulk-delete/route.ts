@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
 import { eq, inArray } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function DELETE(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -84,9 +85,8 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true, count: targetUsers.length })
   } catch (error) {
-    console.error('Error bulk deleting users:', error)
     return NextResponse.json(
-      { error: "Failed to delete users" },
+      { error: unexpectedErrorMessage(error, "Failed to delete users") },
       { status: 500 }
     )
   }

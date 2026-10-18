@@ -9,6 +9,7 @@ import { Label } from "../../ui/label"
 import { Textarea } from "../../ui/textarea"
 import { Button } from "../../ui/button"
 import type { SystemSettings } from "@xk2800/nextjs-template/settings/queries"
+import FeedbackTestForm from "./feedbackTestForm"
 import { ALWAYS_OPEN_PATHS, DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "../../../lib/maintenance"
 
 interface ConfiguredAuthFlags {
@@ -50,6 +51,7 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
           authEnableEmailPassword: settings.authEnableEmailPassword,
           authEnableOneTap: settings.authEnableOneTap,
           enableSessionRevocation: settings.enableSessionRevocation,
+          feedbackAttachErrors: settings.feedbackAttachErrors,
         }),
       })
 
@@ -156,6 +158,32 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
               At least one sign-in method must stay enabled, or nobody will be able to sign in.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Feedback</CardTitle>
+          <CardDescription>
+            Applies when FEEDBACK_DISCORD_WEBHOOK_URL or FEEDBACK_EMAIL is set
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label htmlFor="feedback-errors-toggle">Attach error details</Label>
+              <p className="text-sm text-gray-500">
+                When a user reports a problem from an error, send the error message with their
+                report, even if they edit it out of the text
+              </p>
+            </div>
+            <Switch
+              id="feedback-errors-toggle"
+              checked={settings.feedbackAttachErrors}
+              onCheckedChange={(checked) => setSettings({ ...settings, feedbackAttachErrors: checked })}
+            />
+          </div>
+          {process.env.NODE_ENV === "development" && <FeedbackTestForm />}
         </CardContent>
       </Card>
 

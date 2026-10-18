@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function POST(
   request: NextRequest,
@@ -111,9 +112,8 @@ export async function POST(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error banning/unbanning user:', error)
     return NextResponse.json(
-      { error: "Failed to update ban status" },
+      { error: unexpectedErrorMessage(error, "Failed to update ban status") },
       { status: 500 }
     )
   }

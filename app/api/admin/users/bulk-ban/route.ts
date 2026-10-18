@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
 import { eq, inArray } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -126,9 +127,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, count: targetUsers.length })
   } catch (error) {
-    console.error('Error bulk banning/unbanning users:', error)
     return NextResponse.json(
-      { error: "Failed to update ban status" },
+      { error: unexpectedErrorMessage(error, "Failed to update ban status") },
       { status: 500 }
     )
   }

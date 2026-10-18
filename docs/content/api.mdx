@@ -57,3 +57,12 @@ Pages read the database directly through these `server-only` helpers instead of 
 | `lib/activity-queries.ts` | `getUserActivityLogs`, `getAllActivityLogs` |
 | `lib/settings-queries.ts` | `getSystemSettings`, `updateSystemSettings`, `getEffectiveAuthFlags` |
 | `lib/activity-logger.ts` | `logActivity` |
+
+## Error refs
+
+Unexpected errors never reach the browser. API routes and server actions log them with a short reference and send the user a generic message carrying it, for example `Failed to update role (ref: K7Q2PX)`. When a user reports a problem from that error, the ref comes with the report. Search the server logs for `error ref K7Q2PX` to find the full error and stack trace.
+
+`@xk2800/nextjs-template/errors` exports the helpers:
+
+- `unexpectedErrorMessage(error, message?)` logs the error and returns the message with its ref. Use it in a route's `catch` block.
+- `withActionErrors(action)` wraps a server action so it returns `{ ok: true, data }` or `{ ok: false, message }` instead of throwing. Throw `ActionError` for messages that are safe to show as-is (validation, permissions, conflicts). Anything else becomes a generic message with a ref.

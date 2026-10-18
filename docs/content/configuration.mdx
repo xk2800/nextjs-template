@@ -67,6 +67,10 @@ export { POST } from "@xk2800/nextjs-template/api/feedback"
 
 Then render `FeedbackDialog` (from `@xk2800/nextjs-template/components/dashboard/feedbackDialog`) wherever it fits, guarded by the same two variables. Projects scaffolded with `create-nextjs` get the route file already.
 
+When a user reports a problem from an error (an app passes the error as `FeedbackDialog`'s `errorDetails`), the error is attached to the report as its own **Error** field, separate from the text they can edit. Turn this off under **Admin → System Settings → Feedback → Attach error details**.
+
+To try the whole flow in development, use the **Test error reporting** form on the same Feedback card (it only renders in development): submit `!error`, then tap **Report** on the error toast. Apps mount its endpoint with `app/api/feedback/test/route.ts`: `export { testErrorPOST as POST } from "@xk2800/nextjs-template/api/feedback"`. The endpoint answers 404 outside development.
+
 Each user can send one message every 30 seconds. The limit is tracked in memory, so it is per server instance. Messages aren't stored in the database. If every destination fails, the user sees an error and can retry.
 
 ## Feature switches

@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth-helpers"
 import { getUsersForExport } from "@/lib/user-queries"
 import { toCsv } from "@/lib/csv"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -44,9 +45,8 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error exporting users:', error)
     return NextResponse.json(
-      { error: "Failed to export users" },
+      { error: unexpectedErrorMessage(error, "Failed to export users") },
       { status: 500 }
     )
   }

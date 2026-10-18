@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth-helpers"
 import { getActivityLogsFiltered, type ActivityActionFilter } from "@/lib/activity-queries"
 import { ActivityActionEnum } from "@/server/db/schema"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -49,9 +50,8 @@ export async function GET(request: NextRequest) {
       pagination: { page, limit, total, pages },
     })
   } catch (error) {
-    console.error('Error fetching activity logs:', error)
     return NextResponse.json(
-      { error: "Failed to fetch activity logs" },
+      { error: unexpectedErrorMessage(error, "Failed to fetch activity logs") },
       { status: 500 }
     )
   }

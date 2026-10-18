@@ -29,6 +29,7 @@ function fallbackSettings(): SystemSettings {
     authEnableEmailPassword: config.AUTH_ENABLE_EMAIL_PASSWORD,
     authEnableOneTap: config.AUTH_ENABLE_ONE_TAP,
     enableSessionRevocation: config.ENABLE_SESSION_REVOCATION,
+    feedbackAttachErrors: true,
     updatedAt: new Date(0),
     updatedBy: null,
   }
@@ -91,7 +92,7 @@ export function invalidateSystemSettingsCache() {
 export type SystemSettingsPatch = Partial<Pick<SystemSettings,
   | 'maintenanceMode' | 'maintenanceMessage' | 'maintenanceExemptPaths'
   | 'authEnableGoogle' | 'authEnableEmailPassword' | 'authEnableOneTap'
-  | 'enableSessionRevocation'
+  | 'enableSessionRevocation' | 'feedbackAttachErrors'
 >>
 
 export async function updateSystemSettings(

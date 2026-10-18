@@ -6,6 +6,7 @@ import { sessions } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
 import { getSystemSettings } from "@/lib/settings-queries"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function POST(request: NextRequest) {
   // Check if session revocation is enabled
@@ -72,9 +73,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error revoking session:', error)
     return NextResponse.json(
-      { error: "Failed to revoke session" },
+      { error: unexpectedErrorMessage(error, "Failed to revoke session") },
       { status: 500 }
     )
   }

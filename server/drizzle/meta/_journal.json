@@ -127,6 +127,20 @@
       "when": 1792174751731,
       "tag": "0017_add_tester_role",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792335493856,
+      "tag": "0018_feedback_attach_errors",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792336752767,
+      "tag": "0019_error_refs",
+      "breakpoints": true
     }
   ]
 }

@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth-helpers"
 import { getUserActivityLogs, getAllActivityLogs } from "@/lib/activity-queries"
 import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 function withDeviceInfo<T extends { ipAddress: string | null; userAgent: string | null }>(logs: T[]) {
   return logs.map((log) => ({
@@ -39,9 +40,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ logs: withDeviceInfo(logs) })
     }
   } catch (error) {
-    console.error('Error fetching activity logs:', error)
     return NextResponse.json(
-      { error: "Failed to fetch activity logs" },
+      { error: unexpectedErrorMessage(error, "Failed to fetch activity logs") },
       { status: 500 }
     )
   }
