@@ -22,17 +22,51 @@ const FEEDBACK_MAX_LENGTH = 2000
 
 type FeedbackType = "bug" | "feedback"
 
+export type FeedbackDialogProps = {
+  /** Control the dialog from outside (e.g. a "Report" button on an error). */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Pre-filled each time the dialog opens, e.g. the error the user just hit. */
+  defaultType?: FeedbackType
+  defaultMessage?: string
+  /** Render the "Feedback" header button. Default `true`. */
+  showTrigger?: boolean
+}
+
 /**
  * Header button + dialog that POSTs to /api/feedback. Render it only when a
  * feedback channel is configured (FEEDBACK_DISCORD_WEBHOOK_URL or
  * FEEDBACK_EMAIL); otherwise the route answers 503.
  */
-export default function FeedbackDialog() {
+export default function FeedbackDialog({
+  open: openProp,
+  onOpenChange,
+  defaultType = "feedback",
+  defaultMessage = "",
+  showTrigger = true,
+}: FeedbackDialogProps = {}) {
   const pathname = usePathname()
-  const [open, setOpen] = useState(false)
-  const [type, setType] = useState<FeedbackType>("feedback")
-  const [message, setMessage] = useState("")
+  const [openState, setOpenState] = useState(false)
+  const open = openProp ?? openState
+  const setOpen = (next: boolean) => {
+    setOpenState(next)
+    onOpenChange?.(next)
+  }
+  const [type, setType] = useState<FeedbackType>(defaultType)
+  const [message, setMessage] = useState(defaultMessage)
   const [isSending, setIsSending] = useState(false)
+
+  // With a pre-filled message, re-apply it every time the dialog opens so a
+  // second error report doesn't start from the first one's text. Without one,
+  // keep whatever the user had typed (a closed dialog keeps its draft).
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open && defaultMessage) {
+      setType(defaultType)
+      setMessage(defaultMessage)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,12 +92,14 @@ export default function FeedbackDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="sm">
-          <MessageSquare />
-          Feedback
-        </Button>
-      </DialogTrigger>
+      {showTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="sm">
+            <MessageSquare />
+            Feedback
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <DialogHeader>
