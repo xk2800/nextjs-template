@@ -4,6 +4,7 @@ import * as React from "react"
 import { Camera, ImagePlus, Upload, X } from "lucide-react"
 
 import { Button } from "./button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu"
 import { cn } from "../../lib/utils"
 
 type FileUploadProps = {
@@ -13,6 +14,11 @@ type FileUploadProps = {
   gallery?: boolean
   /** Drop files onto the component. */
   dragDrop?: boolean
+  /**
+   * Pressing the drop zone opens the picker instead of showing separate buttons. With both
+   * `camera` and `gallery` the user is asked which one; with one, it opens directly. Needs `dragDrop`.
+   */
+  clickable?: boolean
   /** Same format as `<input accept>`. Also enforced on dropped files. */
   accept?: string
   multiple?: boolean
@@ -49,6 +55,7 @@ function FileUpload({
   camera = false,
   gallery = false,
   dragDrop = false,
+  clickable = false,
   accept = "image/*",
   multiple = true,
   maxFiles,
@@ -68,6 +75,8 @@ function FileUpload({
   const [dragging, setDragging] = React.useState(false)
   const cameraRef = React.useRef<HTMLInputElement>(null)
   const galleryRef = React.useRef<HTMLInputElement>(null)
+  const [menuOpen, setMenuOpen] = React.useState(false)
+  const pointerType = React.useRef("")
 
   // Created and revoked in the same effect: with useMemo, Strict Mode's
   // simulated unmount revoked the URLs and the remount reused the dead ones.
@@ -112,6 +121,13 @@ function FileUpload({
 
   if (!camera && !gallery && !dragDrop) return null
 
+  // Pressing the drop zone only does something if there's a picker to open.
+  const pickable = clickable && !disabled && (camera || gallery)
+  // The camera only means something on touch devices, so mouse and keyboard skip the
+  // question and open the gallery (or the only source there is).
+  const openDefault = () => (gallery ? galleryRef : cameraRef).current?.click()
+  const units = multiple ? "files" : "a file"
+
   const buttons = (
     <div className="flex flex-wrap justify-center gap-2">
       {camera && (
@@ -137,33 +153,83 @@ function FileUpload({
       )}
 
       {dragDrop ? (
-        <div
-          onDragOver={(e) => {
-            e.preventDefault()
-            if (!disabled) setDragging(true)
-          }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault()
-            setDragging(false)
-            if (!disabled) add(Array.from(e.dataTransfer.files))
-          }}
-          aria-disabled={disabled}
-          className={cn(
-            "flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 text-center text-sm text-muted-foreground transition-colors",
-            // Before the state classes so a custom border can't hide the drag highlight.
-            dropzoneClassName,
-            dragging && "border-primary bg-primary/5",
-            disabled && "opacity-50"
-          )}
+        <PickerMenu
+          enabled={pickable && camera && gallery}
+          open={menuOpen}
+          onOpenChange={setMenuOpen}
+          onCamera={() => cameraRef.current?.click()}
+          onGallery={() => galleryRef.current?.click()}
         >
-          {icon}
-          <div className="space-y-1">
-            <p className={labelClassName}>{label ?? `Drag and drop ${multiple ? "files" : "a file"} here`}</p>
-            {description && <p className={cn("text-xs", descriptionClassName)}>{description}</p>}
+          <div
+            role={pickable ? "button" : undefined}
+            tabIndex={pickable ? 0 : undefined}
+            // Radix opens the menu on pointerdown, which fires when a scroll starts on the
+            // drop zone. Block that and decide on click (a real tap) instead.
+            onPointerDown={
+              pickable
+                ? (e) => {
+                    pointerType.current = e.pointerType
+                    e.preventDefault()
+                  }
+                : undefined
+            }
+            onClick={
+              pickable
+                ? () => {
+                    if (camera && gallery && pointerType.current !== "mouse") setMenuOpen(true)
+                    else openDefault()
+                    pointerType.current = ""
+                  }
+                : undefined
+            }
+            onKeyDown={
+              pickable
+                ? (e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault()
+                      openDefault()
+                    }
+                  }
+                : undefined
+            }
+            onDragOver={(e) => {
+              e.preventDefault()
+              if (!disabled) setDragging(true)
+            }}
+            onDragLeave={() => setDragging(false)}
+            onDrop={(e) => {
+              e.preventDefault()
+              setDragging(false)
+              if (!disabled) add(Array.from(e.dataTransfer.files))
+            }}
+            aria-disabled={disabled}
+            className={cn(
+              "flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 text-center text-sm text-muted-foreground transition-colors",
+              pickable && "cursor-pointer outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring",
+              // Before the state classes so a custom border can't hide the drag highlight.
+              dropzoneClassName,
+              dragging && "border-primary bg-primary/5",
+              disabled && "opacity-50"
+            )}
+          >
+            {icon}
+            <div className="space-y-1">
+              <p className={labelClassName}>
+                {label ??
+                  (pickable ? (
+                    <>
+                      <span className="pointer-coarse:hidden">Drag and drop {units} here, or click to browse</span>
+                      <span className="hidden pointer-coarse:inline">Tap to add {units}</span>
+                    </>
+                  ) : (
+                    `Drag and drop ${units} here`
+                  ))}
+              </p>
+              {description && <p className={cn("text-xs", descriptionClassName)}>{description}</p>}
+            </div>
+            {!pickable && buttons}
           </div>
-          {buttons}
-        </div>
+        </PickerMenu>
       ) : (
         buttons
       )}
@@ -198,6 +264,38 @@ function FileUpload({
         </ul>
       )}
     </div>
+  )
+}
+
+/** Wraps the drop zone in a "Take photo / Choose from gallery" menu when `enabled`. */
+function PickerMenu({
+  enabled,
+  open,
+  onOpenChange,
+  onCamera,
+  onGallery,
+  children,
+}: {
+  enabled: boolean
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCamera: () => void
+  onGallery: () => void
+  children: React.ReactElement
+}) {
+  if (!enabled) return children
+  return (
+    <DropdownMenu open={open} onOpenChange={onOpenChange}>
+      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+      <DropdownMenuContent align="center">
+        <DropdownMenuItem onSelect={onCamera}>
+          <Camera className="mr-2 size-4" /> Take photo
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={onGallery}>
+          <ImagePlus className="mr-2 size-4" /> Choose from gallery
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }
 

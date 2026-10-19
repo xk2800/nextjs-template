@@ -476,4 +476,5 @@ Manual, in Storybook (`bun run storybook` → UI/FileUpload):
 3. **Camera:** on a phone (open Storybook over LAN), "Take photo" opens the rear camera; on desktop it opens a file picker.
 4. **Drag and drop:** dropping a PDF with the default `accept` shows "not an accepted file type"; dropping images adds previews.
 5. **Limits:** SingleFileMax2MB story: a file over 2 MB is rejected; a second pick replaces the first.
-6. **Remove:** the × on a preview removes it; `onFilesChange` fires (Actions panel) with the new list.
+6. **Clickable drop zone:** ClickableDropzone story: no buttons show. On a phone the text reads "Tap to add files", a tap opens a "Take photo / Choose from gallery" menu, each item opens its picker, and scrolling with a finger starting on the drop zone does not open the menu. On desktop the text reads "…or click to browse", and a click or Enter opens the file picker directly with no menu (ArrowDown opens the menu). ClickableGalleryOnly: a tap opens the gallery picker straight away, with no menu.
+7. **Remove:** the × on a preview removes it; `onFilesChange` fires (Actions panel) with the new list.
