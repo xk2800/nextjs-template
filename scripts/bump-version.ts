@@ -17,7 +17,7 @@ interface ChangelogEntry {
 }
 
 const pkgPath = fileURLToPath(new URL('../package.json', import.meta.url))
-const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { version: string }
+const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8')) as { name: string; version: string }
 const changelogPath = fileURLToPath(new URL('../data/changelog.json', import.meta.url))
 
 function run(cmd: string) {
@@ -60,35 +60,59 @@ function inc(major: number, minor: number, patch: number, type: BumpType): strin
   return `${major}.${minor}.${patch + 1}`
 }
 
-// Mirrors `npm version`'s semver rules so the prompt shows the version npm
-// will actually produce. `npmArg` is what gets passed to `npm version`.
-export function nextVersion(
-  current: string,
-  type: BumpType,
-  beta: boolean
-): { version: string; npmArg: string } {
-  const m = current.match(/^(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/)
-  if (!m) throw new Error(`Unsupported version format: ${current}`)
-  const [major, minor, patch] = [Number(m[1]), Number(m[2]), Number(m[3])]
-  const betaN = m[4] === undefined ? null : Number(m[4])
+function parse(v: string) {
+  const m = v.match(/^(\d+)\.(\d+)\.(\d+)(?:-beta\.(\d+))?$/)
+  if (!m) return null
+  return { major: Number(m[1]), minor: Number(m[2]), patch: Number(m[3]), beta: m[4] === undefined ? null : Number(m[4]) }
+}
+
+function compareStable(a: string, b: string) {
+  const [x, y] = [parse(a)!, parse(b)!]
+  return x.major - y.major || x.minor - y.minor || x.patch - y.patch
+}
+
+// `existing` is every version already released (git tags + npm). Stable
+// releases bump from the latest *stable* version, so 0.6.0 + minor is 0.7.0
+// even while 0.8.0-beta.N exists. Betas skip numbers that are already taken.
+export function nextVersion(current: string, type: BumpType, beta: boolean, existing: string[] = []): string {
+  const cur = parse(current)
+  if (!cur) throw new Error(`Unsupported version format: ${current}`)
 
   if (beta) {
     // Already on a beta + "patch" → next beta of the same version.
-    if (betaN !== null && type === 'patch') {
-      return { version: `${major}.${minor}.${patch}-beta.${betaN + 1}`, npmArg: 'prerelease --preid beta' }
-    }
-    return { version: `${inc(major, minor, patch, type)}-beta.0`, npmArg: `pre${type} --preid beta` }
+    const base = cur.beta !== null && type === 'patch'
+      ? `${cur.major}.${cur.minor}.${cur.patch}`
+      : inc(cur.major, cur.minor, cur.patch, type)
+    const taken = existing.flatMap((v) => (v.startsWith(`${base}-beta.`) ? [parse(v)?.beta ?? -1] : []))
+    const n = Math.max(cur.beta !== null && type === 'patch' ? cur.beta + 1 : 0, ...taken.map((t) => t + 1))
+    return `${base}-beta.${n}`
   }
 
-  // Promoting a beta to stable drops the suffix when the bump is already
-  // "contained" in the beta (e.g. 0.6.0-beta.2 + minor → 0.6.0).
-  if (
-    betaN !== null &&
-    (type === 'patch' || (type === 'minor' && patch === 0) || (type === 'major' && minor === 0 && patch === 0))
-  ) {
-    return { version: `${major}.${minor}.${patch}`, npmArg: type }
+  const stables = [...existing, current].filter((v) => parse(v)?.beta === null).sort(compareStable)
+  const latest = stables.at(-1)
+  let version: string
+  if (latest) {
+    const s = parse(latest)!
+    version = inc(s.major, s.minor, s.patch, type)
+  } else if (type === 'patch' || (type === 'minor' && cur.patch === 0) || (type === 'major' && cur.minor === 0 && cur.patch === 0)) {
+    // No stable release yet: promote the beta when the bump is "contained" in it.
+    version = `${cur.major}.${cur.minor}.${cur.patch}`
+  } else {
+    version = inc(cur.major, cur.minor, cur.patch, type)
   }
-  return { version: inc(major, minor, patch, type), npmArg: type }
+  return version
+}
+
+// Versions already out: local git tags plus whatever npm has (if reachable).
+function releasedVersions(name: string): string[] {
+  const tags = execSync('git tag --list "v*"').toString().split('\n').map((t) => t.trim().replace(/^v/, ''))
+  let published: string[] = []
+  try {
+    published = JSON.parse(execSync(`npm view ${name} versions --json`, { stdio: ['ignore', 'pipe', 'ignore'] }).toString())
+  } catch {
+    console.warn('Could not read published versions from npm — using git tags only.')
+  }
+  return [...new Set([...tags, ...published])].filter((v) => parse(v))
 }
 
 function isGhAvailable(): boolean {
@@ -117,16 +141,21 @@ function generateReleaseNotes(fromTag: string, toTag: string): string {
 }
 
 async function main() {
-  console.log(`Current version: ${pkg.version}\n`)
+  console.log(`Current version: ${pkg.version}`)
+  const existing = releasedVersions(pkg.name)
+  const latestStable = existing.filter((v) => parse(v)?.beta === null).sort(compareStable).at(-1)
+  console.log(`Latest stable: ${latestStable ?? 'none'}\n`)
 
-  const previousTag = `v${pkg.version}`
-  let commits: string[]
-  try {
-    commits = commitMessagesBetween(`${previousTag}..HEAD`)
-  } catch {
-    // previousTag doesn't exist locally (e.g. first-ever release).
-    commits = commitMessagesBetween('HEAD')
+  const commitsSince = (tag: string) => {
+    try {
+      return commitMessagesBetween(`${tag}..HEAD`)
+    } catch {
+      // tag doesn't exist locally (e.g. first-ever release).
+      return commitMessagesBetween('HEAD')
+    }
   }
+  let previousTag = `v${pkg.version}`
+  let commits = commitsSince(previousTag)
 
   const type = await select<ChangelogType>({
     message: 'Release type',
@@ -145,24 +174,25 @@ async function main() {
   const isBeta = type === 'beta'
   const alreadyBeta = pkg.version.includes('-beta.')
 
+  // A stable release covers everything since the last stable one.
+  if (!isBeta && latestStable) {
+    previousTag = `v${latestStable}`
+    commits = commitsSince(previousTag)
+  }
+
+  const from = isBeta ? pkg.version : (latestStable ?? pkg.version)
+  const option = (t: BumpType, label: string, description: string, suffix = '') => ({
+    name: `${label}  (${from} → ${nextVersion(pkg.version, t, isBeta, existing)})${suffix}`,
+    description,
+    value: t,
+  })
+
   const bumpType = await select<BumpType>({
     message: 'Select version bump type',
     choices: [
-      {
-        name: `${isBeta && alreadyBeta ? 'Next beta' : 'Patch'}  (${pkg.version} → ${nextVersion(pkg.version, 'patch', isBeta).version})`,
-        description: isBeta && alreadyBeta ? 'Another beta of the same version' : 'Bug fixes, no breaking changes',
-        value: 'patch',
-      },
-      {
-        name: `Minor  (${pkg.version} → ${nextVersion(pkg.version, 'minor', isBeta).version})`,
-        description: 'New features, backwards compatible',
-        value: 'minor',
-      },
-      {
-        name: `Major  (${pkg.version} → ${nextVersion(pkg.version, 'major', isBeta).version})${isBeta ? '' : '  — stable release'}`,
-        description: 'Breaking changes',
-        value: 'major',
-      },
+      option('patch', isBeta && alreadyBeta ? 'Next beta' : 'Patch', isBeta && alreadyBeta ? 'Another beta of the same version' : 'Bug fixes, no breaking changes'),
+      option('minor', 'Minor', 'New features, backwards compatible'),
+      option('major', 'Major', 'Breaking changes', isBeta ? '' : '  — stable release'),
     ],
   })
 
@@ -189,7 +219,7 @@ async function main() {
     run('bun run build:lib')
   }
 
-  const { version: target, npmArg } = nextVersion(pkg.version, bumpType, isBeta)
+  const target = nextVersion(pkg.version, bumpType, isBeta, existing)
   const confirmBump = await confirm({
     message: `Bump ${pkg.version} → ${target} (creates a git commit + tag)?`,
     default: true,
@@ -224,7 +254,9 @@ async function main() {
     run(`git commit -m "docs: update changelog for ${newTag}"`)
   }
 
-  run(`npm version ${npmArg}`)
+  // Explicit version: npm's own `minor`/`patch` would bump from the beta in
+  // package.json, not from the latest stable.
+  run(`npm version ${target}`)
 
   // Prereleases must go out under a non-`latest` dist-tag (npm refuses
   // otherwise), so plain installs never pick up a beta.

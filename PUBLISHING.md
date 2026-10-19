@@ -55,7 +55,7 @@ The repo's root `.npmrc` (gitignored, local only) already points at `registry.np
 bun run bump-version
 ```
 
-An Inquirer.js prompt to pick **patch / minor / major (stable)**, each showing the resulting version number. It then optionally runs `typecheck` + `build:lib`, runs `npm version <type>`, and can `npm publish`, push the commit + tag, and publish a **GitHub Release** for you — confirming before each step. Source: `scripts/bump-version.ts`.
+An Inquirer.js prompt to pick **patch / minor / major (stable)**, each showing the resulting version number. Stable releases bump from the latest **stable** version (git tags + `npm view`), not from a beta in `package.json`: with `0.6.0` released and `0.8.0-beta.6` current, minor gives `0.7.0`. Betas skip numbers already taken (`0.8.0-beta.7`, not `-beta.0` again). It then optionally runs `typecheck` + `build:lib`, runs `npm version <exact version>`, and can `npm publish`, push the commit + tag, and publish a **GitHub Release** for you — confirming before each step. Source: `scripts/bump-version.ts`.
 
 The first prompt is the **release type**: `feature`, `improvement`, `fix`, or **`beta`**. Pick `beta` to test changes before they reach live versions:
 
