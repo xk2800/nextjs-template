@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.1",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "fix: update FileUpload component to manage object URLs correctly in useEffect",
+    "changes": [
+      "fix: update FileUpload component to manage object URLs correctly in useEffect"
+    ]
+  },
+  {
     "version": "0.7.1-beta.0",
     "date": "2026-10-20",
     "type": "beta",
