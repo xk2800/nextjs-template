@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.0",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: enhance FileUpload component with customizable icon and label; update documentation and stories",
+    "changes": [
+      "feat: enhance FileUpload component with customizable icon and label; update documentation and stories"
+    ]
+  },
+  {
     "version": "0.7.0",
     "date": "2026-10-20",
     "type": "feature",
