@@ -19,6 +19,10 @@ type FileUploadProps = {
   maxFiles?: number
   maxSizeMB?: number
   disabled?: boolean
+  /** Drop zone icon. Pass `null` to hide it. */
+  icon?: React.ReactNode
+  /** Drop zone text. Defaults to "Drag and drop files here" (or "a file" when `multiple` is false). */
+  label?: React.ReactNode
   onFilesChange?: (files: File[]) => void
   className?: string
 }
@@ -42,6 +46,8 @@ function FileUpload({
   maxFiles,
   maxSizeMB,
   disabled = false,
+  icon = <Upload className="size-6" />,
+  label,
   onFilesChange,
   className,
 }: FileUploadProps) {
@@ -133,8 +139,8 @@ function FileUpload({
             disabled && "opacity-50"
           )}
         >
-          <Upload className="size-6" />
-          <p>Drag and drop {multiple ? "files" : "a file"} here</p>
+          {icon}
+          <p>{label ?? `Drag and drop ${multiple ? "files" : "a file"} here`}</p>
           {buttons}
         </div>
       ) : (

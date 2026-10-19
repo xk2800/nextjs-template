@@ -37,6 +37,8 @@ Add more with `bunx shadcn@latest add <name>`. The config is in `components.json
   | `multiple` | `true` | `false` keeps one file and replaces it on each pick. |
   | `maxFiles`, `maxSizeMB` | none | Extra files and oversized files are rejected with an inline message. |
   | `disabled` | `false` | |
+  | `icon` | upload icon | Drop zone icon, any React node. `null` hides it. |
+  | `label` | "Drag and drop files here" | Drop zone text, any React node. |
   | `onFilesChange` | | Called with the full current list after every add or remove. |
 
 - `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `/dashboard/data-table` is a working example.
