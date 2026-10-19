@@ -4,7 +4,7 @@ import * as React from "react"
 import { Camera, ImagePlus, Upload, X } from "lucide-react"
 
 import { Button } from "./button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./dropdown-menu"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
 import { cn } from "../../lib/utils"
 
 type FileUploadProps = {
@@ -75,7 +75,7 @@ function FileUpload({
   const [dragging, setDragging] = React.useState(false)
   const cameraRef = React.useRef<HTMLInputElement>(null)
   const galleryRef = React.useRef<HTMLInputElement>(null)
-  const [menuOpen, setMenuOpen] = React.useState(false)
+  const [askOpen, setAskOpen] = React.useState(false)
   const pointerType = React.useRef("")
 
   // Created and revoked in the same effect: with useMemo, Strict Mode's
@@ -153,85 +153,98 @@ function FileUpload({
       )}
 
       {dragDrop ? (
-        <PickerMenu
-          enabled={pickable && camera && gallery}
-          open={menuOpen}
-          onOpenChange={setMenuOpen}
-          onCamera={() => cameraRef.current?.click()}
-          onGallery={() => galleryRef.current?.click()}
-        >
-          <div
-            role={pickable ? "button" : undefined}
-            tabIndex={pickable ? 0 : undefined}
-            // Radix opens the menu on pointerdown, which fires when a scroll starts on the
-            // drop zone. Block that and decide on click (a real tap) instead.
-            onPointerDown={
-              pickable
-                ? (e) => {
-                    pointerType.current = e.pointerType
+        <div
+          role={pickable ? "button" : undefined}
+          tabIndex={pickable ? 0 : undefined}
+          onPointerDown={pickable ? (e) => (pointerType.current = e.pointerType) : undefined}
+          onClick={
+            pickable
+              ? () => {
+                  if (camera && gallery && pointerType.current !== "mouse") setAskOpen(true)
+                  else openDefault()
+                  pointerType.current = ""
+                }
+              : undefined
+          }
+          onKeyDown={
+            pickable
+              ? (e) => {
+                  if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault()
+                    openDefault()
                   }
-                : undefined
-            }
-            onClick={
-              pickable
-                ? () => {
-                    if (camera && gallery && pointerType.current !== "mouse") setMenuOpen(true)
-                    else openDefault()
-                    pointerType.current = ""
-                  }
-                : undefined
-            }
-            onKeyDown={
-              pickable
-                ? (e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault()
-                      openDefault()
-                    }
-                  }
-                : undefined
-            }
-            onDragOver={(e) => {
-              e.preventDefault()
-              if (!disabled) setDragging(true)
-            }}
-            onDragLeave={() => setDragging(false)}
-            onDrop={(e) => {
-              e.preventDefault()
-              setDragging(false)
-              if (!disabled) add(Array.from(e.dataTransfer.files))
-            }}
-            aria-disabled={disabled}
-            className={cn(
-              "flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 text-center text-sm text-muted-foreground transition-colors",
-              pickable && "cursor-pointer outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring",
-              // Before the state classes so a custom border can't hide the drag highlight.
-              dropzoneClassName,
-              dragging && "border-primary bg-primary/5",
-              disabled && "opacity-50"
-            )}
-          >
-            {icon}
-            <div className="space-y-1">
-              <p className={labelClassName}>
-                {label ??
-                  (pickable ? (
-                    <>
-                      <span className="pointer-coarse:hidden">Drag and drop {units} here, or click to browse</span>
-                      <span className="hidden pointer-coarse:inline">Tap to add {units}</span>
-                    </>
-                  ) : (
-                    `Drag and drop ${units} here`
-                  ))}
-              </p>
-              {description && <p className={cn("text-xs", descriptionClassName)}>{description}</p>}
-            </div>
-            {!pickable && buttons}
+                }
+              : undefined
+          }
+          onDragOver={(e) => {
+            e.preventDefault()
+            if (!disabled) setDragging(true)
+          }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setDragging(false)
+            if (!disabled) add(Array.from(e.dataTransfer.files))
+          }}
+          aria-disabled={disabled}
+          className={cn(
+            "flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 text-center text-sm text-muted-foreground transition-colors",
+            pickable && "cursor-pointer outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring",
+            // Before the state classes so a custom border can't hide the drag highlight.
+            dropzoneClassName,
+            dragging && "border-primary bg-primary/5",
+            disabled && "opacity-50"
+          )}
+        >
+          {icon}
+          <div className="space-y-1">
+            <p className={labelClassName}>
+              {label ??
+                (pickable ? (
+                  <>
+                    <span className="pointer-coarse:hidden">Drag and drop {units} here, or click to browse</span>
+                    <span className="hidden pointer-coarse:inline">Tap to add {units}</span>
+                  </>
+                ) : (
+                  `Drag and drop ${units} here`
+                ))}
+            </p>
+            {description && <p className={cn("text-xs", descriptionClassName)}>{description}</p>}
           </div>
-        </PickerMenu>
+          {!pickable && buttons}
+        </div>
       ) : (
         buttons
+      )}
+
+      {pickable && camera && gallery && (
+        <Dialog open={askOpen} onOpenChange={setAskOpen}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Add {multiple ? "photos" : "a photo"}</DialogTitle>
+              <DialogDescription>Take a new photo or pick from your gallery.</DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-2">
+              {[
+                { ref: cameraRef, Icon: Camera, text: "Take photo" },
+                { ref: galleryRef, Icon: ImagePlus, text: "Choose from gallery" },
+              ].map(({ ref, Icon, text }) => (
+                <Button
+                  key={text}
+                  type="button"
+                  variant="outline"
+                  className="h-12 justify-start"
+                  onClick={() => {
+                    setAskOpen(false)
+                    ref.current?.click()
+                  }}
+                >
+                  <Icon /> {text}
+                </Button>
+              ))}
+            </div>
+          </DialogContent>
+        </Dialog>
       )}
 
       {error && (
@@ -264,38 +277,6 @@ function FileUpload({
         </ul>
       )}
     </div>
-  )
-}
-
-/** Wraps the drop zone in a "Take photo / Choose from gallery" menu when `enabled`. */
-function PickerMenu({
-  enabled,
-  open,
-  onOpenChange,
-  onCamera,
-  onGallery,
-  children,
-}: {
-  enabled: boolean
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onCamera: () => void
-  onGallery: () => void
-  children: React.ReactElement
-}) {
-  if (!enabled) return children
-  return (
-    <DropdownMenu open={open} onOpenChange={onOpenChange}>
-      <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-      <DropdownMenuContent align="center">
-        <DropdownMenuItem onSelect={onCamera}>
-          <Camera className="mr-2 size-4" /> Take photo
-        </DropdownMenuItem>
-        <DropdownMenuItem onSelect={onGallery}>
-          <ImagePlus className="mr-2 size-4" /> Choose from gallery
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 }
 
