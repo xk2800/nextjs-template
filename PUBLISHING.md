@@ -57,9 +57,11 @@ bun run bump-version
 
 An Inquirer.js prompt to pick **patch / minor / major (stable)**, each showing the resulting version number. Stable releases bump from the latest **stable** version (git tags + `npm view`), not from a beta in `package.json`: with `0.6.0` released and `0.8.0-beta.6` current, minor gives `0.7.0`. Betas skip numbers already taken (`0.8.0-beta.7`, not `-beta.0` again). It then optionally runs `typecheck` + `build:lib`, runs `npm version <exact version>`, and can `npm publish`, push the commit + tag, and publish a **GitHub Release** for you — confirming before each step. Source: `scripts/bump-version.ts`.
 
-The first prompt is the **release type**: `feature`, `improvement`, `fix`, or **`beta`**. Pick `beta` to test changes before they reach live versions:
+While on a beta, the first prompt is **Bump existing** or **Create new version**. Bump existing goes straight to the next beta (`0.5.4-beta.0` → `0.5.4-beta.1`), with no release-type or bump-type prompt. Create new version goes on to the prompts below.
 
-- Version becomes a prerelease — `0.5.3` + patch → `0.5.4-beta.0`. While already on a beta, **Next beta** gives `0.5.4-beta.1`, and so on.
+The next prompt is the **release type**: `feature`, `improvement`, `fix`, or **`beta`**. Pick `beta` to test changes before they reach live versions:
+
+- Version becomes a prerelease — `0.5.3` + patch → `0.5.4-beta.0`. From a beta, a new patch beta starts a new line (`0.5.4-beta.1` → `0.5.5-beta.0`); use Bump existing for `0.5.4-beta.2`.
 - Published with `npm publish --tag beta`, so `latest` (what `bun add` / `bun update` install) is untouched. Test it with `bun add @xk2800/nextjs-template@beta`.
 - The GitHub Release is marked `--prerelease`, and the changelog entry gets a `beta` badge.
 - To ship it live, run again with a non-beta type — `0.5.4-beta.1` + patch → `0.5.4`, published as `latest`.

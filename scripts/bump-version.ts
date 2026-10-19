@@ -157,7 +157,21 @@ async function main() {
   let previousTag = `v${pkg.version}`
   let commits = commitsSince(previousTag)
 
-  const type = await select<ChangelogType>({
+  const alreadyBeta = pkg.version.includes('-beta.')
+  const base = pkg.version.replace(/-beta\.\d+$/, '')
+  // Only a beta has an "existing" version to continue: its next beta.
+  const nextBeta = nextVersion(pkg.version, 'patch', true, existing)
+  const mode = alreadyBeta
+    ? await select<'existing' | 'new'>({
+        message: 'Bump existing version or create a new one?',
+        choices: [
+          { name: `Bump existing  (${pkg.version} → ${nextBeta})`, value: 'existing', description: `Next ${base} beta` },
+          { name: 'Create new version', value: 'new', description: 'Pick a release type and patch / minor / major bump' },
+        ],
+      })
+    : 'new'
+
+  const type = mode === 'existing' ? 'beta' : await select<ChangelogType>({
     message: 'Release type',
     default: inferChangelogType(commits),
     choices: [
@@ -172,7 +186,6 @@ async function main() {
     ],
   })
   const isBeta = type === 'beta'
-  const alreadyBeta = pkg.version.includes('-beta.')
 
   // A stable release covers everything since the last stable one.
   if (!isBeta && latestStable) {
@@ -180,21 +193,30 @@ async function main() {
     commits = commitsSince(previousTag)
   }
 
-  const from = isBeta ? pkg.version : (latestStable ?? pkg.version)
+  // A new beta starts its own line from the beta's base (0.7.1-beta.1 + patch →
+  // 0.7.2-beta.0); "Next beta" of the same version is the "existing" path.
+  const fromVersion = isBeta ? base : pkg.version
+  const from = isBeta ? base : (latestStable ?? pkg.version)
   const option = (t: BumpType, label: string, description: string, suffix = '') => ({
-    name: `${label}  (${from} → ${nextVersion(pkg.version, t, isBeta, existing)})${suffix}`,
+    name: `${label}  (${from} → ${nextVersion(fromVersion, t, isBeta, existing)})${suffix}`,
     description,
     value: t,
   })
 
-  const bumpType = await select<BumpType>({
-    message: 'Select version bump type',
-    choices: [
-      option('patch', isBeta && alreadyBeta ? 'Next beta' : 'Patch', isBeta && alreadyBeta ? 'Another beta of the same version' : 'Bug fixes, no breaking changes'),
-      option('minor', 'Minor', 'New features, backwards compatible'),
-      option('major', 'Major', 'Breaking changes', isBeta ? '' : '  — stable release'),
-    ],
-  })
+  let target: string
+  if (mode === 'existing') {
+    target = nextBeta
+  } else {
+    const bumpType = await select<BumpType>({
+      message: 'Select version bump type',
+      choices: [
+        option('patch', 'Patch', 'Bug fixes, no breaking changes'),
+        option('minor', 'Minor', 'New features, backwards compatible'),
+        option('major', 'Major', 'Breaking changes', isBeta ? '' : '  — stable release'),
+      ],
+    })
+    target = nextVersion(fromVersion, bumpType, isBeta, existing)
+  }
 
   const status = execSync('git status --porcelain').toString().trim()
   if (status) {
@@ -219,7 +241,6 @@ async function main() {
     run('bun run build:lib')
   }
 
-  const target = nextVersion(pkg.version, bumpType, isBeta, existing)
   const confirmBump = await confirm({
     message: `Bump ${pkg.version} → ${target} (creates a git commit + tag)?`,
     default: true,
