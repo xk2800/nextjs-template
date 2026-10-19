@@ -1,5 +1,36 @@
 [
   {
+    "version": "0.7.0",
+    "date": "2026-10-20",
+    "type": "feature",
+    "title": "feat: add file upload component with camera, gallery, and drag-and-drop support; update documentation and tests",
+    "changes": [
+      "feat: add file upload component with camera, gallery, and drag-and-drop support; update documentation and tests",
+      "feat: add feedbackAttachErrors option and update tsconfig exclusions",
+      "feat: add new database schema for user authentication and activity logging",
+      "feat: enhance FeedbackDialog component with props for better control and default values",
+      "feat: implement feedback API route with Discord and email integration",
+      "feat: add feedback form to dashboard with Discord and email integration",
+      "feat: add Dockerfile for Storybook static build and nginx serving",
+      "Add Storybook stories for various components",
+      "feat: add 'tester' role and update user role management functionality",
+      "feat: add installable app functionality with user-specific installation instructions and update documentation",
+      "feat: update package dependencies and clarify peer dependency requirements in documentation",
+      "feat: enhance offline mode functionality and documentation",
+      "feat: implement offline mode with service worker and custom offline page",
+      "feat: add PWA support with installable app manifest and icons",
+      "feat: update documentation and include cookie-banner component details",
+      "Enhance README and documentation; update environment variables and CLI setup",
+      "feat: update database documentation and add deployment guide",
+      "feat: add DeleteAccountCard component import to dashboard",
+      "feat: add self-serve account deletion feature in settings",
+      "chore: add hooks/use-dimensions.ts to package.json files list",
+      "chore: update dependencies and improve authentication logic",
+      "chore: update bun.lockb file",
+      "feat: add support for beta releases in version bumping and changelog"
+    ]
+  },
+  {
     "version": "0.8.0-beta.6",
     "date": "2026-10-18",
     "type": "beta",
