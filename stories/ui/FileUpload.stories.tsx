@@ -16,4 +16,4 @@ export const CameraOnly: Story = { args: { gallery: false, dragDrop: false } }
 export const DragDropOnly: Story = { args: { camera: false, gallery: false } }
 export const SingleFileMax2MB: Story = { args: { multiple: false, maxSizeMB: 2 } }
 export const Disabled: Story = { args: { disabled: true } }
-export const CustomIconAndText: Story = { args: { icon: <FileText className="size-6" />, label: "Drop your receipts here" } }
+export const CustomIconAndText: Story = { args: { icon: <FileText className="size-6" />, label: "Drop your receipts here", description: "PDF or image, up to 10 MB" } }

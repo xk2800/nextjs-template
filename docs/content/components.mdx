@@ -39,6 +39,10 @@ Add more with `bunx shadcn@latest add <name>`. The config is in `components.json
   | `disabled` | `false` | |
   | `icon` | upload icon | Drop zone icon, any React node. `null` hides it. |
   | `label` | "Drag and drop files here" | Drop zone text, any React node. |
+  | `description` | — | Smaller sub text under the label, any React node. |
+  | `dropzoneClassName` | — | Extra classes for the dashed drop zone box. |
+  | `labelClassName` | — | Extra classes for the label text. |
+  | `descriptionClassName` | — | Extra classes for the description text. |
   | `onFilesChange` | | Called with the full current list after every add or remove. |
 
 - `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `/dashboard/data-table` is a working example.

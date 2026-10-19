@@ -23,6 +23,14 @@ type FileUploadProps = {
   icon?: React.ReactNode
   /** Drop zone text. Defaults to "Drag and drop files here" (or "a file" when `multiple` is false). */
   label?: React.ReactNode
+  /** Smaller sub text under the drop zone label. */
+  description?: React.ReactNode
+  /** Extra classes for the dashed drop zone box. */
+  dropzoneClassName?: string
+  /** Extra classes for the label text. */
+  labelClassName?: string
+  /** Extra classes for the description text. */
+  descriptionClassName?: string
   onFilesChange?: (files: File[]) => void
   className?: string
 }
@@ -48,6 +56,10 @@ function FileUpload({
   disabled = false,
   icon = <Upload className="size-6" />,
   label,
+  description,
+  dropzoneClassName,
+  labelClassName,
+  descriptionClassName,
   onFilesChange,
   className,
 }: FileUploadProps) {
@@ -139,12 +151,17 @@ function FileUpload({
           aria-disabled={disabled}
           className={cn(
             "flex flex-col items-center gap-3 rounded-lg border-2 border-dashed p-6 text-center text-sm text-muted-foreground transition-colors",
+            // Before the state classes so a custom border can't hide the drag highlight.
+            dropzoneClassName,
             dragging && "border-primary bg-primary/5",
             disabled && "opacity-50"
           )}
         >
           {icon}
-          <p>{label ?? `Drag and drop ${multiple ? "files" : "a file"} here`}</p>
+          <div className="space-y-1">
+            <p className={labelClassName}>{label ?? `Drag and drop ${multiple ? "files" : "a file"} here`}</p>
+            {description && <p className={cn("text-xs", descriptionClassName)}>{description}</p>}
+          </div>
           {buttons}
         </div>
       ) : (
