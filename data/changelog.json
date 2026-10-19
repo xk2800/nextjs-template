@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.2",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: enhance FileUpload component with description and className props",
+    "changes": [
+      "feat: enhance FileUpload component with description and className props"
+    ]
+  },
+  {
     "version": "0.7.1-beta.1",
     "date": "2026-10-20",
     "type": "beta",
