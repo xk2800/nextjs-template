@@ -10,7 +10,7 @@ In a scaffolded project, everything in `components/ui`, `auth`, `dashboard`, `em
 
 [shadcn/ui](https://ui.shadcn.com) (new-york style) on Radix UI and Tailwind 4:
 
-`alert-dialog`, `avatar`, `badge`, `button`, `card`, `checkbox`, `data-table`, `dialog`, `dropdown-menu`, `input`, `label`, `password-input`, `separator`, `sheet`, `sidebar`, `skeleton`, `switch`, `table`, `textarea`, `tooltip`
+`alert-dialog`, `avatar`, `badge`, `button`, `card`, `checkbox`, `data-table`, `dialog`, `dropdown-menu`, `file-upload`, `input`, `label`, `password-input`, `separator`, `sheet`, `sidebar`, `skeleton`, `switch`, `table`, `textarea`, `tooltip`
 
 ```tsx
 import { Button } from "@/components/ui/button"
@@ -20,6 +20,25 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 Add more with `bunx shadcn@latest add <name>`. The config is in `components.json`. Adding a component that already exists, such as `button`, overwrites the re-export with shadcn's source, and that file becomes yours.
 
 - `password-input` is an `Input` with a show/hide toggle.
+- `file-upload` (Beta) collects photos or files from the camera, the gallery and drag and drop. Every method is **off by default**; turn each one on with a prop. It renders nothing if none are on. It only collects files; the app decides where to send them.
+
+  ```tsx
+  import { FileUpload } from "@/components/ui/file-upload"
+
+  <FileUpload camera gallery dragDrop maxFiles={5} maxSizeMB={10} onFilesChange={setFiles} />
+  ```
+
+  | Prop | Default | Notes |
+  |---|---|---|
+  | `camera` | `false` | "Take photo" button (`capture="environment"`). Opens the rear camera on mobile and a file picker on desktop. |
+  | `gallery` | `false` | "Choose from gallery" button. |
+  | `dragDrop` | `false` | Drop zone. |
+  | `accept` | `"image/*"` | Same format as `<input accept>`. Also checked on dropped files. |
+  | `multiple` | `true` | `false` keeps one file and replaces it on each pick. |
+  | `maxFiles`, `maxSizeMB` | none | Extra files and oversized files are rejected with an inline message. |
+  | `disabled` | `false` | |
+  | `onFilesChange` | | Called with the full current list after every add or remove. |
+
 - `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `/dashboard/data-table` is a working example.
 
 ## Auth (`components/auth/`)

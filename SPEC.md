@@ -116,6 +116,8 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Client-side heartbeat to keep `lastActiveAt` fresh.
 - Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys, plus a **Danger zone** with self-serve account deletion (Better-Auth `deleteUser`: password confirm for credential users, fresh session (<24h) for OAuth-only; blocked while impersonating and for the last admin; all user rows cascade).
 
+- File upload component (Beta, `components/ui/file-upload.tsx`): camera, gallery and drag-and-drop sources, each off by default and enabled by its own prop (`camera`, `gallery`, `dragDrop`). Image previews, `accept` (default `image/*`, also enforced on drops), `multiple`, `maxFiles`, `maxSizeMB`, `onFilesChange`. Client-side only; the app does the actual upload.
+
 - Feedback button (Beta) in the dashboard header (`components/dashboard/feedbackDialog.tsx`, shown only when `FEEDBACK_DISCORD_WEBHOOK_URL` or `FEEDBACK_EMAIL` is set): a bug report / general feedback dialog that posts to `/api/feedback`. The route needs a session, validates the message (1–2000 chars) and limits each user to one message per 30s (in memory, per instance). It delivers to a Discord webhook (an embed with mentions disabled) and/or Resend email (Reply-To is the user). Nothing is stored. It succeeds if any destination succeeds.
 
 ### Maintenance mode

@@ -13,7 +13,7 @@ import {
   LogOut,
 } from "lucide-react"
 
-import { authClient } from "@/lib/auth-client"
+import { authClient } from "../../lib/auth-client"
 import {
   Sidebar,
   SidebarContent,
@@ -25,9 +25,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Button } from "@/components/ui/button"
+} from "../ui/sidebar"
+import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar"
+import { Button } from "../ui/button"
 
 export interface AppSidebarUser {
   name: string

@@ -51,6 +51,7 @@
     "lib/device-fingerprint.ts",
     "lib/request-info.ts",
     "hooks/use-dimensions.ts",
+    "hooks/use-mobile.ts",
     "types/auth",
     "styles/theme.css",
     "README.md"
@@ -202,7 +203,7 @@
     "build": "npm run build:lib && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "bun lib/recalculate-columns.test.ts && bun lib/auth-throttle-limits.test.ts && bun lib/shared-devices.test.ts && bun lib/maintenance.test.ts && bun lib/install-target.test.ts && bun scripts/bump-version.test.ts",
+    "test": "bun lib/recalculate-columns.test.ts && bun lib/auth-throttle-limits.test.ts && bun lib/shared-devices.test.ts && bun lib/maintenance.test.ts && bun lib/install-target.test.ts && bun lib/file-upload-accept.test.ts && bun scripts/bump-version.test.ts",
     "build:lib": "tsup",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

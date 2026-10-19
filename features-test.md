@@ -458,3 +458,22 @@ FEEDBACK_EMAIL=you@example.com   # needs RESEND_API_KEY + a verified EMAIL_FROM
    the toast "Failed to send feedback" (**502**), and you can retry right away (the
    cooldown isn't used up).
 6. Email: the message arrives at `FEEDBACK_EMAIL`. Replying goes to the user.
+
+---
+
+## File upload component (Beta)
+
+`components/ui/file-upload.tsx`. Accept-type matching is unit-tested:
+
+```bash
+bun lib/file-upload-accept.test.ts   # or: bun run test
+```
+
+Manual, in Storybook (`bun run storybook` → UI/FileUpload):
+
+1. **Defaults:** `<FileUpload />` with no props renders nothing.
+2. **Each prop alone** (CameraOnly / GalleryOnly / DragDropOnly stories): only that method shows.
+3. **Camera:** on a phone (open Storybook over LAN), "Take photo" opens the rear camera; on desktop it opens a file picker.
+4. **Drag and drop:** dropping a PDF with the default `accept` shows "not an accepted file type"; dropping images adds previews.
+5. **Limits:** SingleFileMax2MB story: a file over 2 MB is rejected; a second pick replaces the first.
+6. **Remove:** the × on a preview removes it; `onFilesChange` fires (Actions panel) with the new list.
