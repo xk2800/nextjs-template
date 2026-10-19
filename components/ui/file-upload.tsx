@@ -57,11 +57,15 @@ function FileUpload({
   const cameraRef = React.useRef<HTMLInputElement>(null)
   const galleryRef = React.useRef<HTMLInputElement>(null)
 
-  const previews = React.useMemo(
-    () => files.map((f) => (f.type.startsWith("image/") ? URL.createObjectURL(f) : null)),
-    [files]
-  )
-  React.useEffect(() => () => previews.forEach((url) => url && URL.revokeObjectURL(url)), [previews])
+  // Created and revoked in the same effect: with useMemo, Strict Mode's
+  // simulated unmount revoked the URLs and the remount reused the dead ones.
+  const [previews, setPreviews] = React.useState<(string | null)[]>([])
+  React.useEffect(() => {
+    const urls = files.map((f) => (f.type.startsWith("image/") ? URL.createObjectURL(f) : null))
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- object URLs must be created where they're revoked
+    setPreviews(urls)
+    return () => urls.forEach((url) => url && URL.revokeObjectURL(url))
+  }, [files])
 
   const update = (next: File[]) => {
     setFiles(next)
