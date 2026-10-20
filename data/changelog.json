@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.5",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: add consent management settings and utility functions for user consent",
+    "changes": [
+      "feat: add consent management settings and utility functions for user consent"
+    ]
+  },
+  {
     "version": "0.7.1-beta.4",
     "date": "2026-10-20",
     "type": "beta",
