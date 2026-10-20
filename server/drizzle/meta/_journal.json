@@ -148,6 +148,20 @@
       "when": 1792503410557,
       "tag": "0020_consent_mode_device_signals",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792507902230,
+      "tag": "0021_consent_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792508681257,
+      "tag": "0022_consent_log_chain",
+      "breakpoints": true
     }
   ]
 }

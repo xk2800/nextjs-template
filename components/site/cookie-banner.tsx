@@ -9,11 +9,53 @@ import { Button } from "../ui/button"
 import { Checkbox } from "../ui/checkbox"
 import { Label } from "../ui/label"
 import {
+  readConsent,
   setCookieConsent,
   useConsentRequired,
   useCookieConsent,
   type ConsentPurpose,
 } from "../../lib/cookie-consent"
+import { CONSENT_VERSION } from "../../lib/cookie-names"
+import { useSession } from "../../lib/auth-client"
+
+// Last choice sent to app/api/consent from this browser, as
+// "userId|choice|version", so each choice is recorded once, not on every load.
+const RECORDED_KEY = "consent-recorded"
+
+// Proof of consent: once a signed-in user has a choice (made now, or before
+// they signed in), record it server-side. The route is idempotent, so a lost
+// localStorage marker only costs one redundant request.
+function useRecordConsent(consentRequired: boolean) {
+  const consent = useCookieConsent()
+  const { data: session } = useSession()
+  const userId = session?.user?.id
+
+  useEffect(() => {
+    if (!consentRequired || !userId || consent === null) return
+    const choice = readConsent()
+    if (!choice) return
+    const marker = `${userId}|${choice}|${CONSENT_VERSION}`
+    try {
+      if (localStorage.getItem(RECORDED_KEY) === marker) return
+    } catch {
+      // No localStorage — fall through; the route dedupes.
+    }
+    fetch("/api/consent", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ choice }),
+    })
+      .then((res) => {
+        if (!res.ok) return
+        try {
+          localStorage.setItem(RECORDED_KEY, marker)
+        } catch {
+          // ignore
+        }
+      })
+      .catch(() => {})
+  }, [consentRequired, userId, consent])
+}
 
 const PURPOSES: { id: ConsentPurpose; label: string; description: string }[] = [
   {
@@ -42,6 +84,7 @@ export function CookieBanner() {
   // for mount to tell them apart — otherwise returning visitors see a flash.
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])
+  useRecordConsent(consentRequired)
 
   if (!consentRequired || !mounted || consent) return null
 

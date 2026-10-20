@@ -10,7 +10,7 @@ The admin area is at `/dashboard/admin`. Its layout calls `requireRole('admin')`
 |---|---|
 | `/dashboard/admin` | Stats grid plus device-security cards: **New devices**, **Device throttle**, **Shared devices** |
 | `/dashboard/admin/users` | Search, paginate, change role, ban or unban, delete, bulk ban, bulk delete, CSV export, impersonate |
-| `/dashboard/admin/users/[userId]` | Login info, **Devices** (each device with its fingerprint signals), sessions (revoke one or all), activity, status, impersonation log |
+| `/dashboard/admin/users/[userId]` | Login info, **Devices** (each device with its fingerprint signals), **Consent** (current cookie choice per purpose and its history, see [Proof of consent](/security#proof-of-consent)), sessions (revoke one or all), activity, status, impersonation log |
 | `/dashboard/admin/activity-logs` | System-wide audit log with search, action and date filters, and CSV export |
 | `/dashboard/admin/settings` | System Settings: maintenance mode, auth toggles, session revocation, consent mode |
 

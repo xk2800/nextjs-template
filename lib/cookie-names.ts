@@ -23,6 +23,20 @@ export const COOKIE_CONSENT_COOKIE = 'cookie_consent'
 export type ConsentPurpose = 'fingerprint' | 'onetap'
 export const CONSENT_PURPOSES: ConsentPurpose[] = ['fingerprint', 'onetap']
 
+// Version of the consent wording (banner text + privacy page purposes),
+// stored with each consent record (consent_log.version) so you can show which
+// text a user agreed to. Bump it when that wording changes materially.
+export const CONSENT_VERSION = 1
+
+// A well-formed cookie_consent value: "all", "necessary", or a comma list of
+// known purposes. Used to validate what the client sends to app/api/consent.
+export function isValidConsent(value: unknown): value is string {
+  if (value === 'all' || value === 'necessary') return true
+  if (typeof value !== 'string' || !value) return false
+  const parts = value.split(',')
+  return new Set(parts).size === parts.length && parts.every((p) => (CONSENT_PURPOSES as string[]).includes(p))
+}
+
 // Does a cookie_consent value allow this purpose? Plain function, no React,
 // so route handlers can use it too (app/api/device-check).
 export function consentAllows(value: string | null | undefined, purpose: ConsentPurpose): boolean {

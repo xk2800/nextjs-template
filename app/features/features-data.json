@@ -13,7 +13,7 @@
         "Self-serve password reset — emailed link, single-use token, no support ticket",
         "Self-serve email verification — resend from the dashboard, Better-Auth callback flips the flag",
         "OAuth callback double-hit recovery — a stale \"please restart the process\" redirect (browser Back, bfcache replay) silently retries instead of stranding you on an error page",
-        "Cookie-consent banner — \"Necessary only\" as easy to pick as \"Accept all\", changeable later from the footer; \"Customize\" gives a separate, unticked choice for the device fingerprint and for One Tap, each waits for its own consent, withdrawing fingerprint consent erases the stored device record, and a useCookieConsent() hook gates your own analytics"
+        "Cookie-consent banner — \"Necessary only\" as easy to pick as \"Accept all\", changeable later from the footer; \"Customize\" gives a separate, unticked choice for the device fingerprint and for One Tap, each waits for its own consent, withdrawing fingerprint consent erases the stored device record, each signed-in user's choices are kept as proof of consent (Beta), and a useCookieConsent() hook gates your own analytics"
       ]
     },
     {
@@ -25,6 +25,7 @@
         "Bulk ban, bulk delete, and CSV export for the whole user list",
         "Per-user detail page: sessions, activity log, and account status, one screen",
         "Device signals on the user page (Beta) — every device an account signed in from, with the browser and device traits behind its fingerprint (platform, screen, fonts, languages, CPU, WebGL…) in a collapsible list; accessibility settings are never collected",
+        "Consent history on the user page (Beta) — each user's current cookie choice, allowed or declined per purpose, plus every change with the consent-text version and time, as proof of consent",
         "Consent-mode switch (Beta) — one System Settings toggle for whether GDPR/ePrivacy consent is required: on shows the cookie banner and waits for consent to each purpose (enforced server-side too), off runs everything for every visitor",
         "Live online/offline indicator via a lightweight heartbeat endpoint"
       ]

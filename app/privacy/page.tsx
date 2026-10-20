@@ -76,7 +76,9 @@ export default async function PrivacyPage() {
                 <p className="mt-2">
                   &quot;Accept all&quot; allows both, &quot;Necessary only&quot; neither, and
                   &quot;Customize&quot; lets you pick each one; nothing is ticked in advance. Your choice
-                  is stored in a cookie for one year.
+                  is stored in a cookie for one year. If you&apos;re signed in, we also keep a record of
+                  each choice you make (what you chose, which version of this notice, and when) with
+                  your account, so we can show that consent was given.
                 </p>
                 <p className="mt-2">
                   You can change your choice at any time via &quot;Cookie settings&quot; in the footer.
@@ -116,6 +118,7 @@ export default async function PrivacyPage() {
               <li>Account details, sign-in logs and device records: until your account is deleted.{consentRequired && " Device records are also deleted when you withdraw consent for the security fingerprint."}</li>
               <li>Failed sign-in counters (device identifier, IP address, browser and the last email entered): 30 days after the last attempt.</li>
               <li>Sessions: up to 30 days, or until you sign out or revoke them.</li>
+              {consentRequired && <li>Records of your cookie choices: until your account is deleted.</li>}
             </ul>
           </section>
 

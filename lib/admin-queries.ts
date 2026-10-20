@@ -1,6 +1,6 @@
 import "server-only"
 import { db } from "../server/db"
-import { users, sessions, authThrottle, deviceFingerprints } from "../server/db/schema"
+import { users, sessions, authThrottle, deviceFingerprints, consentLog } from "../server/db/schema"
 import { sql, gte, eq, desc } from "drizzle-orm"
 import { parseUserAgent, lookupGeoLocation, formatDeviceInfo } from "./request-info"
 import { WINDOW_MS, isOverLimit } from "./auth-throttle-limits"
@@ -167,6 +167,21 @@ export async function getUserDevices(userId: string) {
     .orderBy(desc(deviceFingerprints.createdAt))
 
   return rows.map((r) => ({ ...r, device: formatDeviceInfo(parseUserAgent(r.userAgent)) }))
+}
+
+// Powers the admin user page's "Consent" card: the user's recorded cookie
+// choices (proof of consent, written by app/api/consent), newest first.
+export async function getUserConsentLog(userId: string) {
+  return db
+    .select({
+      id: consentLog.id,
+      choice: consentLog.choice,
+      version: consentLog.version,
+      createdAt: consentLog.createdAt,
+    })
+    .from(consentLog)
+    .where(eq(consentLog.userId, userId))
+    .orderBy(desc(consentLog.createdAt))
 }
 
 // A device fingerprint (FingerprintJS visitorId) is normally 1:1 with an

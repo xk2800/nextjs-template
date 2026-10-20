@@ -42,7 +42,7 @@ export function isConsentRequired(): boolean {
 }
 
 // The raw cookie value, or null before a choice. "all" when consent isn't required.
-function readConsent(): string | null {
+export function readConsent(): string | null {
   if (!isConsentRequired()) return "all"
   if (typeof document === "undefined") return null
   const match = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_CONSENT_COOKIE}=([a-z,]+)`))

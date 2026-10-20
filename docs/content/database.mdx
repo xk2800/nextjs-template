@@ -40,6 +40,7 @@ Everything is defined in `server/db/schema.ts`. IDs are CUID2 strings. Every use
 | `activity_log` (`activityLogs`) | Audit trail. `action` is the `activity_actions` enum. Login rows also store OS, browser, device and geo. |
 | `device_fingerprint` (`deviceFingerprints`) | One row per (user, FingerprintJS visitorId) pair. A missing row means a new device, which triggers an alert. `components` (jsonb) holds the device's latest FingerprintJS signals for the admin **Devices** card. |
 | `auth_throttle` (`authThrottle`) | Fixed-window counters for the sign-in/sign-up throttle, keyed by fingerprint or `ip:<addr>`. Rows untouched for 30 days are deleted automatically. |
+| `consent_log` (`consentLog`) | Proof of cookie consent: one row per choice a signed-in user makes (`choice`, `version`, `createdAt`). `previousId` chains each row to the one before, and `(userId, previousId)` is unique, so several tabs posting at once record a choice only once. Deleted with the account. |
 | `system_settings` (`systemSettings`) | Single row (`id = 'default'`) holding admin-editable settings |
 
 ### Column-name gotchas

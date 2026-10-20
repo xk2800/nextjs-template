@@ -108,6 +108,21 @@ Projects scaffolded before this change have a local `app/api/device-check/route.
 
 Withdrawing One Tap consent stops its script from loading and deletes Google's `g_state` cookie.
 
+### Proof of consent
+
+GDPR Art. 7(1) says you must be able to *demonstrate* consent, and the browser cookie alone proves nothing on your side. So when a signed-in user has a choice, whether made just now or before they signed in, `<CookieBanner />` posts it to `POST /api/consent`. That writes a `consent_log` row with the user, the choice (`all`, `necessary` or the purposes ticked), `CONSENT_VERSION` and the time.
+
+- **Only on change.** A row is added only when the choice or version differs from the user's latest record. A `localStorage` marker (`consent-recorded`) saves the request in between. If several tabs post at once, each new row names the record it follows (`previousId`, unique per user), so only one insert lands.
+- **Minimal.** No IP or user agent. Rows are deleted with the account.
+- **Signed-in users only.** A record tied to an account is what proves consent, and it keeps the endpoint closed to anonymous spam. An anonymous visitor's choice is recorded once they sign in.
+- **Bump `CONSENT_VERSION`** in `lib/cookie-names.ts` when the banner or privacy-page purposes change materially, so records show which wording each user agreed to. Bumping it doesn't re-ask visitors.
+
+Admins see it on the user's admin page in the **Consent** card. It shows the current choice per purpose (allowed or declined), then every recorded change with its version and time. To query it directly:
+
+```sql
+SELECT choice, version, "createdAt" FROM consent_log WHERE "userId" = '<id>' ORDER BY "createdAt";
+```
+
 Gate your own analytics the same way:
 
 ```tsx
@@ -124,7 +139,7 @@ To give your own feature a separate choice, add a purpose to `ConsentPurpose` / 
 If none of your users are in the EU, the UK or another consent-rules region, you can drop the banner: turn **Require consent** off in System Settings, or set `NEXT_PUBLIC_COOKIE_BANNER=false` to make that the default. Consent is then treated as granted for everyone. For an EU or UK audience that's a violation; see the warning under [Consent mode](#consent-mode).
 
 <Callout type="warning">
-Upgrading from an earlier version: run `bun run generate` and migrate. That adds `system_settings."consentRequired"` and `device_fingerprint.components`. Until you migrate, settings reads fail open to env defaults. Three files are local to your project and don't update with the package: `proxy.ts` (sets the `consent_required` cookie; without it the client falls back to `NEXT_PUBLIC_COOKIE_BANNER`), `app/api/device-check/route.ts` (the consent check and signal storage; an older route that checks `cookie_consent === "all"` refuses visitors who allowed only `fingerprint` under **Customize**) and `app/dashboard/admin/users/[userId]/page.tsx` (renders `<AdminUserDevicesCard />`). Copy the changes from the template.
+Upgrading from an earlier version: run `bun run generate` and migrate. That adds `system_settings."consentRequired"`, `device_fingerprint.components` and the `consent_log` table. Until you migrate, settings reads fail open to env defaults. `app/api/consent/route.ts` is new and local, so copy it too; until you do, the banner's proof-of-consent request gets a 404 and nothing is recorded. These existing files are also local to your project and don't update with the package: `proxy.ts` (sets the `consent_required` cookie; without it the client falls back to `NEXT_PUBLIC_COOKIE_BANNER`), `app/api/device-check/route.ts` (the consent check and signal storage; an older route that checks `cookie_consent === "all"` refuses visitors who allowed only `fingerprint` under **Customize**) and `app/dashboard/admin/users/[userId]/page.tsx` (renders `<AdminUserDevicesCard />`). Copy the changes from the template.
 </Callout>
 
 ## Open-redirect protection

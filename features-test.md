@@ -363,6 +363,20 @@ Not covered by `bun run test`. Needs a browser.
    prompt shows, but no header and no device check. Ticking both stores
    `all`; ticking neither stores `necessary`. Unit test:
    `bun lib/cookie-names.test.ts`.
+4c. Proof of consent. Signed in, make a choice: `POST /api/consent` is sent
+   once and a `consent_log` row appears with that `choice` and `version`.
+   Reloading sends nothing (the `localStorage['consent-recorded']` marker),
+   and repeating the same choice adds no row. A different choice (Cookie
+   settings → pick again) adds a new row. Choosing while signed out, then
+   signing in, records the choice at sign-in. The user's admin page
+   (`/dashboard/admin/users/<id>`) → **Consent** card shows the current
+   choice per purpose and each change, newest first. Deleting the account removes
+   its rows.
+
+   ```sql
+   SELECT choice, version, "createdAt" FROM consent_log WHERE "userId" = '<id>' ORDER BY "createdAt";
+   ```
+
 5. Rebuild with `NEXT_PUBLIC_COOKIE_BANNER=false`. There's no banner and no
    footer link, and the fingerprint and One Tap behave as in step 4.
 6. Withdrawal erases the device row. Signed in with **Accept all**,

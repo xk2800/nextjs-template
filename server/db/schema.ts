@@ -179,6 +179,31 @@ export const deviceFingerprints = pgTable("device_fingerprint", {
   unique("device_fingerprint_user_visitor").on(table.userId, table.visitorId),
 ]);
 
+// Proof of cookie consent (GDPR Art. 7(1): the controller must be able to
+// demonstrate consent). One row per choice a signed-in user makes, written by
+// app/api/consent from the banner (components/site/cookie-banner.tsx).
+// Deliberately minimal — no IP/UA. Deleted with the account.
+export const consentLog = pgTable("consent_log", {
+  id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  // The cookie_consent value: "all", "necessary" or a comma list of purposes.
+  choice: text("choice").notNull(),
+  // CONSENT_VERSION (lib/cookie-names.ts) at the time — which banner/policy
+  // wording the user agreed to.
+  version: integer("version").notNull(),
+  // id of the user's record this one follows ("" for their first). Unique per
+  // user, so concurrent posts from several tabs that all saw the same latest
+  // record can't each insert a duplicate — one wins, the rest conflict. Works
+  // without transactions (neon-http has none). Null on rows from before it.
+  previousId: text("previousId"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => [
+  index("consent_log_user_idx").on(table.userId, table.createdAt),
+  unique("consent_log_chain").on(table.userId, table.previousId),
+]);
+
 // Per-device abuse throttle for /sign-in/email and /sign-up/email — one
 // fixed-window counter row per FingerprintJS visitorId (sent by the auth
 // forms as the x-device-fingerprint header; see lib/auth-throttle.ts).
