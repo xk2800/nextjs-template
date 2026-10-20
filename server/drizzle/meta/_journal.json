@@ -141,6 +141,13 @@
       "when": 1792336752767,
       "tag": "0019_error_refs",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792503410557,
+      "tag": "0020_consent_mode_device_signals",
+      "breakpoints": true
     }
   ]
 }

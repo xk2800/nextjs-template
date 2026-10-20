@@ -20,6 +20,7 @@ const patchSchema = z.object({
   authEnableOneTap: z.boolean().optional(),
   enableSessionRevocation: z.boolean().optional(),
   feedbackAttachErrors: z.boolean().optional(),
+  consentRequired: z.boolean().optional(),
 })
 
 export async function PATCH(request: NextRequest) {

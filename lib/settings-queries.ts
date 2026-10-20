@@ -30,6 +30,7 @@ function fallbackSettings(): SystemSettings {
     authEnableOneTap: config.AUTH_ENABLE_ONE_TAP,
     enableSessionRevocation: config.ENABLE_SESSION_REVOCATION,
     feedbackAttachErrors: true,
+    consentRequired: null,
     updatedAt: new Date(0),
     updatedBy: null,
   }
@@ -92,7 +93,7 @@ export function invalidateSystemSettingsCache() {
 export type SystemSettingsPatch = Partial<Pick<SystemSettings,
   | 'maintenanceMode' | 'maintenanceMessage' | 'maintenanceExemptPaths'
   | 'authEnableGoogle' | 'authEnableEmailPassword' | 'authEnableOneTap'
-  | 'enableSessionRevocation' | 'feedbackAttachErrors'
+  | 'enableSessionRevocation' | 'feedbackAttachErrors' | 'consentRequired'
 >>
 
 export async function updateSystemSettings(
@@ -121,6 +122,12 @@ export async function getEffectiveAuthFlags() {
     emailPassword: config.AUTH_ENABLE_EMAIL_PASSWORD && settings.authEnableEmailPassword,
     oneTap: config.AUTH_ENABLE_ONE_TAP && settings.authEnableOneTap,
   }
+}
+
+// Consent mode: the admin's choice if they've made one, else the
+// NEXT_PUBLIC_COOKIE_BANNER default (banner on unless it's "false").
+export function isConsentRequired(settings: Pick<SystemSettings, 'consentRequired'>): boolean {
+  return settings.consentRequired ?? process.env.NEXT_PUBLIC_COOKIE_BANNER !== "false"
 }
 
 // The env-only half of the AND above. The System Settings page needs this

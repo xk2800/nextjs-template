@@ -59,6 +59,24 @@ only needed after using a fixed fingerprint:
 DELETE FROM auth_throttle WHERE fingerprint LIKE 'loadtest-%';
 ```
 
+### 5. Retention sweep
+
+Rows untouched for 30 days (`RETENTION_MS`) are deleted by
+`pruneStaleRows()` in `lib/auth-throttle.ts`, at most hourly per server
+instance, triggered by any throttle write. To check: restart the dev server,
+then plant a stale row:
+
+```sql
+INSERT INTO auth_throttle (fingerprint, "lastAttemptAt")
+VALUES ('retention-test', now() - interval '31 days');
+```
+
+Fail one sign-in, then confirm the row is gone:
+
+```sql
+SELECT * FROM auth_throttle WHERE fingerprint = 'retention-test';  -- 0 rows
+```
+
 ---
 
 ## New-device sign-in alert
@@ -339,6 +357,45 @@ Not covered by `bun run test`. Needs a browser.
    `x-device-fingerprint`, and after sign-in `/api/device-check` is called once.
 5. Rebuild with `NEXT_PUBLIC_COOKIE_BANNER=false`. There's no banner and no
    footer link, and the fingerprint and One Tap behave as in step 4.
+6. Withdrawal erases the device row. Signed in with **Accept all**,
+   `localStorage['device-visitor-id']` is set and a `device_fingerprint` row
+   exists for it. Footer → **Cookie settings** → **Necessary only**:
+   `DELETE /api/device-check` is sent, the row is gone and the localStorage
+   key is removed. API-level check: `bun scripts/test-new-device.ts` (step 6).
+7. Consent mode. In Admin → System Settings, turn **Require consent** off
+   and save. Within 10s, a fresh page load sets `consent_required=0`, and
+   there's no banner and no footer link even with `cookie_consent` cleared.
+   Sign-in requests carry `x-device-fingerprint` and `/api/device-check` is
+   called, and `/privacy` says the site doesn't ask for cookie consent.
+   Turn it back on: `consent_required=1`, the banner returns, and `/privacy`
+   describes the "Only if you accept optional cookies" flow again.
+   `bun scripts/test-new-device.ts` checks the server side: with consent
+   required, a POST without `cookie_consent=all` gets 403.
+
+---
+
+## Device signals (admin user page)
+
+`lib/device-fingerprint.ts` (`getDeviceSignals()`) →
+`components/auth/deviceCheck.tsx` → `app/api/device-check/route.ts`
+(`device_fingerprint.components`) → `getUserDevices()` in
+`lib/admin-queries.ts` → `components/dashboard/admin/adminUserDevicesCard.tsx`.
+
+1. Accept all cookies and sign in. Open
+   `/dashboard/admin/users/<your id>` as an admin → **Devices** card →
+   expand the device. Signals such as `platform`, `screenResolution`, `fonts`
+   and `timezone` are listed; `canvas` and other large values show as
+   `{"hash":…}`.
+2. None of `reducedMotion`, `reducedTransparency`, `contrast`,
+   `forcedColors`, `invertedColors`, `monochrome` or `colorGamut` appear,
+   and they aren't in the DB either:
+
+   ```sql
+   SELECT components ? 'reducedMotion' FROM device_fingerprint;  -- all false/null
+   ```
+
+3. A device recorded before this feature shows "No signals yet" until its
+   next browser session, which fills it in.
 
 ---
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { and, eq } from "drizzle-orm"
-import { headers } from "next/headers"
+import { cookies, headers } from "next/headers"
 import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { deviceFingerprints } from "@/server/db/schema"
@@ -15,6 +15,17 @@ import {
   formatLocation,
 } from "@/lib/request-info"
 import { EmailTemplateNewDevice } from "@/components/email/email-template-new-device"
+import { getSystemSettings, isConsentRequired } from "@/lib/settings-queries"
+import { COOKIE_CONSENT_COOKIE, EXCLUDED_SIGNALS } from "@/lib/cookie-names"
+
+// Client-sent signals: a plain object under 32 KB (the client hashes large
+// values, so real payloads are a few KB), minus the accessibility signals.
+// Anything else is dropped rather than failing the device check.
+function sanitizeSignals(components: unknown): Record<string, unknown> | null {
+  if (!components || typeof components !== "object" || Array.isArray(components)) return null
+  if (JSON.stringify(components).length > 32_000) return null
+  return Object.fromEntries(Object.entries(components).filter(([name]) => !EXCLUDED_SIGNALS.has(name)))
+}
 
 // Called by components/auth/deviceCheck.tsx once per browser session with the
 // FingerprintJS visitorId. First time this (user, visitorId) pair is seen ⇒
@@ -28,11 +39,19 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const { visitorId } = await request.json().catch(() => ({}))
+  const { visitorId, components } = await request.json().catch(() => ({}))
   if (typeof visitorId !== "string" || !visitorId) {
     return NextResponse.json({ error: "visitorId is required" }, { status: 400 })
   }
 
+  // Consent mode: refuse fingerprints from browsers that haven't accepted
+  // optional cookies. The client already gates this; this is the server's own
+  // check, so a stale or modified client can't record without consent.
+  if (isConsentRequired(await getSystemSettings()) && (await cookies()).get(COOKIE_CONSENT_COOKIE)?.value !== "all") {
+    return NextResponse.json({ error: "Consent required" }, { status: 403 })
+  }
+
+  const signals = sanitizeSignals(components)
   const ip = getClientIp(hdrs)
   const userAgent = hdrs.get("user-agent")
   const device = parseUserAgent(userAgent)
@@ -51,11 +70,26 @@ export async function POST(request: Request) {
       userAgent,
       country: geo.country,
       city: geo.city,
+      components: signals,
     })
     .onConflictDoNothing()
     .returning({ id: deviceFingerprints.id })
 
   if (!row) {
+    // Known device: refresh its signals (browser updates change some), so the
+    // admin page shows the latest snapshot. Rows from before signals were
+    // collected get theirs filled in here.
+    if (signals) {
+      await db
+        .update(deviceFingerprints)
+        .set({ components: signals })
+        .where(
+          and(
+            eq(deviceFingerprints.userId, session.user.id),
+            eq(deviceFingerprints.visitorId, visitorId),
+          ),
+        )
+    }
     return NextResponse.json({ ok: true, newDevice: false })
   }
 
@@ -136,4 +170,32 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ ok: true, newDevice: true })
+}
+
+// Consent withdrawn ("Necessary only" on the cookie banner): erase the
+// signed-in user's record for this device. Called by deviceCheck.tsx with the
+// visitorId it stored while consent was given. Scoped to the session's own
+// userId, so a caller can only delete their own rows.
+export async function DELETE(request: Request) {
+  const session = await auth.api.getSession({ headers: await headers() })
+
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const { visitorId } = await request.json().catch(() => ({}))
+  if (typeof visitorId !== "string" || !visitorId) {
+    return NextResponse.json({ error: "visitorId is required" }, { status: 400 })
+  }
+
+  await db
+    .delete(deviceFingerprints)
+    .where(
+      and(
+        eq(deviceFingerprints.userId, session.user.id),
+        eq(deviceFingerprints.visitorId, visitorId),
+      ),
+    )
+
+  return NextResponse.json({ ok: true })
 }

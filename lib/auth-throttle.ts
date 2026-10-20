@@ -1,8 +1,8 @@
 import "server-only"
-import { eq, sql } from "drizzle-orm"
+import { eq, lt, sql } from "drizzle-orm"
 import { db } from "../server/db"
 import { authThrottle } from "../server/db/schema"
-import { WINDOW_MS, isOverLimit } from "./auth-throttle-limits"
+import { RETENTION_MS, WINDOW_MS, isOverLimit } from "./auth-throttle-limits"
 
 // Is this key (device fingerprint, or "ip:<address>" backstop) currently over
 // the cap? Read-only — the caller (server/auth.ts before-hook) decides
@@ -58,6 +58,26 @@ export async function recordDeviceAttempt(fingerprint: string, meta: AttemptMeta
       })
   } catch (error) {
     console.error("auth-throttle write failed", error)
+  }
+  await pruneStaleRows(now)
+}
+
+// Retention sweep piggybacked on the write path, so no cron is needed.
+// ponytail: runs at most hourly per server instance, and only when someone
+// attempts a sign-in — a site with zero attempts keeps stale rows until the
+// next one. Call pruneStaleRows() from a cron if you need a hard guarantee.
+const PRUNE_EVERY_MS = 60 * 60 * 1000
+let lastPrune = 0
+
+export async function pruneStaleRows(now = new Date()): Promise<void> {
+  if (now.getTime() - lastPrune < PRUNE_EVERY_MS) return
+  lastPrune = now.getTime()
+  try {
+    await db
+      .delete(authThrottle)
+      .where(lt(authThrottle.lastAttemptAt, new Date(now.getTime() - RETENTION_MS)))
+  } catch (error) {
+    console.error("auth-throttle prune failed", error)
   }
 }
 

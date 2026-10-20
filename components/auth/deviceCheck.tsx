@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useSession } from '../../lib/auth-client'
-import { getVisitorId } from '../../lib/device-fingerprint'
+import { clearStoredVisitorId, getDeviceSignals, getStoredVisitorId, getVisitorId } from '../../lib/device-fingerprint'
 import { useCookieConsent } from '../../lib/cookie-consent'
 
 // Mount once (e.g. in the root layout). When a session is present it computes
@@ -13,6 +13,14 @@ import { useCookieConsent } from '../../lib/cookie-consent'
 // email/password, Google OAuth and One Tap without touching any of them. The
 // endpoint is idempotent — the alert only fires on the first ever POST for a
 // given (user, device).
+//
+// Also handles withdrawn consent: once the visitor picks "Necessary only",
+// the stored device id is sent to DELETE /api/device-check so this device's
+// record is erased, then forgotten. Withdrawn while signed out ⇒ it happens on
+// the next sign-in.
+// ponytail: erases only the signed-in account's row for this device. If
+// several accounts used this browser, the others keep theirs until they sign
+// in here again or are deleted.
 export default function DeviceCheck() {
   const { data: session } = useSession()
   const userId = session?.user?.id
@@ -21,7 +29,31 @@ export default function DeviceCheck() {
   const consent = useCookieConsent()
 
   useEffect(() => {
-    if (!userId || consent !== 'all') return
+    if (!userId) return
+
+    if (consent === 'necessary') {
+      // Re-consenting later in this tab must POST again — the row is gone.
+      try {
+        sessionStorage.removeItem('device-checked')
+      } catch {
+        // ignore
+      }
+      const visitorId = getStoredVisitorId()
+      if (!visitorId) return
+      fetch('/api/device-check', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visitorId }),
+      })
+        .then((res) => {
+          // Keep the id on failure so the next page load retries the erasure.
+          if (res.ok) clearStoredVisitorId()
+        })
+        .catch(() => {})
+      return
+    }
+
+    if (consent !== 'all') return
 
     const run = async () => {
       try {
@@ -34,11 +66,16 @@ export default function DeviceCheck() {
       const visitorId = await getVisitorId()
       if (!visitorId) return
 
-      await fetch('/api/device-check', {
+      const res = await fetch('/api/device-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ visitorId }),
+        // components: the device's signals for the admin user page.
+        body: JSON.stringify({ visitorId, components: await getDeviceSignals() }),
       })
+      // Only a success counts as checked — a failed request (server error,
+      // deploy in progress) must retry on the next page load, not wait for
+      // a new browser session.
+      if (!res.ok) return
 
       try {
         sessionStorage.setItem('device-checked', userId)

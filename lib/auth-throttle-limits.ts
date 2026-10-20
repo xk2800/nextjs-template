@@ -13,6 +13,11 @@ export const MAX = 10 // failed sign-ins / sign-ups per window before a 429, per
 // legitimate shared-IP traffic ever gets caught in it.
 export const MAX_IP = MAX * 3
 
+// Rows untouched this long are deleted (lib/auth-throttle.ts). They hold IP,
+// user agent and the last email typed — often for people with no account — so
+// GDPR storage limitation says don't keep them past their use.
+export const RETENTION_MS = 30 * 24 * 60 * 60 * 1000
+
 // A row whose window has already elapsed counts as "no row" — it resets on
 // the next attempt (see recordDeviceAttempt), so the device isn't blocked in
 // the meantime.

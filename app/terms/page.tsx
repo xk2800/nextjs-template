@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { SiteHeader } from "@/components/site/site-header"
 import { SiteFooter } from "@/components/site/site-footer"
 
@@ -33,7 +34,20 @@ export default function TermsPage() {
             </p>
           </section>
           <section>
-            <h2 className="text-base font-semibold text-foreground">3. Changes</h2>
+            <h2 className="text-base font-semibold text-foreground">3. Security and abuse prevention</h2>
+            <p className="mt-2">
+              To protect accounts, we record the devices you sign in from, using a device fingerprint
+              built from your browser and device characteristics, and we limit repeated failed
+              sign-ins. Creating or using multiple accounts to get around limits or bans may lead to
+              those accounts being suspended. See the{" "}
+              <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+                Privacy Policy
+              </Link>{" "}
+              for what&apos;s collected and how long it&apos;s kept.
+            </p>
+          </section>
+          <section>
+            <h2 className="text-base font-semibold text-foreground">4. Changes</h2>
             <p className="mt-2">
               These terms may change as the product changes. Material changes will be communicated
               before they take effect.

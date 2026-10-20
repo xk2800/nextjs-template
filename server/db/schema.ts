@@ -1,4 +1,4 @@
-import { boolean, check, index, integer, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { boolean, check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createId } from '@paralleldrive/cuid2'
 import { DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "../../lib/maintenance";
@@ -170,6 +170,10 @@ export const deviceFingerprints = pgTable("device_fingerprint", {
   userAgent: text("userAgent"),
   country: text("country"),
   city: text("city"),
+  // Latest FingerprintJS signals for this device (lib/device-fingerprint.ts
+  // getDeviceSignals(): accessibility signals dropped, large values hashed),
+  // shown on the admin user page. Null for rows from before this column.
+  components: jsonb("components").$type<Record<string, unknown>>(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 }, (table) => [
   unique("device_fingerprint_user_visitor").on(table.userId, table.visitorId),
@@ -180,8 +184,8 @@ export const deviceFingerprints = pgTable("device_fingerprint", {
 // forms as the x-device-fingerprint header; see lib/auth-throttle.ts).
 // Keyed by device, not IP: IP is shared behind corporate NAT / CGNAT / VPN,
 // so an IP counter throttles coworkers together while missing an abuser who
-// rotates IPs. Rows whose window has elapsed are dead weight but harmless
-// (reset on the next attempt) — prune on a cron if the table ever grows.
+// rotates IPs. Rows untouched for 30 days are deleted (RETENTION_MS in
+// lib/auth-throttle-limits.ts, swept by lib/auth-throttle.ts).
 export const authThrottle = pgTable("auth_throttle", {
   fingerprint: text("fingerprint").notNull().primaryKey(),
   count: integer("count").notNull().default(0),
@@ -214,6 +218,13 @@ export const systemSettings = pgTable("system_settings", {
   // Attach the error a user hit to feedback they send from it (see
   // lib/feedback-route.ts). Off = only what the user typed is sent.
   feedbackAttachErrors: boolean("feedbackAttachErrors").notNull().default(true),
+  // GDPR/ePrivacy consent mode. On: cookie banner, FingerprintJS and One Tap
+  // only after "Accept all", device record erased on withdrawal. Off (no EU/UK
+  // users): no banner, treated as consented. Null = follow
+  // NEXT_PUBLIC_COOKIE_BANNER (nullable so migrating never flips a deployed
+  // banner on or off). proxy.ts mirrors the effective value into the
+  // consent_required cookie for the client (lib/cookie-consent.ts).
+  consentRequired: boolean("consentRequired"),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
   // Who last changed a setting. This row doesn't "belong" to that admin the
   // way sessions/activityLogs belong to their user, so deleting that admin's

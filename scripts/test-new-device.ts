@@ -6,8 +6,10 @@
 // the way components/auth/deviceCheck.tsx does on page load, asserting:
 //   - no session           -> 401
 //   - body with no visitorId -> 400
-//   - a fresh visitorId    -> { newDevice: true }   (records the row, fires emails)
+//   - consent required but not given -> 403  (skipped if consent isn't required)
+//   - a fresh visitorId    -> { newDevice: true }   (records the row + signals, fires emails)
 //   - the same visitorId    -> { newDevice: false }  (dedup — no second email)
+//   - DELETE (consent withdrawn) erases it -> the next POST is newDevice: true
 //
 // Target defaults to http://localhost:3000 (override with DEVICE_CHECK_URL).
 // If the dev server has RESEND_API_KEY set, real emails go to TEST_EMAIL and
@@ -57,12 +59,33 @@ const cookie = signIn.headers
   .join("; ")
 check("signed in and got a session cookie", cookie.includes("session"), cookie || "(none)")
 
-const post = (visitorId: unknown) =>
+// The route refuses fingerprints without cookie consent when the admin's
+// "Require consent" setting is on, so act like a browser that accepted.
+const post = (visitorId: unknown, components?: unknown) =>
   fetch(`${BASE}/api/device-check`, {
     method: "POST",
-    headers: { "content-type": "application/json", cookie },
-    body: JSON.stringify({ visitorId }),
+    headers: { "content-type": "application/json", cookie: `${cookie}; cookie_consent=all` },
+    body: JSON.stringify({ visitorId, components }),
   })
+
+// 2b. Consent required (proxy.ts reports it in the consent_required cookie)
+// and this browser hasn't accepted -> 403
+{
+  const page = await fetch(`${BASE}/`, { redirect: "manual" })
+  await page.text()
+  const required = page.headers.getSetCookie().some((c) => c.startsWith("consent_required=1"))
+  if (required) {
+    const res = await fetch(`${BASE}/api/device-check`, {
+      method: "POST",
+      headers: { "content-type": "application/json", cookie },
+      body: JSON.stringify({ visitorId: "testdev-noconsent" }),
+    })
+    await res.text()
+    check("consent required, not given -> 403", res.status === 403, `got ${res.status}`)
+  } else {
+    console.log("SKIP  consent check — consent isn't required on this deployment")
+  }
+}
 
 // 3. Missing visitorId -> 400
 {
@@ -74,7 +97,8 @@ const post = (visitorId: unknown) =>
 // 4. Fresh visitorId -> newDevice: true
 const vid = `testdev-${Date.now()}`
 {
-  const res = await post(vid)
+  // reducedMotion is an accessibility signal: the route must drop it.
+  const res = await post(vid, { platform: "MacIntel", timezone: "Europe/Berlin", reducedMotion: true })
   const json = (await res.json().catch(() => ({}))) as { newDevice?: boolean }
   check("first sight of a device -> newDevice: true", res.ok && json.newDevice === true, JSON.stringify(json))
 }
@@ -84,6 +108,23 @@ const vid = `testdev-${Date.now()}`
   const res = await post(vid)
   const json = (await res.json().catch(() => ({}))) as { newDevice?: boolean }
   check("same device again -> newDevice: false", res.ok && json.newDevice === false, JSON.stringify(json))
+}
+
+// 6. Consent withdrawn -> DELETE erases the row, so the next POST is "new" again
+const del = (visitorId: unknown) =>
+  fetch(`${BASE}/api/device-check`, {
+    method: "DELETE",
+    headers: { "content-type": "application/json", cookie },
+    body: JSON.stringify({ visitorId }),
+  })
+{
+  const res = await del(vid)
+  await res.text()
+  check("consent withdrawn -> DELETE ok", res.ok, `got ${res.status}`)
+  const again = await post(vid)
+  const json = (await again.json().catch(() => ({}))) as { newDevice?: boolean }
+  check("row was erased -> newDevice: true again", again.ok && json.newDevice === true, JSON.stringify(json))
+  await (await del(vid)).text() // leave no row behind
 }
 
 console.log(

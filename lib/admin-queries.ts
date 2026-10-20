@@ -2,7 +2,7 @@ import "server-only"
 import { db } from "../server/db"
 import { users, sessions, authThrottle, deviceFingerprints } from "../server/db/schema"
 import { sql, gte, eq, desc } from "drizzle-orm"
-import { parseUserAgent, lookupGeoLocation } from "./request-info"
+import { parseUserAgent, lookupGeoLocation, formatDeviceInfo } from "./request-info"
 import { WINDOW_MS, isOverLimit } from "./auth-throttle-limits"
 import { groupSharedDevices } from "./shared-devices"
 
@@ -143,6 +143,30 @@ export async function getRecentNewDevices(limit = 20) {
       deviceType: device.deviceType,
     }
   })
+}
+
+export type UserDeviceRow = Awaited<ReturnType<typeof getUserDevices>>[number]
+
+// Powers the admin user page's "Devices" card: every device this account has
+// signed in from, with the FingerprintJS signals deviceCheck.tsx sent for it
+// (components is null for rows recorded before signals were collected).
+export async function getUserDevices(userId: string) {
+  const rows = await db
+    .select({
+      id: deviceFingerprints.id,
+      visitorId: deviceFingerprints.visitorId,
+      ipAddress: deviceFingerprints.ipAddress,
+      userAgent: deviceFingerprints.userAgent,
+      country: deviceFingerprints.country,
+      city: deviceFingerprints.city,
+      components: deviceFingerprints.components,
+      createdAt: deviceFingerprints.createdAt,
+    })
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.userId, userId))
+    .orderBy(desc(deviceFingerprints.createdAt))
+
+  return rows.map((r) => ({ ...r, device: formatDeviceInfo(parseUserAgent(r.userAgent)) }))
 }
 
 // A device fingerprint (FingerprintJS visitorId) is normally 1:1 with an

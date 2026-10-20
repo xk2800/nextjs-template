@@ -10,9 +10,9 @@ The admin area is at `/dashboard/admin`. Its layout calls `requireRole('admin')`
 |---|---|
 | `/dashboard/admin` | Stats grid plus device-security cards: **New devices**, **Device throttle**, **Shared devices** |
 | `/dashboard/admin/users` | Search, paginate, change role, ban or unban, delete, bulk ban, bulk delete, CSV export, impersonate |
-| `/dashboard/admin/users/[userId]` | Login info, sessions (revoke one or all), activity, status, impersonation log |
+| `/dashboard/admin/users/[userId]` | Login info, **Devices** (each device with its fingerprint signals), sessions (revoke one or all), activity, status, impersonation log |
 | `/dashboard/admin/activity-logs` | System-wide audit log with search, action and date filters, and CSV export |
-| `/dashboard/admin/settings` | System Settings: maintenance mode, auth toggles, session revocation |
+| `/dashboard/admin/settings` | System Settings: maintenance mode, auth toggles, session revocation, consent mode |
 
 ## User management rules
 
@@ -42,6 +42,15 @@ Stored in the `system_settings` single-row table and cached in-process for **10 
 | Exempt paths | Path prefixes that stay reachable during maintenance |
 | Google / Email-password / One Tap | Live kill-switch for each sign-in method, combined with the env flag (both must be on) |
 | Session revocation | Lets users revoke their own sessions |
+| Require consent (GDPR / ePrivacy) | On: cookie banner, fingerprinting and One Tap only after "Accept all". Off: no banner, everything runs for every visitor. Defaults to `NEXT_PUBLIC_COOKIE_BANNER` until an admin saves it. See [Cookie consent](/security#cookie-consent) |
+
+## Devices card
+
+The admin user page lists every device the account has signed in from (`device_fingerprint` rows): device, location, IP and first-seen time. Expanding a device shows its `visitorId` and the FingerprintJS signals behind it: platform, screen, fonts, languages, time zone, CPU cores, memory, WebGL and more.
+
+- **Accessibility signals are never collected.** `reducedMotion`, `reducedTransparency`, `contrast`, `forcedColors`, `invertedColors`, `monochrome` and `colorGamut` can hint at a disability, which GDPR treats as health data. They're dropped in the browser and again on the server (`EXCLUDED_SIGNALS` in `lib/cookie-names.ts`).
+- **Large values are stored as hashes.** Anything over 500 characters, such as canvas images and WebGL details, is stored as `{ hash }`. That's enough to compare devices.
+- **Signals are refreshed** each browser session, so they show the device's latest state. Devices recorded before signals existed say "No signals yet" until they next sign in.
 
 If the database can't be reached, settings **fail open**: maintenance is off and auth flags fall back to the env values. A database outage can't lock admins out.
 

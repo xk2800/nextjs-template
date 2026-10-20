@@ -50,8 +50,9 @@ The check only runs after the visitor accepts optional cookies. Emails are skipp
 - **Sign-in:** failures count toward the limit, and a successful sign-in resets it.
 - **Sign-up:** every attempt counts, because mass sign-ups are the abuse being limited.
 - Over the limit, the endpoint returns `429` with "Too many attempts from this device".
+- **Retention:** each row stores the last IP, user agent and email typed, often for people without an account. Rows untouched for 30 days are deleted. The sweep runs on the sign-in path, at most hourly per server instance, so no cron is needed. On a site with no sign-in attempts, old rows stay until the next attempt; if you need a hard guarantee, call `pruneStaleRows()` from `lib/auth-throttle.ts` on a schedule.
 
-The limits (`WINDOW_MS`, `MAX`) are fixed inside the package's auth. Editing your local `lib/auth-throttle-limits.ts` has no effect unless you also use your own `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)). Throttled devices appear on the admin **Device throttle** card.
+The limits (`WINDOW_MS`, `MAX`, `RETENTION_MS`) are fixed inside the package's auth. Editing your local `lib/auth-throttle-limits.ts` has no effect unless you also use your own `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)). Throttled devices appear on the admin **Device throttle** card.
 
 <Callout type="info">
 The client IP comes from `x-forwarded-for` (first entry), falling back to `x-real-ip`. Behind your own reverse proxy, make sure it sets one of these. Otherwise every request shares one IP, and the IP cap throttles everyone at once.
@@ -73,10 +74,29 @@ Dashboard → Settings → **Danger zone** lets users delete their own account, 
 
 `<CookieBanner />` (root layout) offers **Necessary only** or **Accept all** and stores the choice in the `cookie_consent` cookie for one year. **Cookie settings** in the footer reopens it.
 
+### Consent mode
+
+**Require consent (GDPR / ePrivacy)** in System Settings decides whether any of this applies:
+
+- **On:** the banner shows, and fingerprinting and One Tap wait for "Accept all". `/api/device-check` also checks the `cookie_consent` cookie itself and returns `403` without it, so a stale or modified client can't record a device without consent.
+- **Off:** no banner and no "Cookie settings" link. Everything runs for every visitor as if they had accepted. Only turn it off if none of your users are in the EU, the UK or another region with consent rules.
+
+Until an admin saves the setting, it follows `NEXT_PUBLIC_COOKIE_BANNER`, so migrating never flips a deployed banner. `proxy.ts` copies the effective value into a `consent_required` cookie (`1`/`0`) that `lib/cookie-consent.ts` reads, so the root layout stays static. Changes reach every instance within the 10-second settings cache.
+
+The placeholder `/privacy` page follows the setting too. It's rendered per request and describes the consent flow when consent is on, or says fingerprinting runs for every visitor when it's off. It also covers the legal basis, retention, third parties (Resend, Google) and user rights. `/terms` has a short security and abuse-prevention clause that links to it. Both are templates: rewrite them for your deployment.
+
 | Needs "Accept all" | Without it |
 |---|---|
 | FingerprintJS device ID | New-device alerts are skipped; the throttle uses its IP cap |
 | Google One Tap | The One Tap prompt doesn't appear |
+
+**Withdrawing consent erases the device record.** While consent is given, the device ID is also kept in `localStorage` (`device-visitor-id`). When the visitor switches to **Necessary only**, `<DeviceCheck />` sends it to `DELETE /api/device-check`. That deletes the signed-in user's `device_fingerprint` row for this device, then forgets the ID. If they withdraw while signed out, the erasure happens at their next sign-in. If they consent again later, the device is recorded as new, which sends a new-device email.
+
+Not erased: other accounts' rows for the same browser, until each signs in here again, and `auth_throttle` rows. Throttle rows are security data kept for 30 days. Erasing them on request would let an attacker reset their own throttle.
+
+<Callout type="warning">
+Projects scaffolded before this change have a local `app/api/device-check/route.ts` without the `DELETE` handler. Bumping the package updates `<DeviceCheck />` but not the route, so copy the `DELETE` export from the template's route. Until you do, the request gets a 405, the ID stays stored and the erasure is retried on each page load.
+</Callout>
 
 Gate your own analytics the same way:
 
@@ -87,7 +107,11 @@ const consent = useCookieConsent() // "all" | "necessary" | null
 if (consent === "all") loadAnalytics()
 ```
 
-If you don't need a banner, set `NEXT_PUBLIC_COOKIE_BANNER=false`. Consent is then treated as granted.
+If you don't need a banner, turn **Require consent** off in System Settings, or set `NEXT_PUBLIC_COOKIE_BANNER=false` to make that the default. Consent is then treated as granted.
+
+<Callout type="warning">
+Upgrading from an earlier version: run `bun run generate` and migrate. That adds `system_settings."consentRequired"` and `device_fingerprint.components`. Until you migrate, settings reads fail open to env defaults. Three files are local to your project and don't update with the package: `proxy.ts` (sets the `consent_required` cookie; without it the client falls back to `NEXT_PUBLIC_COOKIE_BANNER`), `app/api/device-check/route.ts` (the consent check and signal storage) and `app/dashboard/admin/users/[userId]/page.tsx` (renders `<AdminUserDevicesCard />`). Copy the changes from the template.
+</Callout>
 
 ## Open-redirect protection
 

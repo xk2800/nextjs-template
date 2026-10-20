@@ -52,6 +52,7 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
           authEnableOneTap: settings.authEnableOneTap,
           enableSessionRevocation: settings.enableSessionRevocation,
           feedbackAttachErrors: settings.feedbackAttachErrors,
+          consentRequired: settings.consentRequired ?? true,
         }),
       })
 
@@ -158,6 +159,38 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
               At least one sign-in method must stay enabled, or nobody will be able to sign in.
             </p>
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Privacy &amp; Consent</CardTitle>
+          <CardDescription>
+            Whether visitors must opt in before device fingerprinting and Google One Tap run
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label htmlFor="consent-toggle">Require consent (GDPR / ePrivacy)</Label>
+              <p className="text-sm text-gray-500">
+                On: cookie banner, fingerprinting and One Tap only after &quot;Accept all&quot;, and the
+                device record is erased if consent is withdrawn. Off: no banner, everything runs for
+                every visitor.
+              </p>
+              {!settings.consentRequired && (
+                <p className="text-sm text-amber-600 dark:text-amber-500">
+                  Only turn this off if none of your users are in the EU, the UK or another region with
+                  consent rules. Fingerprinting without consent breaks those laws.
+                </p>
+              )}
+            </div>
+            <Switch
+              id="consent-toggle"
+              checked={settings.consentRequired ?? true}
+              onCheckedChange={(checked) => setSettings({ ...settings, consentRequired: checked })}
+            />
+          </div>
         </CardContent>
       </Card>
 

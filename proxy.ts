@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from '@/server/auth'
-import { getSystemSettings } from '@/lib/settings-queries'
+import { getSystemSettings, isConsentRequired } from '@/lib/settings-queries'
 import { isMaintenanceExempt } from '@/lib/maintenance'
+import { CONSENT_REQUIRED_COOKIE } from '@/lib/cookie-names'
 
 function getSessionCookie(request: NextRequest) {
   // Check for both the standard and the __Secure- prefixed cookie
@@ -47,7 +48,18 @@ export async function proxy(request: NextRequest) {
     )
   }
 
-  return NextResponse.next()
+  // Hand the admin's consent-mode setting to the client (lib/cookie-consent.ts)
+  // without making the root layout dynamic. Only written when it changes.
+  const response = NextResponse.next()
+  const consentRequired = isConsentRequired(settings) ? '1' : '0'
+  if (request.cookies.get(CONSENT_REQUIRED_COOKIE)?.value !== consentRequired) {
+    response.cookies.set(CONSENT_REQUIRED_COOKIE, consentRequired, {
+      path: '/',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365,
+    })
+  }
+  return response
 }
 
 export const config = {
