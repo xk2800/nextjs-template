@@ -143,6 +143,11 @@
     "./lib/recalculate-columns": "./lib/recalculate-columns.ts",
     "./lib/maintenance": "./lib/maintenance.ts",
     "./lib/cookie-consent": "./lib/cookie-consent.ts",
+    "./lib/cookie-names": "./lib/cookie-names.ts",
+    "./lib/device-fingerprint": "./lib/device-fingerprint.ts",
+    "./lib/request-info": "./lib/request-info.ts",
+    "./hooks/use-dimensions": "./hooks/use-dimensions.ts",
+    "./hooks/use-mobile": "./hooks/use-mobile.ts",
     "./styles/theme.css": "./styles/theme.css",
     "./components/*": "./components/*.tsx"
   },

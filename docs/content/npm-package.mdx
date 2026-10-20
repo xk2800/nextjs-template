@@ -105,14 +105,19 @@ import { getAdminStats } from "@xk2800/nextjs-template/admin/queries"
 import { getUserSessions } from "@xk2800/nextjs-template/sessions/queries"
 import { logActivity } from "@xk2800/nextjs-template/activity/logger"
 import { getUserActivityLogs, getAllActivityLogs } from "@xk2800/nextjs-template/activity/queries"
-import { getSystemSettings } from "@xk2800/nextjs-template/settings/queries"
+import { getSystemSettings, isConsentRequired } from "@xk2800/nextjs-template/settings/queries"
+import { getUserDevices, getUserConsentLog } from "@xk2800/nextjs-template/admin/queries"
+import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@xk2800/nextjs-template/lib/request-info"
 
 // config, types, isomorphic helpers
 import { config } from "@xk2800/nextjs-template/config/env"
 import { LoginSchema } from "@xk2800/nextjs-template/types/auth/loginSchema"
 import { SignupSchema } from "@xk2800/nextjs-template/types/auth/signupSchema"
 import { formatDate, formatDateTime, getUserInitials } from "@xk2800/nextjs-template/lib/formatters"
-import { useCookieConsent } from "@xk2800/nextjs-template/lib/cookie-consent"
+import { useCookieConsent, useConsentFor, hasConsentFor } from "@xk2800/nextjs-template/lib/cookie-consent"
+import { consentAllows, CONSENT_VERSION, COOKIE_CONSENT_COOKIE } from "@xk2800/nextjs-template/lib/cookie-names" // no React; safe in route handlers and proxy.ts
+import { getVisitorId, getDeviceSignals } from "@xk2800/nextjs-template/lib/device-fingerprint" // client; consent-gated
+import { useIsMobile } from "@xk2800/nextjs-template/hooks/use-mobile"
 
 // components (raw .tsx; any file under ui/, auth/, dashboard/, email/, theme/, providers/)
 import { Button } from "@xk2800/nextjs-template/components/ui/button"
