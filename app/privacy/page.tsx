@@ -71,7 +71,10 @@ export default async function PrivacyPage() {
                   While optional cookies are accepted, the device identifier is also kept in your
                   browser&apos;s local storage. Switching to &quot;Necessary only&quot; deletes it, and
                   deletes the record of this device stored with your account (immediately if you&apos;re
-                  signed in, otherwise at your next sign-in).
+                  signed in, otherwise at your next sign-in). If other accounts have also signed in
+                  from this browser, their records of this device are not deleted by this choice; they
+                  are deleted when those accounts are deleted. This stops one person&apos;s choice from
+                  erasing other accounts&apos; security records.
                 </p>
               </>
             ) : (

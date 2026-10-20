@@ -92,7 +92,7 @@ The placeholder `/privacy` page follows the setting too. It's rendered per reque
 
 **Withdrawing consent erases the device record.** While consent is given, the device ID is also kept in `localStorage` (`device-visitor-id`). When the visitor switches to **Necessary only**, `<DeviceCheck />` sends it to `DELETE /api/device-check`. That deletes the signed-in user's `device_fingerprint` row for this device, then forgets the ID. If they withdraw while signed out, the erasure happens at their next sign-in. If they consent again later, the device is recorded as new, which sends a new-device email.
 
-Not erased: other accounts' rows for the same browser, until each signs in here again, and `auth_throttle` rows. Throttle rows are security data kept for 30 days. Erasing them on request would let an attacker reset their own throttle.
+Not erased: other accounts' rows for the same browser, which stay until those accounts are deleted, so one person's choice can't erase other accounts' security records; and `auth_throttle` rows. Throttle rows are security data kept for 30 days. Erasing them on request would let an attacker reset their own throttle.
 
 <Callout type="warning">
 Projects scaffolded before this change have a local `app/api/device-check/route.ts` without the `DELETE` handler. Bumping the package updates `<DeviceCheck />` but not the route, so copy the `DELETE` export from the template's route. Until you do, the request gets a 405, the ID stays stored and the erasure is retried on each page load.

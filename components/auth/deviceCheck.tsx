@@ -18,9 +18,10 @@ import { useCookieConsent } from '../../lib/cookie-consent'
 // the stored device id is sent to DELETE /api/device-check so this device's
 // record is erased, then forgotten. Withdrawn while signed out ⇒ it happens on
 // the next sign-in.
-// ponytail: erases only the signed-in account's row for this device. If
-// several accounts used this browser, the others keep theirs until they sign
-// in here again or are deleted.
+// ponytail: erases only the signed-in account's row for this device. The id
+// is forgotten after that, so other accounts that used this browser keep
+// their rows until those accounts are deleted (deliberate: one person's
+// choice shouldn't erase other accounts' security records).
 export default function DeviceCheck() {
   const { data: session } = useSession()
   const userId = session?.user?.id
