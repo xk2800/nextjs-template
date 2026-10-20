@@ -33,7 +33,8 @@ Add more with `bunx shadcn@latest add <name>`. The config is in `components.json
   | `camera` | `false` | "Take photo" button (`capture="environment"`). Opens the rear camera on mobile and a file picker on desktop. |
   | `gallery` | `false` | "Choose from gallery" button. |
   | `dragDrop` | `false` | Drop zone. |
-| `clickable` | `false` | Pressing the drop zone opens the picker and the separate buttons are hidden. On a touch screen with `camera` and `gallery` both on, a tap opens a modal asking "Take photo" or "Choose from gallery". A mouse click or Enter/Space opens the gallery directly, since the camera only opens a file picker on desktop. With only one source on, it opens that picker directly. The text reads "Tap to add files" on touch screens and "…or click to browse" elsewhere. Needs `dragDrop`. |
+| `clickable` | `false` | Pressing the drop zone opens the picker and the separate buttons are hidden. On a touch screen with `camera` and `gallery` both on, a tap asks "Take photo" or "Choose from gallery" (see `chooser`). A mouse click or Enter/Space opens the gallery directly, since the camera only opens a file picker on desktop. With only one source on, it opens that picker directly. The text reads "Tap to add files" on touch screens and "…or click to browse" elsewhere. Needs `dragDrop`. |
+| `chooser` | `"sheet"` | How `clickable` asks on touch screens: `"sheet"` slides up from the bottom (within thumb reach, like the native iOS/Android choice), `"modal"` is a centered dialog. |
   | `accept` | `"image/*"` | Same format as `<input accept>`. Also checked on dropped files. |
   | `multiple` | `true` | `false` keeps one file and replaces it on each pick. |
   | `maxFiles`, `maxSizeMB` | none | Extra files and oversized files are rejected with an inline message. |

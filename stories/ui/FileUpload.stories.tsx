@@ -15,6 +15,7 @@ export const GalleryOnly: Story = { args: { camera: false, dragDrop: false } }
 export const CameraOnly: Story = { args: { gallery: false, dragDrop: false } }
 export const DragDropOnly: Story = { args: { camera: false, gallery: false } }
 export const ClickableDropzone: Story = { args: { clickable: true } }
+export const ClickableModal: Story = { args: { clickable: true, chooser: "modal" } }
 export const ClickableGalleryOnly: Story = { args: { clickable: true, camera: false } }
 export const SingleFileMax2MB: Story = { args: { multiple: false, maxSizeMB: 2 } }
 export const Disabled: Story = { args: { disabled: true } }

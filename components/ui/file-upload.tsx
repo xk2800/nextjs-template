@@ -5,6 +5,7 @@ import { Camera, ImagePlus, Upload, X } from "lucide-react"
 
 import { Button } from "./button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "./dialog"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "./sheet"
 import { cn } from "../../lib/utils"
 
 type FileUploadProps = {
@@ -19,6 +20,8 @@ type FileUploadProps = {
    * `camera` and `gallery` the user is asked which one; with one, it opens directly. Needs `dragDrop`.
    */
   clickable?: boolean
+  /** How a touch-screen user is asked "camera or gallery" with `clickable`: a bottom sheet or a centered modal. */
+  chooser?: "sheet" | "modal"
   /** Same format as `<input accept>`. Also enforced on dropped files. */
   accept?: string
   multiple?: boolean
@@ -56,6 +59,7 @@ function FileUpload({
   gallery = false,
   dragDrop = false,
   clickable = false,
+  chooser = "sheet",
   accept = "image/*",
   multiple = true,
   maxFiles,
@@ -127,6 +131,30 @@ function FileUpload({
   // question and open the gallery (or the only source there is).
   const openDefault = () => (gallery ? galleryRef : cameraRef).current?.click()
   const units = multiple ? "files" : "a file"
+
+  const askTitle = `Add ${multiple ? "photos" : "a photo"}`
+  const askDescription = "Take a new photo or pick from your gallery."
+  const askButtons = (
+    <div className="grid gap-2">
+      {[
+        { ref: cameraRef, Icon: Camera, text: "Take photo" },
+        { ref: galleryRef, Icon: ImagePlus, text: "Choose from gallery" },
+      ].map(({ ref, Icon, text }) => (
+        <Button
+          key={text}
+          type="button"
+          variant="outline"
+          className="h-12 justify-start"
+          onClick={() => {
+            setAskOpen(false)
+            ref.current?.click()
+          }}
+        >
+          <Icon /> {text}
+        </Button>
+      ))}
+    </div>
+  )
 
   const buttons = (
     <div className="flex flex-wrap justify-center gap-2">
@@ -218,33 +246,27 @@ function FileUpload({
       )}
 
       {pickable && camera && gallery && (
-        <Dialog open={askOpen} onOpenChange={setAskOpen}>
-          <DialogContent className="sm:max-w-sm">
-            <DialogHeader>
-              <DialogTitle>Add {multiple ? "photos" : "a photo"}</DialogTitle>
-              <DialogDescription>Take a new photo or pick from your gallery.</DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-2">
-              {[
-                { ref: cameraRef, Icon: Camera, text: "Take photo" },
-                { ref: galleryRef, Icon: ImagePlus, text: "Choose from gallery" },
-              ].map(({ ref, Icon, text }) => (
-                <Button
-                  key={text}
-                  type="button"
-                  variant="outline"
-                  className="h-12 justify-start"
-                  onClick={() => {
-                    setAskOpen(false)
-                    ref.current?.click()
-                  }}
-                >
-                  <Icon /> {text}
-                </Button>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
+        chooser === "modal" ? (
+          <Dialog open={askOpen} onOpenChange={setAskOpen}>
+            <DialogContent className="sm:max-w-sm">
+              <DialogHeader>
+                <DialogTitle>{askTitle}</DialogTitle>
+                <DialogDescription>{askDescription}</DialogDescription>
+              </DialogHeader>
+              {askButtons}
+            </DialogContent>
+          </Dialog>
+        ) : (
+          <Sheet open={askOpen} onOpenChange={setAskOpen}>
+            <SheetContent side="bottom" className="mx-auto max-w-lg rounded-t-xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <SheetHeader className="pb-0">
+                <SheetTitle>{askTitle}</SheetTitle>
+                <SheetDescription>{askDescription}</SheetDescription>
+              </SheetHeader>
+              <div className="px-4">{askButtons}</div>
+            </SheetContent>
+          </Sheet>
+        )
       )}
 
       {error && (
