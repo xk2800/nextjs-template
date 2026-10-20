@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.7.1-beta.4",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: update architecture and security documentation; enhance package exports for cookie consent and device handling",
+    "changes": [
+      "feat: update architecture and security documentation; enhance package exports for cookie consent and device handling",
+      "feat(database): add snapshot for user authentication and activity logging",
+      "feat: update cookie consent documentation and settings for GDPR compliance",
+      "feat: enhance cookie consent management with per-purpose choices",
+      "feat: clarify device record erasure process in privacy and security documentation",
+      "feat: implement consent mode and device signals handling"
+    ]
+  },
+  {
     "version": "0.7.1-beta.3",
     "date": "2026-10-20",
     "type": "beta",
