@@ -175,7 +175,7 @@ NEXT_PUBLIC_GOOGLE_CLIENT_ID=...    # same client as AUTH_GOOGLE_ID
 Mount `<OneTap />` once, in the root layout. It does nothing until it's enabled and the user is signed out. Add your origin to the Google client's **Authorized JavaScript origins**.
 
 <Callout type="warning">
-One Tap waits for cookie consent. If you mount `<OneTap />` without `<CookieBanner />`, set `NEXT_PUBLIC_COOKIE_BANNER=false`. Otherwise nobody can consent and the prompt never appears.
+One Tap waits for cookie consent, so mount `<CookieBanner />` too. Without it nobody can consent and the prompt never appears. Setting `NEXT_PUBLIC_COOKIE_BANNER=false` also makes it appear, but only do that if none of your users are in the EU or UK: showing One Tap and fingerprinting without consent breaks GDPR/ePrivacy there. See [Consent mode](/security#consent-mode).
 </Callout>
 
 ## Publishing a new version

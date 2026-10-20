@@ -42,7 +42,7 @@ Stored in the `system_settings` single-row table and cached in-process for **10 
 | Exempt paths | Path prefixes that stay reachable during maintenance |
 | Google / Email-password / One Tap | Live kill-switch for each sign-in method, combined with the env flag (both must be on) |
 | Session revocation | Lets users revoke their own sessions |
-| Require consent (GDPR / ePrivacy) | On: cookie banner; fingerprinting and One Tap each run only after the visitor allows that purpose. Off: no banner, everything runs for every visitor. Defaults to `NEXT_PUBLIC_COOKIE_BANNER` until an admin saves it. See [Cookie consent](/security#cookie-consent) |
+| Require consent (GDPR / ePrivacy) | On: cookie banner; fingerprinting and One Tap each run only after the visitor allows that purpose. Off: no banner, everything runs for every visitor, which **breaks GDPR/ePrivacy if any of your users are in the EU or UK**. Defaults to `NEXT_PUBLIC_COOKIE_BANNER` until an admin saves it. See [Cookie consent](/security#cookie-consent) |
 
 ## Devices card
 

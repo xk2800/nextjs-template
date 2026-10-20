@@ -154,7 +154,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - `ENABLE_SESSION_REVOCATION` — seed value only; live value lives in `system_settings` once seeded, editable from admin UI.
 - `DB_DRIVER` (`pg` | `neon`) and `DATABASE_SSL` — dev typically uses local/Docker Postgres without SSL, production typically uses Neon.
 - `RESEND_API_KEY` for transactional email, and `EMAIL_FROM` for the sender address (must be on a domain verified in Resend).
-- `NEXT_PUBLIC_COOKIE_BANNER` (default `true`): client-side switch for the cookie-consent banner.
+- `NEXT_PUBLIC_COOKIE_BANNER` (default `true`): default for the **Require consent** System Setting (the DB value wins once saved). `false` treats consent as granted for everyone. That's acceptable only with no EU/UK users; for an EU/UK audience it breaks GDPR/ePrivacy.
 
 ### Distribution as a package
 - Publishes reusable auth/db/UI/query-helper modules to the npm registry as `@xk2800/nextjs-template`.
@@ -191,7 +191,7 @@ Three supported environments, each with its own `.env.<env>` file and matching D
 | `NEXT_PUBLIC_APP_URL` | Client-side base URL |
 | `AUTH_ENABLE_GOOGLE` / `AUTH_ENABLE_EMAIL_PASSWORD` / `AUTH_ENABLE_ONE_TAP` | Auth method toggles |
 | `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client-side One Tap config |
-| `NEXT_PUBLIC_COOKIE_BANNER` | Cookie-consent banner on/off (default `true`) |
+| `NEXT_PUBLIC_COOKIE_BANNER` | Default for the consent setting (default `true`). `false` = no banner, consent assumed; never with EU/UK users |
 | `ENABLE_SESSION_REVOCATION` | Seed value for the session-revocation setting |
 | `RESEND_API_KEY` | Transactional email |
 | `EMAIL_FROM` | Sender address for all email |

@@ -88,7 +88,11 @@ Consent is given **per purpose**, as regulators such as the CNIL expect, because
 **Require consent (GDPR / ePrivacy)** in System Settings decides whether any of this applies:
 
 - **On:** the banner shows, and fingerprinting and One Tap each wait for consent to their purpose. `/api/device-check` also checks the `cookie_consent` cookie itself and returns `403` unless it allows `fingerprint` (`consentAllows()` in `lib/cookie-names.ts`), so a stale or modified client can't record a device without consent.
-- **Off:** no banner and no "Cookie settings" link. Everything runs for every visitor as if they had accepted. Only turn it off if none of your users are in the EU, the UK or another region with consent rules.
+- **Off:** no banner and no "Cookie settings" link. Everything runs for every visitor as if they had accepted.
+
+<Callout type="error">
+**Turning consent off is illegal for EU and UK visitors.** Turning off **Require consent**, or setting `NEXT_PUBLIC_COOKIE_BANNER=false`, means every visitor is fingerprinted and shown Google One Tap without being asked. Under the ePrivacy Directive (Art. 5(3)) and GDPR, that breaks the law for anyone in the EU, the EEA or the UK, whatever your legitimate-interest reasoning. Regulators have confirmed that fingerprinting counts as storing or reading information on the device (EDPB Guidelines 2/2023). Turn it off only if none of your users are in those regions or in any other region with similar consent rules. If you're not sure, leave it on.
+</Callout>
 
 Until an admin saves the setting, it follows `NEXT_PUBLIC_COOKIE_BANNER`, so migrating never flips a deployed banner. `proxy.ts` copies the effective value into a `consent_required` cookie (`1`/`0`) that `lib/cookie-consent.ts` reads, so the root layout stays static. Changes reach every instance within the 10-second settings cache.
 
@@ -117,7 +121,7 @@ const fingerprintAllowed = useConsentFor("fingerprint") // per purpose
 
 To give your own feature a separate choice, add a purpose to `ConsentPurpose` / `CONSENT_PURPOSES` in `lib/cookie-names.ts` and to `PURPOSES` in the banner. Both ship in the package, so that needs your own copies (see [Customizing package code](/architecture#customizing-package-code)).
 
-If you don't need a banner, turn **Require consent** off in System Settings, or set `NEXT_PUBLIC_COOKIE_BANNER=false` to make that the default. Consent is then treated as granted.
+If none of your users are in the EU, the UK or another consent-rules region, you can drop the banner: turn **Require consent** off in System Settings, or set `NEXT_PUBLIC_COOKIE_BANNER=false` to make that the default. Consent is then treated as granted for everyone. For an EU or UK audience that's a violation; see the warning under [Consent mode](#consent-mode).
 
 <Callout type="warning">
 Upgrading from an earlier version: run `bun run generate` and migrate. That adds `system_settings."consentRequired"` and `device_fingerprint.components`. Until you migrate, settings reads fail open to env defaults. Three files are local to your project and don't update with the package: `proxy.ts` (sets the `consent_required` cookie; without it the client falls back to `NEXT_PUBLIC_COOKIE_BANNER`), `app/api/device-check/route.ts` (the consent check and signal storage; an older route that checks `cookie_consent === "all"` refuses visitors who allowed only `fingerprint` under **Customize**) and `app/dashboard/admin/users/[userId]/page.tsx` (renders `<AdminUserDevicesCard />`). Copy the changes from the template.
