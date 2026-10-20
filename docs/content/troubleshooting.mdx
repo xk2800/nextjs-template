@@ -46,7 +46,7 @@ Check, in order:
 1. `AUTH_ENABLE_ONE_TAP=true` **and** `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP=true`, and you rebuilt or restarted after setting the public one.
 2. `NEXT_PUBLIC_GOOGLE_CLIENT_ID` is set.
 3. One Tap is on in Admin → System Settings.
-4. The visitor clicked **Accept all** in the cookie banner.
+4. The visitor allowed Google One Tap in the cookie banner: **Accept all**, or ticked under **Customize** (`cookie_consent` is `all` or includes `onetap`).
 5. Your origin is in the Google client's **Authorized JavaScript origins**.
 6. You're signed out. Google may also suppress the prompt after it's been dismissed a few times.
 

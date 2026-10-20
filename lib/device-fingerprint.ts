@@ -5,10 +5,10 @@
 // If @fingerprintjs/fingerprintjs fails to load (e.g. it's blocked in the
 // browser), this resolves to null and callers carry on without a fingerprint.
 //
-// Also resolves to null until the visitor accepts optional cookies (see
-// lib/cookie-consent.ts) — not cached, so it starts working the moment they
-// do. Without it the sign-in throttle falls back to its per-IP cap.
-import { hasOptionalConsent } from "./cookie-consent"
+// Also resolves to null until the visitor consents to the "fingerprint"
+// purpose (see lib/cookie-consent.ts) — not cached, so it starts working the
+// moment they do. Without it the sign-in throttle falls back to its per-IP cap.
+import { hasConsentFor } from "./cookie-consent"
 import { EXCLUDED_SIGNALS } from "./cookie-names"
 
 type Fingerprint = { visitorId: string; signals: Record<string, unknown> }
@@ -27,7 +27,7 @@ const STORAGE_KEY = "device-visitor-id"
 const MAX_SIGNAL_CHARS = 500
 
 function fingerprint(): Promise<Fingerprint | null> {
-  if (!hasOptionalConsent()) return Promise.resolve(null)
+  if (!hasConsentFor("fingerprint")) return Promise.resolve(null)
   cached ??= (async () => {
     try {
       const FingerprintJS = await import("@fingerprintjs/fingerprintjs")

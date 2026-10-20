@@ -36,7 +36,7 @@ An admin can turn revocation off globally in System Settings, and the endpoint t
 1. After sign-in, `<DeviceCheck />` (mounted in the root layout) computes a FingerprintJS visitor ID and posts it to `/api/device-check`, once per browser session.
 2. If this (user, device) pair has never been seen, the server records it in `device_fingerprint`. It then emails **the user and every admin** and lists the device on the admin **New devices** card.
 
-The check only runs after the visitor accepts optional cookies. Emails are skipped without `RESEND_API_KEY`, but the device is still recorded.
+The check only runs after the visitor allows the security fingerprint (when consent is required). Emails are skipped without `RESEND_API_KEY`, but the device is still recorded.
 
 ## Sign-in throttle
 
@@ -72,25 +72,29 @@ Dashboard → Settings → **Danger zone** lets users delete their own account, 
 
 ## Cookie consent
 
-`<CookieBanner />` (root layout) offers **Necessary only** or **Accept all** and stores the choice in the `cookie_consent` cookie for one year. **Cookie settings** in the footer reopens it.
+`<CookieBanner />` (root layout) offers **Necessary only**, **Customize** and **Accept all**, and stores the choice in the `cookie_consent` cookie for one year. **Cookie settings** in the footer reopens it.
+
+Consent is given **per purpose**, as regulators such as the CNIL expect, because the two optional features serve unrelated ends:
+
+| Purpose (`ConsentPurpose`) | What it allows | Without it |
+|---|---|---|
+| `fingerprint` | FingerprintJS device ID: new-device alerts, throttle, shared-device detection, admin Devices card | New-device alerts are skipped; the throttle uses its IP cap |
+| `onetap` | Google One Tap, whose script may set Google's cookies | The One Tap prompt doesn't appear |
+
+**Customize** shows one unticked checkbox per purpose; pre-ticked boxes aren't valid consent. The cookie holds `all`, `necessary` or a comma list of the ticked purposes (for example `fingerprint`).
 
 ### Consent mode
 
 **Require consent (GDPR / ePrivacy)** in System Settings decides whether any of this applies:
 
-- **On:** the banner shows, and fingerprinting and One Tap wait for "Accept all". `/api/device-check` also checks the `cookie_consent` cookie itself and returns `403` without it, so a stale or modified client can't record a device without consent.
+- **On:** the banner shows, and fingerprinting and One Tap each wait for consent to their purpose. `/api/device-check` also checks the `cookie_consent` cookie itself and returns `403` unless it allows `fingerprint` (`consentAllows()` in `lib/cookie-names.ts`), so a stale or modified client can't record a device without consent.
 - **Off:** no banner and no "Cookie settings" link. Everything runs for every visitor as if they had accepted. Only turn it off if none of your users are in the EU, the UK or another region with consent rules.
 
 Until an admin saves the setting, it follows `NEXT_PUBLIC_COOKIE_BANNER`, so migrating never flips a deployed banner. `proxy.ts` copies the effective value into a `consent_required` cookie (`1`/`0`) that `lib/cookie-consent.ts` reads, so the root layout stays static. Changes reach every instance within the 10-second settings cache.
 
 The placeholder `/privacy` page follows the setting too. It's rendered per request and describes the consent flow when consent is on, or says fingerprinting runs for every visitor when it's off. It also covers the legal basis, retention, third parties (Resend, Google) and user rights. `/terms` has a short security and abuse-prevention clause that links to it. Both are templates: rewrite them for your deployment.
 
-| Needs "Accept all" | Without it |
-|---|---|
-| FingerprintJS device ID | New-device alerts are skipped; the throttle uses its IP cap |
-| Google One Tap | The One Tap prompt doesn't appear |
-
-**Withdrawing consent erases the device record.** While consent is given, the device ID is also kept in `localStorage` (`device-visitor-id`). When the visitor switches to **Necessary only**, `<DeviceCheck />` sends it to `DELETE /api/device-check`. That deletes the signed-in user's `device_fingerprint` row for this device, then forgets the ID. If they withdraw while signed out, the erasure happens at their next sign-in. If they consent again later, the device is recorded as new, which sends a new-device email.
+**Withdrawing fingerprint consent erases the device record.** While it's given, the device ID is also kept in `localStorage` (`device-visitor-id`). When the visitor's choice stops including `fingerprint` (**Necessary only**, or unticked under **Customize**), `<DeviceCheck />` sends it to `DELETE /api/device-check`. That deletes the signed-in user's `device_fingerprint` row for this device, then forgets the ID. If they withdraw while signed out, the erasure happens at their next sign-in. If they consent again later, the device is recorded as new, which sends a new-device email.
 
 Not erased: other accounts' rows for the same browser, which stay until those accounts are deleted, so one person's choice can't erase other accounts' security records; and `auth_throttle` rows. Throttle rows are security data kept for 30 days. Erasing them on request would let an attacker reset their own throttle.
 
@@ -98,19 +102,25 @@ Not erased: other accounts' rows for the same browser, which stay until those ac
 Projects scaffolded before this change have a local `app/api/device-check/route.ts` without the `DELETE` handler. Bumping the package updates `<DeviceCheck />` but not the route, so copy the `DELETE` export from the template's route. Until you do, the request gets a 405, the ID stays stored and the erasure is retried on each page load.
 </Callout>
 
+Withdrawing One Tap consent stops its script from loading and deletes Google's `g_state` cookie.
+
 Gate your own analytics the same way:
 
 ```tsx
-import { useCookieConsent } from "@/lib/cookie-consent"
+import { useCookieConsent, useConsentFor } from "@/lib/cookie-consent"
 
-const consent = useCookieConsent() // "all" | "necessary" | null
+const consent = useCookieConsent() // "all" | "necessary" | "custom" | null
 if (consent === "all") loadAnalytics()
+
+const fingerprintAllowed = useConsentFor("fingerprint") // per purpose
 ```
+
+To give your own feature a separate choice, add a purpose to `ConsentPurpose` / `CONSENT_PURPOSES` in `lib/cookie-names.ts` and to `PURPOSES` in the banner. Both ship in the package, so that needs your own copies (see [Customizing package code](/architecture#customizing-package-code)).
 
 If you don't need a banner, turn **Require consent** off in System Settings, or set `NEXT_PUBLIC_COOKIE_BANNER=false` to make that the default. Consent is then treated as granted.
 
 <Callout type="warning">
-Upgrading from an earlier version: run `bun run generate` and migrate. That adds `system_settings."consentRequired"` and `device_fingerprint.components`. Until you migrate, settings reads fail open to env defaults. Three files are local to your project and don't update with the package: `proxy.ts` (sets the `consent_required` cookie; without it the client falls back to `NEXT_PUBLIC_COOKIE_BANNER`), `app/api/device-check/route.ts` (the consent check and signal storage) and `app/dashboard/admin/users/[userId]/page.tsx` (renders `<AdminUserDevicesCard />`). Copy the changes from the template.
+Upgrading from an earlier version: run `bun run generate` and migrate. That adds `system_settings."consentRequired"` and `device_fingerprint.components`. Until you migrate, settings reads fail open to env defaults. Three files are local to your project and don't update with the package: `proxy.ts` (sets the `consent_required` cookie; without it the client falls back to `NEXT_PUBLIC_COOKIE_BANNER`), `app/api/device-check/route.ts` (the consent check and signal storage; an older route that checks `cookie_consent === "all"` refuses visitors who allowed only `fingerprint` under **Customize**) and `app/dashboard/admin/users/[userId]/page.tsx` (renders `<AdminUserDevicesCard />`). Copy the changes from the template.
 </Callout>
 
 ## Open-redirect protection

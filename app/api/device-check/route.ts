@@ -16,7 +16,7 @@ import {
 } from "@/lib/request-info"
 import { EmailTemplateNewDevice } from "@/components/email/email-template-new-device"
 import { getSystemSettings, isConsentRequired } from "@/lib/settings-queries"
-import { COOKIE_CONSENT_COOKIE, EXCLUDED_SIGNALS } from "@/lib/cookie-names"
+import { COOKIE_CONSENT_COOKIE, EXCLUDED_SIGNALS, consentAllows } from "@/lib/cookie-names"
 
 // Client-sent signals: a plain object under 32 KB (the client hashes large
 // values, so real payloads are a few KB), minus the accessibility signals.
@@ -47,7 +47,10 @@ export async function POST(request: Request) {
   // Consent mode: refuse fingerprints from browsers that haven't accepted
   // optional cookies. The client already gates this; this is the server's own
   // check, so a stale or modified client can't record without consent.
-  if (isConsentRequired(await getSystemSettings()) && (await cookies()).get(COOKIE_CONSENT_COOKIE)?.value !== "all") {
+  if (
+    isConsentRequired(await getSystemSettings()) &&
+    !consentAllows((await cookies()).get(COOKIE_CONSENT_COOKIE)?.value, "fingerprint")
+  ) {
     return NextResponse.json({ error: "Consent required" }, { status: 403 })
   }
 

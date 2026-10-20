@@ -355,20 +355,28 @@ Not covered by `bun run test`. Needs a browser.
 4. **Accept all** sets `cookie_consent=all`. Without a reload, the One Tap
    prompt shows (if enabled and signed out), sign-in requests carry
    `x-device-fingerprint`, and after sign-in `/api/device-check` is called once.
+4b. Per-purpose choice. Clear cookies → **Customize**: two unticked boxes,
+   "Security fingerprint" and "Google One Tap". Tick only the fingerprint →
+   **Save choices** sets `cookie_consent=fingerprint`: sign-in carries
+   `x-device-fingerprint`, `/api/device-check` is called, and **no** One Tap
+   prompt. Redo with only One Tap ticked → `cookie_consent=onetap`: the
+   prompt shows, but no header and no device check. Ticking both stores
+   `all`; ticking neither stores `necessary`. Unit test:
+   `bun lib/cookie-names.test.ts`.
 5. Rebuild with `NEXT_PUBLIC_COOKIE_BANNER=false`. There's no banner and no
    footer link, and the fingerprint and One Tap behave as in step 4.
 6. Withdrawal erases the device row. Signed in with **Accept all**,
    `localStorage['device-visitor-id']` is set and a `device_fingerprint` row
-   exists for it. Footer → **Cookie settings** → **Necessary only**:
-   `DELETE /api/device-check` is sent, the row is gone and the localStorage
-   key is removed. API-level check: `bun scripts/test-new-device.ts` (step 6).
+   exists for it. Footer → **Cookie settings** → **Necessary only** (or
+   **Customize** with only One Tap ticked): `DELETE /api/device-check` is
+   sent, the row is gone and the localStorage key is removed. API-level check: `bun scripts/test-new-device.ts` (step 6).
 7. Consent mode. In Admin → System Settings, turn **Require consent** off
    and save. Within 10s, a fresh page load sets `consent_required=0`, and
    there's no banner and no footer link even with `cookie_consent` cleared.
    Sign-in requests carry `x-device-fingerprint` and `/api/device-check` is
    called, and `/privacy` says the site doesn't ask for cookie consent.
    Turn it back on: `consent_required=1`, the banner returns, and `/privacy`
-   describes the "Only if you accept optional cookies" flow again.
+   describes the per-purpose consent flow again.
    `bun scripts/test-new-device.ts` checks the server side: with consent
    required, a POST without `cookie_consent=all` gets 403.
 
@@ -381,7 +389,7 @@ Not covered by `bun run test`. Needs a browser.
 (`device_fingerprint.components`) → `getUserDevices()` in
 `lib/admin-queries.ts` → `components/dashboard/admin/adminUserDevicesCard.tsx`.
 
-1. Accept all cookies and sign in. Open
+1. Allow the security fingerprint (or Accept all) and sign in. Open
    `/dashboard/admin/users/<your id>` as an admin → **Devices** card →
    expand the device. Signals such as `platform`, `screenResolution`, `fonts`
    and `timezone` are listed; `canvas` and other large values show as

@@ -12,8 +12,24 @@ export const LOGIN_REFERRER_COOKIE = 'login_referrer'
 // the auth calls that need it, not every request.
 export const DEVICE_FINGERPRINT_HEADER = 'x-device-fingerprint'
 
-// The visitor's cookie choice, "all" | "necessary" (lib/cookie-consent.ts).
+// The visitor's cookie choice (lib/cookie-consent.ts): "all", "necessary", or
+// a comma list of the purposes they ticked under "Customize", e.g.
+// "fingerprint" — one choice per purpose, as regulators like the CNIL expect.
 export const COOKIE_CONSENT_COOKIE = 'cookie_consent'
+
+// "fingerprint": FingerprintJS device id (new-device alerts, sign-in throttle,
+// shared-device detection, admin Devices card). "onetap": Google One Tap,
+// whose script may set Google's own cookies.
+export type ConsentPurpose = 'fingerprint' | 'onetap'
+export const CONSENT_PURPOSES: ConsentPurpose[] = ['fingerprint', 'onetap']
+
+// Does a cookie_consent value allow this purpose? Plain function, no React,
+// so route handlers can use it too (app/api/device-check).
+export function consentAllows(value: string | null | undefined, purpose: ConsentPurpose): boolean {
+  if (value === 'all') return true
+  if (!value || value === 'necessary') return false
+  return value.split(',').includes(purpose)
+}
 
 // Consent mode, set by proxy.ts from the admin's System Settings toggle
 // ("1" = consent required, "0" = not). Read by lib/cookie-consent.ts.

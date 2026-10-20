@@ -174,8 +174,8 @@ export default function SystemSettingsForm({ initialSettings, configuredFlags }:
             <div>
               <Label htmlFor="consent-toggle">Require consent (GDPR / ePrivacy)</Label>
               <p className="text-sm text-gray-500">
-                On: cookie banner, fingerprinting and One Tap only after &quot;Accept all&quot;, and the
-                device record is erased if consent is withdrawn. Off: no banner, everything runs for
+                On: cookie banner where visitors allow fingerprinting and One Tap separately, and
+                the device record is erased if fingerprint consent is withdrawn. Off: no banner, everything runs for
                 every visitor.
               </p>
               {!settings.consentRequired && (

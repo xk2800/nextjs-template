@@ -60,18 +60,31 @@ export default async function PrivacyPage() {
             {consentRequired ? (
               <>
                 <p className="mt-2">
-                  <span className="font-medium text-foreground">Only if you accept optional cookies:</span>{" "}
-                  the device fingerprint described above, and Google One Tap sign-in, which loads a
-                  Google script that may set Google&apos;s own cookies. Your choice is stored in a
-                  cookie for one year. If you decline, failed sign-ins are limited by IP address instead
-                  and no device record is kept.
+                  <span className="font-medium text-foreground">Only with your consent, chosen separately for each:</span>
+                </p>
+                <ul className="mt-2 list-disc space-y-1 pl-5">
+                  <li>
+                    <span className="font-medium text-foreground">Security fingerprint:</span> the device
+                    fingerprint described above. If you decline it, failed sign-ins are limited by IP
+                    address instead and no device record is kept.
+                  </li>
+                  <li>
+                    <span className="font-medium text-foreground">Google One Tap:</span> quick sign-in
+                    with Google, which loads a Google script that may set Google&apos;s own cookies.
+                  </li>
+                </ul>
+                <p className="mt-2">
+                  &quot;Accept all&quot; allows both, &quot;Necessary only&quot; neither, and
+                  &quot;Customize&quot; lets you pick each one; nothing is ticked in advance. Your choice
+                  is stored in a cookie for one year.
                 </p>
                 <p className="mt-2">
                   You can change your choice at any time via &quot;Cookie settings&quot; in the footer.
-                  While optional cookies are accepted, the device identifier is also kept in your
-                  browser&apos;s local storage. Switching to &quot;Necessary only&quot; deletes it, and
+                  While the security fingerprint is allowed, the device identifier is also kept in your
+                  browser&apos;s local storage. Withdrawing consent for it deletes that identifier, and
                   deletes the record of this device stored with your account (immediately if you&apos;re
-                  signed in, otherwise at your next sign-in). If other accounts have also signed in
+                  signed in, otherwise at your next sign-in). Withdrawing consent for Google One Tap
+                  stops it from loading and removes its cookie. If other accounts have also signed in
                   from this browser, their records of this device are not deleted by this choice; they
                   are deleted when those accounts are deleted. This stops one person&apos;s choice from
                   erasing other accounts&apos; security records.
@@ -92,7 +105,7 @@ export default async function PrivacyPage() {
             <h2 className="text-base font-semibold text-foreground">Legal basis</h2>
             <p className="mt-2">
               {consentRequired
-                ? "Your consent for the device fingerprint and Google One Tap; the performance of our contract with you for your account; and our legitimate interest in keeping accounts secure for sign-in logs and the failed-sign-in limit."
+                ? "Your consent, given separately for the security fingerprint and for Google One Tap; the performance of our contract with you for your account; and our legitimate interest in keeping accounts secure for sign-in logs and the failed-sign-in limit."
                 : "The performance of our contract with you for your account, and our legitimate interest in keeping accounts secure and preventing abuse for sign-in logs and the device fingerprint."}
             </p>
           </section>
@@ -100,7 +113,7 @@ export default async function PrivacyPage() {
           <section>
             <h2 className="text-base font-semibold text-foreground">How long it&apos;s kept</h2>
             <ul className="mt-2 list-disc space-y-1 pl-5">
-              <li>Account details, sign-in logs and device records: until your account is deleted.{consentRequired && " Device records are also deleted when you withdraw cookie consent."}</li>
+              <li>Account details, sign-in logs and device records: until your account is deleted.{consentRequired && " Device records are also deleted when you withdraw consent for the security fingerprint."}</li>
               <li>Failed sign-in counters (device identifier, IP address, browser and the last email entered): 30 days after the last attempt.</li>
               <li>Sessions: up to 30 days, or until you sign out or revoke them.</li>
             </ul>

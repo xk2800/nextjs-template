@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useSession } from '../../lib/auth-client'
 import { clearStoredVisitorId, getDeviceSignals, getStoredVisitorId, getVisitorId } from '../../lib/device-fingerprint'
-import { useCookieConsent } from '../../lib/cookie-consent'
+import { useConsentFor, useCookieConsent } from '../../lib/cookie-consent'
 
 // Mount once (e.g. in the root layout). When a session is present it computes
 // a FingerprintJS device id and hands it to /api/device-check, which emails
@@ -14,8 +14,9 @@ import { useCookieConsent } from '../../lib/cookie-consent'
 // endpoint is idempotent — the alert only fires on the first ever POST for a
 // given (user, device).
 //
-// Also handles withdrawn consent: once the visitor picks "Necessary only",
-// the stored device id is sent to DELETE /api/device-check so this device's
+// Also handles withdrawn consent: once the visitor's choice no longer
+// includes the "fingerprint" purpose ("Necessary only", or unticked under
+// "Customize"), the stored device id is sent to DELETE /api/device-check so this device's
 // record is erased, then forgotten. Withdrawn while signed out ⇒ it happens on
 // the next sign-in.
 // ponytail: erases only the signed-in account's row for this device. The id
@@ -28,11 +29,13 @@ export default function DeviceCheck() {
   // The fingerprint needs optional-cookie consent (lib/device-fingerprint.ts);
   // re-run when it's granted so the check doesn't wait for the next page load.
   const consent = useCookieConsent()
+  const fingerprintAllowed = useConsentFor('fingerprint')
 
   useEffect(() => {
     if (!userId) return
 
-    if (consent === 'necessary') {
+    // A choice was made (consent !== null) and it excludes the fingerprint.
+    if (consent !== null && !fingerprintAllowed) {
       // Re-consenting later in this tab must POST again — the row is gone.
       try {
         sessionStorage.removeItem('device-checked')
@@ -54,7 +57,7 @@ export default function DeviceCheck() {
       return
     }
 
-    if (consent !== 'all') return
+    if (!fingerprintAllowed) return
 
     const run = async () => {
       try {
@@ -88,7 +91,7 @@ export default function DeviceCheck() {
     // Best-effort: fingerprinting or the network failing must never surface
     // to the user mid-app.
     run().catch(() => {})
-  }, [userId, consent])
+  }, [userId, consent, fingerprintAllowed])
 
   return null
 }

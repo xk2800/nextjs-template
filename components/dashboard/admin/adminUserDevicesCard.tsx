@@ -31,7 +31,7 @@ export default function AdminUserDevicesCard({ devices }: { devices: UserDevice[
         <CardTitle>Devices</CardTitle>
         <CardDescription>
           Devices this account has signed in from, with the browser and device signals behind each
-          fingerprint. Only recorded for visitors who accepted optional cookies (when consent is required).
+          fingerprint. Only recorded for visitors who allowed the security fingerprint (when consent is required).
         </CardDescription>
       </CardHeader>
       <CardContent>
