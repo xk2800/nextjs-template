@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.7.1-beta.3",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: enhance FileUpload component to support chooser option for modal or bottom sheet",
+    "changes": [
+      "feat: enhance FileUpload component to support chooser option for modal or bottom sheet",
+      "feat: update FileUpload component to use modal for photo selection and improve clickable drop zone behavior",
+      "feat: add clickable drop zone functionality to FileUpload component",
+      "feat: enhance bump-version script to support bumping existing beta versions"
+    ]
+  },
+  {
     "version": "0.7.1-beta.2",
     "date": "2026-10-20",
     "type": "beta",
