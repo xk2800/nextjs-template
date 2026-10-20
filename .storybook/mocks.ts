@@ -113,6 +113,7 @@ export const mockSettings = {
   authEnableOneTap: false,
   enableSessionRevocation: true,
   feedbackAttachErrors: true,
+  consentRequired: true as boolean | null,
   updatedAt: ago(60),
   updatedBy: null as string | null,
 }
@@ -201,3 +202,6 @@ export const getAdminDashboardStats = async () => ({ totalUsers: 1284, newSignup
 export const getDeviceThrottleActivity = async () => mockThrottleRows
 export const getRecentNewDevices = async () => mockNewDevices
 export const getSharedDeviceAccounts = async () => mockSharedDevices
+export const isConsentRequired = (settings: { consentRequired: boolean | null }) => settings.consentRequired ?? true
+export const getUserDevices = async () => [] as never[]
+export const getUserConsentLog = async () => [] as never[]
