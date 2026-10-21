@@ -39,19 +39,19 @@ UPDATE "user" SET roles = 'admin' WHERE email = 'you@example.com';
 
 ## Docs
 
-| Topic | |
-|---|---|
-| Every env var, env vs. admin settings, Doppler | [Configuration](docs/content/configuration.mdx) |
-| Folder layout, request flow, adding protected pages/routes | [Architecture](docs/content/architecture.mdx) |
-| Tables, column gotchas, migrations | [Database](docs/content/database.mdx) |
-| Providers, sessions, helpers, client usage | [Authentication](docs/content/authentication.mdx) |
-| 2FA, passkeys, device alerts, throttle, cookie consent | [Security Features](docs/content/security.mdx) |
-| Admin dashboard, impersonation, maintenance mode | [Admin & Maintenance](docs/content/admin.mdx) |
-| Every route, body and guard | [API Reference](docs/content/api.mdx) |
-| UI, auth, dashboard and email components | [Components](docs/content/components.mdx) |
-| Installing the npm package | [Using as a Package](docs/content/npm-package.mdx) |
-| Production checklist, migrations, Docker | [Deployment](docs/content/deployment.mdx) |
-| Common errors and fixes | [Troubleshooting](docs/content/troubleshooting.mdx) |
+| Topic                                                      |                                                     |
+| ---------------------------------------------------------- | --------------------------------------------------- |
+| Every env var, env vs. admin settings, Doppler             | [Configuration](docs/content/configuration.mdx)     |
+| Folder layout, request flow, adding protected pages/routes | [Architecture](docs/content/architecture.mdx)       |
+| Tables, column gotchas, migrations                         | [Database](docs/content/database.mdx)               |
+| Providers, sessions, helpers, client usage                 | [Authentication](docs/content/authentication.mdx)   |
+| 2FA, passkeys, device alerts, throttle, cookie consent     | [Security Features](docs/content/security.mdx)      |
+| Admin dashboard, impersonation, maintenance mode           | [Admin & Maintenance](docs/content/admin.mdx)       |
+| Every route, body and guard                                | [API Reference](docs/content/api.mdx)               |
+| UI, auth, dashboard and email components                   | [Components](docs/content/components.mdx)           |
+| Installing the npm package                                 | [Using as a Package](docs/content/npm-package.mdx)  |
+| Production checklist, migrations, Docker                   | [Deployment](docs/content/deployment.mdx)           |
+| Common errors and fixes                                    | [Troubleshooting](docs/content/troubleshooting.mdx) |
 
 ## Using as a package
 
@@ -63,7 +63,7 @@ bun add @xk2800/nextjs-template
 
 ```ts
 // next.config.ts — components ship as raw .tsx
-const nextConfig = { transpilePackages: ["@xk2800/nextjs-template"] }
+const nextConfig = { transpilePackages: ["@xk2800/nextjs-template"] };
 ```
 
 ```css
@@ -75,25 +75,27 @@ const nextConfig = { transpilePackages: ["@xk2800/nextjs-template"] }
 
 ```ts
 // app/api/auth/[...all]/route.ts
-import { auth } from "@xk2800/nextjs-template/auth"
-import { toNextJsHandler } from "better-auth/next-js"
-export const { GET, POST } = toNextJsHandler(auth)
+import { auth } from "@xk2800/nextjs-template/auth";
+import { toNextJsHandler } from "better-auth/next-js";
+export const { GET, POST } = toNextJsHandler(auth);
 ```
 
 Peer dependencies, the full import list, migrations, adding providers and One Tap are covered in **[Using as a Package](docs/content/npm-package.mdx)**.
 
 ## Common scripts
 
-| | |
-|---|---|
-| `bun dev` | Dev server |
-| `bun run doctor` | Check env, auth secret, DB connection and pending migrations |
-| `bun update @xk2800/nextjs-template` | Pull template updates (then `bun run generate`) |
-| `bun run generate` | Generate a migration from `server/db/schema.ts` |
-| `bun run migrate:dev` / `:prod` / `:test` | Apply migrations |
-| `bun run studio:dev` | Drizzle Studio |
-| `bun run test` | Unit tests |
-| `bun run storybook` | Storybook for every component (mock data, no DB needed) |
-| `bun run *:doppler` | Any of the above with secrets from Doppler |
+|                                           |                                                              |
+| ----------------------------------------- | ------------------------------------------------------------ |
+| `bun dev`                                 | Dev server                                                   |
+| `bun run doctor`                          | Check env, auth secret, DB connection and pending migrations |
+| `bun update @xk2800/nextjs-template`      | Pull template updates (then `bun run generate`)              |
+| `bun run generate`                        | Generate a migration from `server/db/schema.ts`              |
+| `bun run migrate:dev` / `:prod` / `:test` | Apply migrations                                             |
+| `bun run studio:dev`                      | Drizzle Studio                                               |
+| `bun run test`                            | Unit tests                                                   |
+| `bun run storybook`                       | Storybook for every component (mock data, no DB needed)      |
+| `bun run *:doppler`                       | Any of the above with secrets from Doppler                   |
 
 **Working on the template itself:** clone this repo, copy `.env.development.example` to `.env.development`, then run `bun install`. Publishing steps are in [PUBLISHING.md](PUBLISHING.md).
+
+test
