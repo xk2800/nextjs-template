@@ -7,7 +7,8 @@ import FeedbackDialog from "./feedbackDialog"
 // One hidden feedback dialog for reporting errors. Mount <ErrorFeedbackHost />
 // once in a layout, only when feedback is configured (FEEDBACK_DISCORD_WEBHOOK_URL
 // or FEEDBACK_EMAIL). Error toasts (toastError) and error pages (reportProblem)
-// then open it as a bug report with the error filled in and attached. Where
+// then open it as a bug report with the error attached (sent with the report,
+// not shown in the message box). Where
 // it isn't mounted, toastError is a plain toast.error.
 let openReport: ((errorText: string) => void) | null = null
 const listeners = new Set<() => void>()
@@ -31,9 +32,6 @@ export function ErrorFeedbackHost() {
       onOpenChange={(open) => !open && setErrorText(null)}
       defaultType="bug"
       errorDetails={errorText ?? undefined}
-      defaultMessage={
-        errorText ? `Error: ${errorText}\n\nWhat were you doing when this happened?\n` : ""
-      }
     />
   )
 }

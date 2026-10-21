@@ -62,13 +62,13 @@ export default function FeedbackDialog({
   const [message, setMessage] = useState(defaultMessage)
   const [isSending, setIsSending] = useState(false)
 
-  // With a pre-filled message, re-apply it every time the dialog opens so a
-  // second error report doesn't start from the first one's text. Without one,
-  // keep whatever the user had typed (a closed dialog keeps its draft).
+  // With a pre-filled message or attached error, reset every time the dialog
+  // opens so a second error report doesn't start from the first one's text.
+  // Otherwise keep whatever the user had typed (a closed dialog keeps its draft).
   const [wasOpen, setWasOpen] = useState(open)
   if (open !== wasOpen) {
     setWasOpen(open)
-    if (open && defaultMessage) {
+    if (open && (defaultMessage || errorDetails)) {
       setType(defaultType)
       setMessage(defaultMessage)
     }
