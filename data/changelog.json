@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.6",
+    "date": "2026-10-21",
+    "type": "beta",
+    "title": "fix: improve error reporting message handling in feedback dialog",
+    "changes": [
+      "fix: improve error reporting message handling in feedback dialog"
+    ]
+  },
+  {
     "version": "0.7.1-beta.5",
     "date": "2026-10-20",
     "type": "beta",
