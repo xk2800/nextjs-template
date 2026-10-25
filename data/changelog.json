@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.8",
+    "date": "2026-10-25",
+    "type": "beta",
+    "title": "feat: implement marketing email functionality with admin and user components",
+    "changes": [
+      "feat: implement marketing email functionality with admin and user components"
+    ]
+  },
+  {
     "version": "0.7.1-beta.7",
     "date": "2026-10-25",
     "type": "beta",
