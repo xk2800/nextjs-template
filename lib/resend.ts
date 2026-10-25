@@ -16,3 +16,16 @@ export async function getResend() {
   }
   return resend
 }
+
+// Broadcasts need a full access key, so they can use their own and leave
+// RESEND_API_KEY as a sending-only key.
+export const BROADCAST_API_KEY = config.RESEND_BROADCAST_API_KEY || config.RESEND_API_KEY
+
+let broadcastResend: Resend | undefined
+export async function getBroadcastResend() {
+  if (!broadcastResend) {
+    const { Resend } = await import("resend")
+    broadcastResend = new Resend(BROADCAST_API_KEY)
+  }
+  return broadcastResend
+}

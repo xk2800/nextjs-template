@@ -9,6 +9,9 @@ import SessionsCardSkeleton from "@/components/dashboard/sessionsCardSkeleton"
 import AdminSection from "@/components/dashboard/adminSection"
 import ActivityLogsSection from "@/components/dashboard/activityLogsSection"
 import ActivityLogsCardSkeleton from "@/components/dashboard/activityLogsCardSkeleton"
+import { Skeleton } from "@/components/ui/skeleton"
+import { MARKETING_SEGMENT_ID } from "@/lib/marketing-subscription"
+import MarketingUpdatesSection from "./marketingUpdatesSection"
 
 export default async function DashboardPage() {
   const session = await requireAuth()
@@ -39,6 +42,15 @@ export default async function DashboardPage() {
           <SessionsSection userId={session.user.id} />
         </Suspense>
       </ErrorBoundary>
+
+      {/* Marketing opt-in, only when a segment is configured */}
+      {MARKETING_SEGMENT_ID && (
+        <ErrorBoundary fallback={<SectionErrorFallback title="Email updates" />}>
+          <Suspense fallback={<Skeleton className="h-32 w-full" />}>
+            <MarketingUpdatesSection email={session.user.email} emailVerified={session.user.emailVerified} />
+          </Suspense>
+        </ErrorBoundary>
+      )}
 
       {/* Admin-Only Section */}
       {isAdmin && <AdminSection />}

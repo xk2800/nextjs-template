@@ -27,7 +27,8 @@
         "Device signals on the user page (Beta) — every device an account signed in from, with the browser and device traits behind its fingerprint (platform, screen, fonts, languages, CPU, WebGL…) in a collapsible list; accessibility settings are never collected",
         "Consent history on the user page (Beta) — each user's current cookie choice, allowed or declined per purpose, plus every change with the consent-text version and time, as proof of consent",
         "Consent-mode switch (Beta) — one System Settings toggle for whether GDPR/ePrivacy consent is required: on shows the cookie banner and waits for consent to each purpose (enforced server-side too), off runs everything for every visitor",
-        "Live online/offline indicator via a lightweight heartbeat endpoint"
+        "Live online/offline indicator via a lightweight heartbeat endpoint",
+        "Marketing email (Beta) — send updates to a Resend segment as a broadcast, so newsletters use the marketing quota instead of the daily transactional limit; save as a draft or send now, preview past broadcasts and send drafts from the list, see who's subscribed or unsubscribed in each segment, and let users opt in or out themselves from their dashboard, with an unsubscribe link added automatically"
       ]
     },
     {

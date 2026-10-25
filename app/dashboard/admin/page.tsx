@@ -1,6 +1,6 @@
 import { Suspense } from "react"
 import Link from "next/link"
-import { Users, ScrollText, Settings } from "lucide-react"
+import { Users, ScrollText, Settings, Megaphone } from "lucide-react"
 import { ErrorBoundary } from "@/components/error-boundary"
 import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
 import AdminStatsGrid from "@/components/dashboard/admin/adminStatsGrid"
@@ -45,7 +45,7 @@ export default function AdminDashboardPage() {
         </Suspense>
       </ErrorBoundary>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
         <Link href="/dashboard/admin/users">
           <Button className="w-full">
             <Users />
@@ -62,6 +62,12 @@ export default function AdminDashboardPage() {
           <Button variant="outline" className="w-full">
             <Settings />
             System settings
+          </Button>
+        </Link>
+        <Link href="/dashboard/admin/marketing">
+          <Button variant="outline" className="w-full">
+            <Megaphone />
+            Marketing email
           </Button>
         </Link>
       </div>

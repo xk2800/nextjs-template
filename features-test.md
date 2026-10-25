@@ -557,3 +557,40 @@ Manual, in Storybook (`bun run storybook` → UI/FileUpload):
 5. **Limits:** SingleFileMax2MB story: a file over 2 MB is rejected; a second pick replaces the first.
 6. **Clickable drop zone:** ClickableDropzone story: no buttons show. On a phone the text reads "Tap to add files", a tap opens an "Add photos" bottom sheet (a centered modal in the ClickableModal story), each button closes it and opens its picker, the × and a tap outside close it, and scrolling with a finger starting on the drop zone does not open it. On desktop the text reads "…or click to browse", and a click or Enter opens the file picker directly with no modal. ClickableGalleryOnly: a tap opens the gallery picker straight away, with no modal.
 7. **Remove:** the × on a preview removes it; `onFilesChange` fires (Actions panel) with the new list.
+
+---
+
+## Marketing email (Beta)
+
+`/dashboard/admin/marketing` → `POST /api/admin/marketing` → Resend Broadcasts.
+Text → HTML conversion (escaping, paragraphs, unsubscribe link) is unit-tested:
+
+```bash
+bun lib/marketing-email.test.ts   # or: bun run test
+```
+
+Needs a **full access** `RESEND_BROADCAST_API_KEY` (or `RESEND_API_KEY` if that is blank) and an `EMAIL_FROM` on a verified domain.
+
+1. **No key / sending-only key:** the page shows "Resend isn't reachable" with the Resend error.
+2. **No segments:** the page says to create one in Resend → Audience.
+3. In Resend, create a segment holding one contact (your own address). Reload; it's in the dropdown.
+4. **Save as draft:** toast "Draft saved in Resend". It shows as `draft` under Recent broadcasts and in the Resend dashboard, and no email arrives.
+5. **Send now:** a "Send this broadcast?" dialog opens (Cancel closes it and nothing is sent); Send now → toast "Broadcast sent", status `queued`/`sent`, and the email arrives with paragraphs intact and an **Unsubscribe** link. HTML typed in the message (`<b>x</b>`) shows as literal text.
+6. Click Unsubscribe → the contact shows as unsubscribed in Resend, and the next broadcast skips it.
+7. **Preview:** under Recent broadcasts, Preview opens a dialog showing the email (subject, sender, rendered HTML). Links and scripts in it are inert (sandboxed iframe).
+8. **Send a draft:** a `draft` row has Send (in the row and in the preview). Confirm in the dialog → toast "Broadcast sent", the row turns `queued`/`sent` and the Send button disappears. Sending the same id again: `curl -X POST …/api/admin/marketing/<id>` (as admin) → **409**.
+9. As a non-admin: `POST /api/admin/marketing` → **403**; logged out → **401**; empty subject → **400**. Same for `GET/POST /api/admin/marketing/<id>`.
+10. **Subscribers:** the card lists the segment's contacts with counts. After step 6 the contact shows as `unsubscribed`. With two segments, clicking the other one switches the list (`?segment=<id>`); a bad `?segment=` falls back to the first segment.
+11. **Live status:** right after Send now or Send, the row shows a pulsing "Sending…" while it's `queued`. Without reloading, it flips to `sent` within a few seconds and the indicator goes away (Network tab: `GET /api/admin/marketing/<id>` every 3s, then stops).
+
+### Self-serve opt-in (dashboard "Email updates" card)
+
+Set `RESEND_MARKETING_SEGMENT_ID` to a segment's ID (from Resend → Audience → Segments) and restart.
+
+1. Without the env var the card isn't on `/dashboard`; `PUT /api/marketing/subscription` → **404**.
+2. With it, `/dashboard` shows **Email updates** with the switch off (no Resend contact yet).
+3. **Unverified email:** the switch is disabled with "Verify your email address to subscribe"; forcing it with `curl -X PUT …/api/marketing/subscription -d '{"subscribed":true}'` (signed in) → **403**.
+4. **Verified:** turn it on → toast "Subscribed to product updates". In Resend the contact exists, is subscribed and is in the segment; the admin Subscribers card lists it. Reload → still on.
+5. Turn it off → contact is `unsubscribed` in Resend; reload → off.
+6. Turn it on again, then click Unsubscribe in a broadcast → reload `/dashboard` → switch is off.
+7. Logged out: `PUT /api/marketing/subscription` → **401**.

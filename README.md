@@ -34,7 +34,7 @@ UPDATE "user" SET roles = 'admin' WHERE email = 'you@example.com';
 
 - **Auth:** email/password, Google OAuth, Google One Tap, passkeys, TOTP 2FA with backup codes, password reset, email verification
 - **Security:** new-device email alerts, per-device sign-in/sign-up throttle, active-session revocation, self-serve account deletion, cookie-consent banner with an admin consent-mode switch
-- **Admin:** user management (roles, bans, bulk actions, CSV export), impersonation, system-wide activity log, device-security cards, live auth toggles, maintenance mode
+- **Admin:** user management (roles, bans, bulk actions, CSV export), impersonation, system-wide activity log, device-security cards, live auth toggles, maintenance mode, marketing email via Resend Broadcasts with user self opt-in (Beta)
 - **Ops:** `bun run doctor`, Docker image, Doppler support, separate env files for dev, prod and test
 
 ## Docs

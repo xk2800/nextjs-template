@@ -9,6 +9,12 @@ export const envSchema = z.object({
   PORT: z.string().default('3000').transform(Number),
   DATABASE_URL: z.string().default(''),
   RESEND_API_KEY: z.string().default(''),
+  // Full access key for marketing broadcasts (admin Marketing email page).
+  // Blank = use RESEND_API_KEY.
+  RESEND_BROADCAST_API_KEY: z.string().default(''),
+  // Resend segment users join from the dashboard "Email updates" toggle.
+  // Blank = toggle hidden.
+  RESEND_MARKETING_SEGMENT_ID: z.string().default(''),
   // Sender for every transactional email. Must be on a domain verified in
   // your Resend account.
   EMAIL_FROM: z.string().default('Acme <onboarding@xavierkhew.xyz>'),

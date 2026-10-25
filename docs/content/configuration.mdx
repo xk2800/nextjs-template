@@ -48,6 +48,8 @@ Changing `BETTER_AUTH_URL` (a new domain, for example) makes every existing pass
 | Variable | Default | Description |
 |---|---|---|
 | `RESEND_API_KEY` | — | Resend API key. Without it, password reset and verification emails fail, and security alerts are skipped. |
+| `RESEND_BROADCAST_API_KEY` | — | Full access Resend key for the admin [Marketing email](/admin#marketing-email-beta) page. Blank = use `RESEND_API_KEY`. |
+| `RESEND_MARKETING_SEGMENT_ID` | — | Resend segment users join with the **Email updates** switch on their dashboard. Blank hides the switch. See [Marketing email](/admin#marketing-email-beta). |
 | `EMAIL_FROM` | the template author's address | Sender for every email, e.g. `My App <noreply@myapp.com>`. **Set this.** It must be on a domain verified in *your* Resend account, so the default won't work for you. Leave it out entirely rather than leaving it blank. |
 
 ## Feedback (Beta)

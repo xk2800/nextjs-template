@@ -13,6 +13,7 @@ The admin area is at `/dashboard/admin`. Its layout calls `requireRole('admin')`
 | `/dashboard/admin/users/[userId]` | Login info, **Devices** (each device with its fingerprint signals), **Consent** (current cookie choice per purpose and its history, see [Proof of consent](/security#proof-of-consent)), sessions (revoke one or all), activity, status, impersonation log |
 | `/dashboard/admin/activity-logs` | System-wide audit log with search, action and date filters, and CSV export |
 | `/dashboard/admin/settings` | System Settings: maintenance mode, auth toggles, session revocation, consent mode |
+| `/dashboard/admin/marketing` | **Marketing email** (Beta): send an update to a Resend segment as a broadcast, or save it as a draft; recent broadcasts; subscribers per segment |
 
 ## User management rules
 
@@ -73,6 +74,19 @@ A prefix matches the path and its sub-paths: `/docs` matches `/docs` and `/docs/
 <Callout type="info">
 The always-open list exists so an admin can always sign in and turn maintenance off. It ships in the package. To keep a new page of your own reachable during maintenance, add it to the exempt list in System Settings.
 </Callout>
+
+## Marketing email (Beta)
+
+`/dashboard/admin/marketing` sends updates through [Resend Broadcasts](https://resend.com/docs/dashboard/broadcasts/introduction) (`POST /api/admin/marketing`). Broadcasts count against Resend's **marketing** plan, which is priced by contacts, not against the transactional daily limit. A newsletter can't use up the quota that password resets and verification emails need.
+
+- **Contacts and segments live in Resend.** Create a segment in the Resend dashboard under Audience. The page lists your segments to pick from. Only add people who agreed to receive marketing email.
+- **Users subscribe themselves.** Set `RESEND_MARKETING_SEGMENT_ID` to a segment ID and the user dashboard shows an **Email updates** card with a "Send me product updates" switch (`PUT /api/marketing/subscription`, `lib/marketing-subscription.ts`). Turning it on creates or re-subscribes the user's Resend contact and adds it to that segment. Turning it off marks the contact unsubscribed, the same as the Unsubscribe link in an email. Subscribing needs a verified email address, so nobody can sign up someone else's address; unsubscribing never does. The switch reads its state from Resend, so it also reflects people who unsubscribed from an email. Without the env var the card is hidden, and you add contacts in Resend yourself (one by one or by CSV).
+- **Needs a full access API key.** It uses `RESEND_BROADCAST_API_KEY`, or `RESEND_API_KEY` if that's blank. A sending-only key can send transactional mail but can't list segments or create broadcasts, so set `RESEND_BROADCAST_API_KEY` to a full access key and keep `RESEND_API_KEY` sending-only. The page tells you if the key is missing or rejected.
+- **Plain-text body.** Blank lines start a new paragraph. The sender is `EMAIL_FROM`. Every broadcast gets an unsubscribe link (`{{{RESEND_UNSUBSCRIBE_URL}}}`), and Resend handles the opt-outs.
+- **Save as draft** creates the broadcast without sending it, so you can preview it or schedule it in Resend. **Send now** asks for confirmation in a dialog, then sends it to the whole segment.
+- **Recent broadcasts** lists the last 10. **Preview** shows the email as Resend stored it, in a sandboxed frame. Drafts also get a **Send** button (`POST /api/admin/marketing/[id]`), which is hidden once a broadcast is queued or sent, and the API refuses to send it again (`409`). While a broadcast is `queued`, its row shows "Sending…" and checks Resend every 3 seconds (for up to 5 minutes), then updates on its own when the status changes.
+- **Subscribers** lists the contacts in a segment (first 100) with email, name, date added and subscribed/unsubscribed, plus a count of each. With more than one segment, pick one above the list (`?segment=<id>`). People who clicked Unsubscribe show as unsubscribed. Add or import contacts in Resend.
+- Open, click and unsubscribe stats are in the Resend dashboard. Sends aren't written to the activity log.
 
 ## Activity log
 

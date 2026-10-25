@@ -115,6 +115,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Active sessions list with per-session revoke (device/IP/location shown via parsed user-agent + geoip).
 - Personal activity log feed (with skeleton loading states and error boundaries per section).
 - Client-side heartbeat to keep `lastActiveAt` fresh.
+- **Email updates** card (Beta, shown when `RESEND_MARKETING_SEGMENT_ID` is set): a switch to opt in or out of marketing broadcasts. On = Resend contact created or re-subscribed and added to the segment (verified email required); off = contact marked unsubscribed. State is read from Resend.
 - Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys, plus a **Danger zone** with self-serve account deletion (Better-Auth `deleteUser`: password confirm for credential users, fresh session (<24h) for OAuth-only; blocked while impersonating and for the last admin; all user rows cascade).
 
 - File upload component (Beta, `components/ui/file-upload.tsx`): camera, gallery and drag-and-drop sources, each off by default and enabled by its own prop (`camera`, `gallery`, `dragDrop`). Image previews, `accept` (default `image/*`, also enforced on drops), `multiple`, `maxFiles`, `maxSizeMB`, `onFilesChange`. Client-side only; the app does the actual upload.
@@ -139,6 +140,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 ### Email
 - Transactional templates via `@react-email/components`: welcome email, password reset, email verification, new-device alert, passkey-change alert, generic templates.
 - Sending wrapper around Resend (`lib/resend.ts`), plus a demo send-email button component and `/api/send` route.
+- **Marketing email** (Beta) at `/dashboard/admin/marketing`: admins send a plain-text update to a Resend segment as a **broadcast** (`POST /api/admin/marketing`, `resend.broadcasts.create` + `send`), or save it as a draft. Recent broadcasts can be previewed, and drafts sent from the list. A Subscribers card lists each segment's contacts (first 100) with their subscribed/unsubscribed status. Broadcasts use Resend's marketing quota, not the transactional daily limit. Contacts and segments are managed in Resend, an unsubscribe link is always added (`lib/marketing-email.ts`), and it needs a full access API key (`RESEND_BROADCAST_API_KEY`, falling back to `RESEND_API_KEY`).
 
 ### API routes
 - `POST/GET /api/auth/[...all]` — Better-Auth handler.
@@ -149,6 +151,9 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - `/api/settings/public` — public-safe subset of system settings for logged-out clients (currently just `{ oneTapEnabled }`).
 - `/api/heartbeat` — updates `lastActiveAt`.
 - `/api/send` — transactional email sending.
+- `POST /api/admin/marketing` — create a Resend broadcast for a segment, and send it unless it's a draft (admin only).
+- `GET/POST /api/admin/marketing/[id]` — preview a broadcast (subject + HTML), or send a draft; `409` if it already went out (admin only).
+- `PUT /api/marketing/subscription` — the signed-in user opts in or out of product updates (`{ subscribed }`); 403 to opt in with an unverified email, 404 when `RESEND_MARKETING_SEGMENT_ID` is unset.
 
 ### Environment-driven feature flags (`config/env.ts`, Zod-validated)
 - `AUTH_ENABLE_GOOGLE`, `AUTH_ENABLE_EMAIL_PASSWORD`, `AUTH_ENABLE_ONE_TAP` (+ `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` for client-side gating).
@@ -195,6 +200,8 @@ Three supported environments, each with its own `.env.<env>` file and matching D
 | `NEXT_PUBLIC_COOKIE_BANNER` | Default for the consent setting (default `true`). `false` = no banner, consent assumed; never with EU/UK users |
 | `ENABLE_SESSION_REVOCATION` | Seed value for the session-revocation setting |
 | `RESEND_API_KEY` | Transactional email |
+| `RESEND_BROADCAST_API_KEY` | Full access key for marketing broadcasts; falls back to `RESEND_API_KEY` |
+| `RESEND_MARKETING_SEGMENT_ID` | Segment for the dashboard "Email updates" opt-in; blank hides it |
 | `EMAIL_FROM` | Sender address for all email |
 | `PORT` | Server port (default 3000) |
 | `NODE_ENV` | `development` \| `production` \| `test` |
