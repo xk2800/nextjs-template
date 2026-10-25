@@ -39,14 +39,28 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  /* Scaled, not offset, so --radius: 0 squares every corner. */
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-xl: calc(var(--radius) * 1.4);
+}
+
+/* Shape tokens: override in your globals.css to restyle every template
+ * component at once (they work per scope too, e.g. [data-ui="soft"]).
+ * Components use them as border-(length:--x) / shadow-(--x) so a className
+ * passed to a component still overrides them through tailwind-merge. */
+:root {
+  --radius: 0.625rem;
+  --pill-radius: 9999px; /* switch and badge */
+  --surface-border-width: 1px; /* cards, dialogs, menus, select lists */
+  --surface-border-color: var(--border);
+  --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --popover-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --dialog-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
 :root {
-  --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);

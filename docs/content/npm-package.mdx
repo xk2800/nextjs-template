@@ -45,6 +45,35 @@ Tailwind v4 doesn't scan `node_modules`. In `app/globals.css`:
 
 If you use `Dialog`, `AlertDialog` or `DropdownMenu`, also install and import `tw-animate-css` for open and close animations.
 
+### Match your app's look
+
+The package's components read their shape from tokens in `theme.css`. Set them after the import to restyle every card, dialog, menu, select list, switch and badge at once, without per-component CSS:
+
+| Token | Default | Used by |
+| --- | --- | --- |
+| `--radius` | `0.625rem` | every corner (`0` squares them all) |
+| `--pill-radius` | `9999px` | switch, badge |
+| `--surface-border-width` | `1px` | card, dialog, menu, select list |
+| `--surface-border-color` | `var(--border)` | same |
+| `--card-shadow` | small shadow | card |
+| `--popover-shadow` | medium shadow | menu, select list |
+| `--dialog-shadow` | large shadow | dialog, confirm dialog |
+
+```css
+/* app/globals.css: a square, hard-shadow look */
+:root {
+  --radius: 0;
+  --pill-radius: 0;
+  --surface-border-width: 2px;
+  --surface-border-color: var(--foreground);
+  --card-shadow: none;
+  --popover-shadow: 4px 4px 0 0 var(--foreground);
+  --dialog-shadow: 6px 6px 0 0 var(--foreground);
+}
+```
+
+Tokens follow normal CSS scoping, so a second look can live under a selector, for example `[data-ui="soft"] { --radius: 0.625rem; … }`. A `className` on a single component still wins over the tokens.
+
 ### Mount the auth route
 
 Route files can't be exported from a package, so create this one yourself:
