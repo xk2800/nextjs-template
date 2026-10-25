@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.9",
+    "date": "2026-10-25",
+    "type": "beta",
+    "title": "docs: add instructions for finding segment ID in Resend for marketing email functionality",
+    "changes": [
+      "docs: add instructions for finding segment ID in Resend for marketing email functionality"
+    ]
+  },
+  {
     "version": "0.7.1-beta.8",
     "date": "2026-10-25",
     "type": "beta",
