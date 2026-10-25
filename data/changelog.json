@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.7.1-beta.7",
+    "date": "2026-10-25",
+    "type": "beta",
+    "title": "feat: add marketing email functionality with confirmation dialog and subscriber management",
+    "changes": [
+      "feat: add marketing email functionality with confirmation dialog and subscriber management",
+      "docs: improve formatting and clarity in README.md"
+    ]
+  },
+  {
     "version": "0.7.1-beta.6",
     "date": "2026-10-21",
     "type": "beta",
