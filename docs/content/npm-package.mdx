@@ -108,6 +108,7 @@ import { getUserActivityLogs, getAllActivityLogs } from "@xk2800/nextjs-template
 import { getSystemSettings, isConsentRequired } from "@xk2800/nextjs-template/settings/queries"
 import { getUserDevices, getUserConsentLog } from "@xk2800/nextjs-template/admin/queries"
 import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@xk2800/nextjs-template/lib/request-info"
+import { getMarketingOverview, listSegmentContacts, isSubscribed, setSubscribed } from "@xk2800/nextjs-template/marketing"
 
 // config, types, isomorphic helpers
 import { config } from "@xk2800/nextjs-template/config/env"
@@ -127,7 +128,39 @@ import SessionsCard from "@xk2800/nextjs-template/components/dashboard/sessionsC
 import DeleteAccountCard from "@xk2800/nextjs-template/components/dashboard/deleteAccountCard"
 import { ThemeProvider } from "@xk2800/nextjs-template/components/providers/theme-provider"
 import { CookieBanner, CookieSettingsButton } from "@xk2800/nextjs-template/components/site/cookie-banner"
+import MarketingSection from "@xk2800/nextjs-template/components/dashboard/admin/marketingSection"     // admin compose + broadcasts + subscribers
+import MarketingUpdatesSection from "@xk2800/nextjs-template/components/dashboard/marketingUpdatesSection" // user opt-in switch
 ```
+
+### Marketing email
+
+The admin page and the user opt-in are components, and their API routes ship as handlers, so they work in your app with three one-line routes:
+
+```ts
+// app/api/admin/marketing/route.ts
+export { createBroadcastPOST as POST } from "@xk2800/nextjs-template/api/marketing"
+
+// app/api/admin/marketing/[id]/route.ts
+export { getBroadcastGET as GET, sendBroadcastPOST as POST } from "@xk2800/nextjs-template/api/marketing"
+
+// app/api/marketing/subscription/route.ts
+export { updateSubscriptionPUT as PUT } from "@xk2800/nextjs-template/api/marketing"
+```
+
+Then render the components. Both are server components; wrap them in `Suspense`.
+
+```tsx
+// app/dashboard/admin/marketing/page.tsx (behind requireRole('admin'))
+export default async function Page({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
+  const { segment } = await searchParams
+  return <MarketingSection segmentId={segment} />
+}
+
+// in your dashboard page
+<MarketingUpdatesSection email={session.user.email} emailVerified={session.user.emailVerified} />
+```
+
+`MarketingUpdatesSection` renders nothing until `RESEND_MARKETING_SEGMENT_ID` is set. The routes must live at these paths, because the components call them there. See [Marketing email](/admin#marketing-email-beta) for the env vars and behavior.
 
 Dashboard cards take their data as props. Fetch it with the query helpers in a server component and pass it down.
 

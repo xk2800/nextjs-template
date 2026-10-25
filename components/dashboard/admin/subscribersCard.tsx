@@ -1,23 +1,18 @@
 import Link from "next/link"
-import { getBroadcastResend } from "@/lib/resend"
-import { formatDateTime } from "@/lib/formatters"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-
-// ponytail: first 100 contacts only (one Resend page); add cursor paging
-// (`after`) if a segment outgrows it.
-const LIMIT = 100
+import { listSegmentContacts, SEGMENT_CONTACTS_LIMIT as LIMIT, type MarketingSegment } from "@xk2800/nextjs-template/marketing"
+import { formatDateTime } from "@xk2800/nextjs-template/lib/formatters"
+import { Button } from "../../ui/button"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
+import { Badge } from "../../ui/badge"
 
 export default async function SubscribersCard({
   segments,
   segmentId,
 }: {
-  segments: { id: string; name: string }[]
+  segments: MarketingSegment[]
   segmentId: string
 }) {
-  const { data, error } = await (await getBroadcastResend()).contacts.list({ segmentId, limit: LIMIT })
-  const contacts = data?.data ?? []
+  const { contacts, hasMore, error } = await listSegmentContacts(segmentId)
   const subscribed = contacts.filter((c) => !c.unsubscribed).length
 
   return (
@@ -26,8 +21,8 @@ export default async function SubscribersCard({
         <CardTitle>Subscribers</CardTitle>
         <CardDescription>
           {error
-            ? `Couldn't load contacts: ${error.message}`
-            : `${subscribed} subscribed, ${contacts.length - subscribed} unsubscribed${data?.has_more ? ` (first ${LIMIT} shown)` : ""}. Add or import contacts in Resend → Audience.`}
+            ? `Couldn't load contacts: ${error}`
+            : `${subscribed} subscribed, ${contacts.length - subscribed} unsubscribed${hasMore ?` (first ${LIMIT} shown)` : ""}. Add or import contacts in Resend → Audience.`}
         </CardDescription>
         {segments.length > 1 && (
           <div className="flex flex-wrap gap-2 pt-2">

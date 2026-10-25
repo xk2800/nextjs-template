@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { toast } from "sonner"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Switch } from "@/components/ui/switch"
-import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
+import { Switch } from "../ui/switch"
+import { Label } from "../ui/label"
 
 export default function MarketingUpdatesCard({
   initialSubscribed,

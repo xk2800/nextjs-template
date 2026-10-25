@@ -30,7 +30,11 @@
     "./dist/users/queries.js",
     "./dist/users/queries.mjs",
     "./dist/settings/queries.js",
-    "./dist/settings/queries.mjs"
+    "./dist/settings/queries.mjs",
+    "./dist/marketing/index.js",
+    "./dist/marketing/index.mjs",
+    "./dist/api/marketing.js",
+    "./dist/api/marketing.mjs"
   ],
   "files": [
     "dist",
@@ -138,6 +142,16 @@
       "import": "./dist/settings/queries.mjs",
       "require": "./dist/settings/queries.js"
     },
+    "./marketing": {
+      "types": "./dist/marketing/index.d.ts",
+      "import": "./dist/marketing/index.mjs",
+      "require": "./dist/marketing/index.js"
+    },
+    "./api/marketing": {
+      "types": "./dist/api/marketing.d.ts",
+      "import": "./dist/api/marketing.mjs",
+      "require": "./dist/api/marketing.js"
+    },
     "./lib/utils": "./lib/utils.ts",
     "./lib/formatters": "./lib/formatters.ts",
     "./lib/recalculate-columns": "./lib/recalculate-columns.ts",
@@ -200,6 +214,12 @@
       ],
       "settings/queries": [
         "dist/settings/queries.d.ts"
+      ],
+      "marketing": [
+        "dist/marketing/index.d.ts"
+      ],
+      "api/marketing": [
+        "dist/api/marketing.d.ts"
       ]
     }
   },

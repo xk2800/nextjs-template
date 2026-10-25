@@ -10,8 +10,8 @@ import AdminSection from "@/components/dashboard/adminSection"
 import ActivityLogsSection from "@/components/dashboard/activityLogsSection"
 import ActivityLogsCardSkeleton from "@/components/dashboard/activityLogsCardSkeleton"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MARKETING_SEGMENT_ID } from "@/lib/marketing-subscription"
-import MarketingUpdatesSection from "./marketingUpdatesSection"
+import { MARKETING_SEGMENT_ID } from "@/lib/marketing"
+import MarketingUpdatesSection from "@/components/dashboard/marketingUpdatesSection"
 
 export default async function DashboardPage() {
   const session = await requireAuth()

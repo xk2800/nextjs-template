@@ -50,7 +50,7 @@ proxy.ts              Next 16 Proxy (ex-middleware): /dashboard/* cookie gate + 
 docs/                 Standalone documentation site (separate Next.js app)
 ```
 
-The package is also exported piecemeal via `package.json#exports` (`/auth`, `/auth-client`, `/db`, `/db/schema`, `/config/env`, `/activity/*`, `/sessions/queries`, `/admin/queries`, `/users/queries`, `/settings/queries`, `/components/*`, `/lib/*`, `/styles/theme.css`) so a consuming project can cherry-pick pieces instead of copying the whole template.
+The package is also exported piecemeal via `package.json#exports` (`/auth`, `/auth-client`, `/db`, `/db/schema`, `/config/env`, `/activity/*`, `/sessions/queries`, `/admin/queries`, `/users/queries`, `/settings/queries`, `/marketing`, `/api/marketing`, `/components/*`, `/lib/*`, `/styles/theme.css`) so a consuming project can cherry-pick pieces instead of copying the whole template.
 
 ---
 
@@ -164,7 +164,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 
 ### Distribution as a package
 - Publishes reusable auth/db/UI/query-helper modules to the npm registry as `@xk2800/nextjs-template`.
-- Selective `exports` map lets consumers import just what they need (`/auth`, `/auth-client`, `/db`, `/db/schema`, `/admin/queries`, `/sessions/queries`, `/users/queries`, `/activity/logger`, `/activity/queries`, `/settings/queries`, `/components/*`, `/lib/*`, `/styles/theme.css`).
+- Selective `exports` map lets consumers import just what they need (`/auth`, `/auth-client`, `/db`, `/db/schema`, `/admin/queries`, `/sessions/queries`, `/users/queries`, `/activity/logger`, `/activity/queries`, `/settings/queries`, `/marketing`, `/api/marketing`, `/components/*`, `/lib/*`, `/styles/theme.css`).
 - UI components ship as raw `.tsx` (not pre-compiled) so `'use client'` boundaries survive — consumers add the package to `transpilePackages`.
 - No optional peers: everything the shipped code imports is either a dependency of the package (`resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs`, `react-qr-code`) or a required peer shared with the app (`next-themes`, `sonner`, React, Radix, …), so installs and upgrades never need a manual `bun add`.
 - Documented extension points: adding a social provider without forking (`createAuth({ socialProviders })`), disabling built-in providers via env flags, enabling One Tap.
