@@ -23,6 +23,8 @@ import {
 export { MIN_CELL_WIDTH, STICKY_BREAKPOINT, recalculateColumns }
 export type { Column }
 
+const ALIGN_CLASS = { left: undefined, center: "text-center", right: "text-right" } as const
+
 function renderCell<TRow>(col: Column<TRow>, row: TRow): React.ReactNode {
   if (col.renderer) return col.renderer(row)
   const value = (row as Record<string, unknown>)[col.name]
@@ -241,6 +243,7 @@ export function DataTable<TRow>({
               {visible.map((col) => (
                 <TableHead
                   key={col.name}
+                  className={ALIGN_CLASS[col.align ?? "left"]}
                   style={{ minWidth: col.minWidth ?? minCell, maxWidth: col.maxWidth }}
                 >
                   {col.title}
@@ -276,7 +279,7 @@ export function DataTable<TRow>({
                     {visible.map((col) => (
                       <TableCell
                         key={col.name}
-                        className="whitespace-normal break-words align-top"
+                        className={cn("whitespace-normal break-words align-top", ALIGN_CLASS[col.align ?? "left"])}
                         style={{ maxWidth: col.maxWidth }}
                       >
                         {renderCell(col, row)}

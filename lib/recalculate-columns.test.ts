@@ -96,4 +96,10 @@ const withPin = (): Column[] => [
   assert.deepEqual(hidden(r), ["b"])
 }
 
+// Column options like `align` pass through untouched.
+{
+  const c: Column[] = [{ name: "a", title: "A", align: "right" }]
+  assert.equal(recalculateColumns(c, 1000).columns[0].align, "right")
+}
+
 console.log("recalculate-columns: all assertions passed")

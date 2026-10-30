@@ -20,6 +20,8 @@ export type Column<TRow = Record<string, unknown>> = {
   title: ReactNode
   minWidth?: number
   maxWidth?: number
+  /** Horizontal alignment of the header and cells. Default left. */
+  align?: "left" | "center" | "right"
   /** Pinned column — only kept from auto-hiding while width >= the sticky breakpoint. */
   sticky?: boolean
   /** Set by `recalculateColumns` — the column did not fit and moved into the detail row. */
