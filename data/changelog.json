@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.7.1-beta.11",
+    "date": "2026-10-31",
+    "type": "beta",
+    "title": "feat: enhance Switch component with additional size options and update stories for better alignment and usage examples",
+    "changes": [
+      "feat: enhance Switch component with additional size options and update stories for better alignment and usage examples",
+      "feat: add success variant to badge component and define success colors in theme"
+    ]
+  },
+  {
     "version": "0.7.1-beta.10",
     "date": "2026-10-31",
     "type": "beta",
