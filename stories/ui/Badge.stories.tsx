@@ -5,7 +5,7 @@ const meta = {
   title: "UI/Badge",
   component: Badge,
   args: { children: "Badge" },
-  argTypes: { variant: { control: "select", options: ["default", "secondary", "destructive", "outline"] } },
+  argTypes: { variant: { control: "select", options: ["default", "secondary", "destructive", "outline", "success"] } },
 } satisfies Meta<typeof Badge>
 export default meta
 type Story = StoryObj<typeof meta>
@@ -14,3 +14,5 @@ export const Default: Story = {}
 export const Secondary: Story = { args: { variant: "secondary" } }
 export const Destructive: Story = { args: { variant: "destructive" } }
 export const Outline: Story = { args: { variant: "outline" } }
+/** Uses the `--success` / `--success-foreground` tokens from styles/theme.css. */
+export const Success: Story = { args: { variant: "success", children: "Completed" } }

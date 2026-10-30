@@ -25,3 +25,13 @@ export const HorizontalScroll: Story = { args: { autoCollapse: false } }
 export const Paginated: Story = { args: { pageSize: 2 } }
 export const CustomExpandedRow: Story = { args: { expandRenderer: (u) => <p className="p-3 text-sm">Custom details for {u.email}</p> } }
 export const Empty: Story = { args: { data: [] } }
+/** `align` on a column sets the header and cell alignment ("left" | "center" | "right"; default left). */
+export const ColumnAlignment: Story = {
+  args: {
+    columns: [
+      ...columns,
+      { name: "verified", title: "Verified", align: "center", renderer: (u) => (u.emailVerified ? "✓" : "—") },
+      { name: "actions", title: "Actions", align: "right", renderer: () => <Badge variant="secondary">Edit</Badge> },
+    ],
+  },
+}
