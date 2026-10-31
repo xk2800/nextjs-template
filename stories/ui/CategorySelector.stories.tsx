@@ -14,7 +14,7 @@ const categories = [
  * a matching category or pre-fill the new one. Needs the optional peer dependency `cmdk`.
  */
 const meta = {
-  title: "UI/CategorySelector",
+  title: "Kirakiralah/CategorySelector",
   component: CategorySelector<number>,
   args: { categories, className: "w-72" },
 } satisfies Meta<typeof CategorySelector<number>>

@@ -12,7 +12,7 @@ const sources = [
  * that name directly. Pass the sources in; fetching is up to the app. Needs the optional peer dependency `cmdk`.
  */
 const meta = {
-  title: "UI/SourceSelector",
+  title: "Kirakiralah/SourceSelector",
   component: SourceSelector,
   args: { sources, className: "w-72" },
 } satisfies Meta<typeof SourceSelector>
