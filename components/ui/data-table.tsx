@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "../../lib/utils"
 import { Button } from "./button"
 import { useDimensions } from "../../hooks/use-dimensions"
+import { ColumnPicker, useColumnPickerEnabled, useHiddenColumns } from "./column-picker"
 import {
   MIN_CELL_WIDTH,
   STICKY_BREAKPOINT,
@@ -152,10 +153,20 @@ export type DataTableProps<TRow> = {
   /** Rows per page (client-side). Default `10`; `false` renders every row (e.g. server-paginated data). */
   pageSize?: number | false
   className?: string
+  /** Extra classes for a data row (e.g. to highlight a selected one). */
+  rowClassName?: (row: TRow) => string | undefined
+  /**
+   * Lets each user show/hide columns (remembered in localStorage under this id) via a
+   * "Columns" menu. The first column and `sticky` columns are always shown.
+   * Wrap in `<ColumnPickerProvider enabled={false}>` to turn it off app-wide.
+   */
+  tableId?: string
+  /** Render the "Columns" menu for this table. Default `true`; only matters with `tableId`. */
+  columnPicker?: boolean
 }
 
 export function DataTable<TRow>({
-  columns,
+  columns: allColumns,
   data,
   getRowId,
   autoCollapse = true,
@@ -164,8 +175,21 @@ export function DataTable<TRow>({
   stickyBreakpoint,
   pageSize = 10,
   className,
+  rowClassName,
+  tableId,
+  columnPicker = true,
 }: DataTableProps<TRow>) {
   const { observe, width } = useDimensions()
+  const pickerEnabled = useColumnPickerEnabled()
+  const [userHidden] = useHiddenColumns(pickerEnabled ? tableId : undefined)
+  const columns = React.useMemo(
+    () =>
+      userHidden.length
+        ? allColumns.filter((c, i) => i === 0 || c.sticky || !userHidden.includes(c.name))
+        : allColumns,
+    [allColumns, userHidden],
+  )
+  const toggleable = allColumns.filter((c, i) => i > 0 && !c.sticky)
   const collapseEnabled = autoCollapse && !expandRenderer
   const minCell = minCellWidth ?? MIN_CELL_WIDTH
 
@@ -226,6 +250,11 @@ export function DataTable<TRow>({
 
   return (
     <div className={className}>
+      {tableId && pickerEnabled && columnPicker && toggleable.length > 0 && (
+        <div className="flex justify-end pb-2">
+          <ColumnPicker tableId={tableId} columns={toggleable} />
+        </div>
+      )}
       <div
         ref={observe}
         data-slot="data-table"
@@ -257,7 +286,7 @@ export function DataTable<TRow>({
               const open = expanded.has(id)
               return (
                 <React.Fragment key={id}>
-                  <TableRow>
+                  <TableRow className={rowClassName?.(row)}>
                     {isCollapsed && (
                       <TableCell className="w-8 align-top">
                         <button
