@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.12",
+    "date": "2026-10-31",
+    "type": "beta",
+    "title": "feat: enhance Input component to handle number input key events and prevent default behavior",
+    "changes": [
+      "feat: enhance Input component to handle number input key events and prevent default behavior"
+    ]
+  },
+  {
     "version": "0.7.1-beta.11",
     "date": "2026-10-31",
     "type": "beta",
