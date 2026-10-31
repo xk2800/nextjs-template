@@ -20,8 +20,8 @@ bun add @xk2800/nextjs-template
 
 That one command is enough with Bun, npm or pnpm. Nothing the package imports has to be added by hand, on install or on a later upgrade:
 
-- **Dependencies** come with the package: `resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs`, `react-qr-code` and the server libraries (Better-Auth, Drizzle, …).
-- **Peers** are shared with your app, so there's only one copy: `next`, `react`, `react-dom`, the Radix packages (`@radix-ui/react-*`), `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`, `next-themes` and `sonner`. Bun, npm and pnpm install any you're missing. Yarn classic (v1) doesn't, so add them yourself there.
+- **Dependencies** come with the package: `radix-ui`, `resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs`, `react-qr-code` and the server libraries (Better-Auth, Drizzle, …). Every UI component imports Radix from the single `radix-ui` package, so dialogs, popovers, selects and menus share one layer stack and nest correctly (a popover or select inside a dialog stays clickable). If your app also imports Radix directly, use `radix-ui` at the same version rather than the separate `@radix-ui/react-*` packages, so there's still only one copy.
+- **Peers** are shared with your app, so there's only one copy: `next`, `react`, `react-dom`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`, `next-themes` and `sonner`. Bun, npm and pnpm install any you're missing. Yarn classic (v1) doesn't, so add them yourself there.
 - **Optional peers** are only needed by a few components, so they aren't installed for you. Add one when you start using a component that needs it (until then the component is simply never imported, so nothing breaks):
 
 | Component | Install |
