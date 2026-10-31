@@ -22,6 +22,61 @@ That one command is enough with Bun, npm or pnpm. Nothing the package imports ha
 
 - **Dependencies** come with the package: `resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs`, `react-qr-code` and the server libraries (Better-Auth, Drizzle, …).
 - **Peers** are shared with your app, so there's only one copy: `next`, `react`, `react-dom`, the Radix packages (`@radix-ui/react-*`), `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`, `next-themes` and `sonner`. Bun, npm and pnpm install any you're missing. Yarn classic (v1) doesn't, so add them yourself there.
+- **Optional peers** are only needed by a few components, so they aren't installed for you. Add one when you start using a component that needs it (until then the component is simply never imported, so nothing breaks):
+
+| Component | Install |
+| --- | --- |
+| `command`, `category-selector`, `source-selector` | `bun add cmdk` |
+| `month-selector` | `bun add cmdk date-fns` |
+| `calendar` | `bun add react-day-picker` |
+| `date-picker-with-presets` | `bun add react-day-picker date-fns` |
+| `chart` | `bun add recharts` |
+
+For example, to use `Command` (a searchable list, also the base of a ⌘K palette):
+
+```bash
+bun add cmdk
+```
+
+```tsx
+"use client"
+import {
+  Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@xk2800/nextjs-template/components/ui/command"
+
+// Inline, e.g. inside a Popover for a combobox
+<Command>
+  <CommandInput placeholder="Search..." />
+  <CommandList>
+    <CommandEmpty>No results found.</CommandEmpty>
+    <CommandGroup heading="Pages">
+      <CommandItem onSelect={() => router.push("/dashboard")}>Dashboard</CommandItem>
+    </CommandGroup>
+  </CommandList>
+</Command>
+
+// As a ⌘K palette: same children inside CommandDialog, controlled by your own state.
+// Open it with a button (onClick={() => setOpen(true)}) and/or ⌘K / Ctrl+K:
+const [open, setOpen] = useState(false)
+useEffect(() => {
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      setOpen((o) => !o)
+    }
+  }
+  document.addEventListener("keydown", onKeyDown)
+  return () => document.removeEventListener("keydown", onKeyDown)
+}, [])
+
+// ✕, Esc and clicking outside close it through onOpenChange; call setOpen(false) in each item's onSelect
+<CommandDialog open={open} onOpenChange={setOpen}>
+  <CommandInput placeholder="Type a command..." />
+  <CommandList>…</CommandList>
+</CommandDialog>
+```
+
+`CommandDialog` uses the package's `Dialog`, so add `tw-animate-css` for its animation (see below).
 
 ### Transpile the package
 
