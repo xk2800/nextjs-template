@@ -14,3 +14,5 @@ export const WithValue: Story = { args: { defaultValue: "ada@example.com" } }
 export const Invalid: Story = { args: { "aria-invalid": true } }
 export const Disabled: Story = { args: { disabled: true } }
 export const File: Story = { args: { type: "file" } }
+/** `type="number"` hides the browser's up/down spinners and ignores the ↑/↓ keys. */
+export const Number: Story = { args: { type: "number", placeholder: "0", defaultValue: 42 } }
