@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.7.1-beta.13",
+    "date": "2026-10-31",
+    "type": "beta",
+    "title": "feat: update titles in CategorySelector and SourceSelector stories to include namespace",
+    "changes": [
+      "feat: update titles in CategorySelector and SourceSelector stories to include namespace",
+      "feat: add pagination, popover, and source selector components",
+      "feat: add ColumnPicker component and integrate with DataTable for user-configurable column visibility"
+    ]
+  },
+  {
     "version": "0.7.1-beta.12",
     "date": "2026-10-31",
     "type": "beta",
