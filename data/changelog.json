@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.14",
+    "date": "2026-11-1",
+    "type": "beta",
+    "title": "feat: migrate Radix components to single radix-ui package and update documentation",
+    "changes": [
+      "feat: migrate Radix components to single radix-ui package and update documentation"
+    ]
+  },
+  {
     "version": "0.7.1-beta.13",
     "date": "2026-10-31",
     "type": "beta",
