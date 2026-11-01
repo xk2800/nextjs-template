@@ -273,7 +273,44 @@ Then:
 1. Point `app/api/auth/[...all]/route.ts` at **your** `auth`, not the package's. Otherwise the provider's callback will never work.
 2. Add a button: `authClient.signIn.social({ provider: "apple", callbackURL: "/dashboard" })`. The shipped `socialLogin` only does Google.
 
-Your providers are merged with Google. Only `socialProviders` can be overridden; session policy, hashing and schema stay fixed. The proxy, helpers and `useSession` work the same whichever provider signed the user in.
+Your providers are merged with Google. Session policy, hashing and schema stay fixed. The proxy, helpers and `useSession` work the same whichever provider signed the user in.
+
+## Adding your own auth behaviour
+
+`createAuth` also takes your app's own hooks and settings. They're **added to** the package's, never replace them: your hooks and database hooks run after the package's, so its guards (throttling, the One Tap / Google switches, the delete-account checks) always run first.
+
+```ts
+// server/auth.ts (your project)
+import { createAuth } from "@xk2800/nextjs-template/auth"
+import { createAuthMiddleware, APIError } from "better-auth/api"
+
+export const auth = createAuth({
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/delete-user" && (await hasActiveSubscription(ctx))) {
+        throw new APIError("FORBIDDEN", { message: "Cancel your subscription first." })
+      }
+    }),
+  },
+  databaseHooks: {
+    user: { create: { after: async (user) => { await startTrial(user.id) } } },
+  },
+  advanced: { crossSubDomainCookies: { enabled: true, domain: ".example.com" } },
+  rateLimit: { enabled: true, customRules: { "/sign-in/social": { window: 60, max: 5 } } },
+  plugins: [/* extra better-auth plugins, appended after the package's */],
+  twoFactor: { passwordless: true, challengeAfterOAuth: true }, // see below
+  impersonation: false, // close the admin "sign in as user" endpoint (default true)
+  deleteUser: true,     // self-service Delete account (default true)
+})
+```
+
+Hooks see better-auth's route pattern in `ctx.path`, e.g. `"/callback/:id"` for the Google callback, not `"/callback/google"`.
+
+### Two-factor after Google and One Tap
+
+Stock better-auth only asks for the 2FA code after an email/password sign-in, so a user with 2FA on who signs in with Google or One Tap isn't asked. `twoFactor: { challengeAfterOAuth: true }` asks after those too: the sign-in lands on `/login/2fa?callbackUrl=…` with no session until the code (or a backup code) is entered. It's off by default; turn it on only if your app has the `/login/2fa` page (apps created from the template do). Passkey sign-in isn't challenged either way, since a passkey is already two factors.
+
+`twoFactor: { passwordless: true }` is for apps where users have no password (Google-only). Enabling 2FA then needs no password, and turning it off or regenerating backup codes needs a current authenticator code, sent as `code` in the request body, instead of a password. The shipped `TwoFactorCard` asks for a password, so a passwordless app needs its own card for those two actions.
 
 ## Turning providers off
 

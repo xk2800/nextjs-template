@@ -41,8 +41,16 @@ const OneTap = ({ callbackURL = '/dashboard' }: OneTapProps) => {
     if (oneTapOffered !== true) return
     if (!oneTapAllowed) return
 
+    // Passing fetchOptions (and no callbackURL) turns off the client's own redirect, so
+    // a 2FA challenge ({ twoFactorRedirect }) isn't overwritten by a jump to callbackURL.
     authClient.oneTap({
-      callbackURL,
+      fetchOptions: {
+        onSuccess: ({ data }) => {
+          window.location.href = (data as { twoFactorRedirect?: boolean } | null)?.twoFactorRedirect
+            ? `/login/2fa?callbackUrl=${encodeURIComponent(callbackURL)}`
+            : callbackURL
+        },
+      },
       onPromptNotification: (notification) => {
         console.log('One Tap prompt notification:', notification)
       }
