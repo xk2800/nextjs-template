@@ -9,3 +9,5 @@ export default meta
 type Story = StoryObj<typeof meta>
 
 export const Default: Story = {}
+/** `disabledReason` disables (dims) the button; hover or focus it to see why. */
+export const Disabled: Story = { args: { disabledReason: "You have an active subscription. Cancel it in Settings before deleting your account." } }

@@ -16,8 +16,18 @@ import {
   AlertDialogTitle,
 } from '../ui/alert-dialog'
 import { authClient, useSession } from '../../lib/auth-client'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../ui/tooltip'
 
-export default function DeleteAccountCard() {
+type Props = {
+  /**
+   * When set, the Delete account button is disabled (dimmed) and hovering or focusing it
+   * shows this text, e.g. "You have an active subscription. Cancel it first." Enforce the
+   * same rule on the server too (an auth hook on /delete-user): this only changes the UI.
+   */
+  disabledReason?: string
+}
+
+export default function DeleteAccountCard({ disabledReason }: Props = {}) {
   const { data: session } = useSession()
   const email = session?.user.email ?? ''
   // null = still checking. Credential users confirm with their password;
@@ -78,9 +88,26 @@ export default function DeleteAccountCard() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="destructive" onClick={() => setOpen(true)} disabled={hasPassword === null}>
-            Delete account
-          </Button>
+          {disabledReason ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  {/* A disabled button gets no pointer events, so this focusable wrapper
+                      carries the hover / keyboard focus that opens the tooltip. */}
+                  <span tabIndex={0} aria-label={`Delete account unavailable: ${disabledReason}`} className="inline-block cursor-not-allowed">
+                    <Button variant="destructive" disabled>
+                      Delete account
+                    </Button>
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>{disabledReason}</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <Button variant="destructive" onClick={() => setOpen(true)} disabled={hasPassword === null}>
+              Delete account
+            </Button>
+          )}
         </CardContent>
       </Card>
 
