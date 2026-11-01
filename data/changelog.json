@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.15",
+    "date": "2026-11-1",
+    "type": "beta",
+    "title": "feat: implement two-factor authentication with TOTP and Google sign-in challenge",
+    "changes": [
+      "feat: implement two-factor authentication with TOTP and Google sign-in challenge"
+    ]
+  },
+  {
     "version": "0.7.1-beta.14",
     "date": "2026-11-1",
     "type": "beta",
