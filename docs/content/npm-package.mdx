@@ -275,6 +275,29 @@ Then:
 
 Your providers are merged with Google. Session policy, hashing and schema stay fixed. The proxy, helpers and `useSession` work the same whichever provider signed the user in.
 
+## Admin users table
+
+`components/dashboard/admin/adminUsersTable` is the admin page's user list: search, CSV export, ban / unban (with a reason), make admin / tester, impersonate, delete, and bulk ban / delete. It calls the template's `/api/admin/users` routes, so an app using it needs routes with the same shapes.
+
+Banning records which admin did it (`user.bannedBy`, migration `0023_user_banned_by`) and emails the user (`email-template-banned`) when `RESEND_API_KEY` is set. The table shows "Banned by …" and the reason.
+
+Optional props for app-specific needs:
+
+```tsx
+<AdminUsersTable
+  initialUsers={users}            // rows can carry extra fields
+  initialPagination={pagination}
+  plans={{                        // only if your app has plans / subscriptions
+    options: [{ value: "free", label: "Free" }, { value: "pro", label: "Pro" }],
+    note: (u) => (u.plan === "trial" ? `until ${formatDate(u.trialEndsAt)}` : null),
+  }}
+  extraColumns={[{ name: "storage", title: "Storage", renderer: (u) => u.storage }]}
+  impersonation={false}           // hide Impersonate if createAuth has impersonation: false
+/>
+```
+
+`plans` adds a Plan column with a change-plan picker that sends `PATCH /api/admin/users/:id` with `{ plan }`, which your app implements. `extraColumns` are shown before Status.
+
 ## Adding your own auth behaviour
 
 `createAuth` also takes your app's own hooks and settings. They're **added to** the package's, never replace them: your hooks and database hooks run after the package's, so its guards (throttling, the One Tap / Google switches, the delete-account checks) always run first.

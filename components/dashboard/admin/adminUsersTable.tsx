@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../ui/card'
 import { Button } from '../../ui/button'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
 import { Skeleton } from '../../ui/skeleton'
 import { Checkbox } from '../../ui/checkbox'
+import { Label } from '../../ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select'
 import { DataTable, DataTablePagination, type Column } from '../../ui/data-table'
 import {
   AlertDialog,
@@ -25,7 +27,7 @@ import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatte
 import { Download } from 'lucide-react'
 import { authClient, useSession } from '@xk2800/nextjs-template/auth-client'
 
-interface User {
+export interface AdminUser {
   id: string
   name: string | null
   email: string
@@ -33,9 +35,19 @@ interface User {
   banned: boolean
   bannedAt: Date | null
   bannedReason: string | null
+  /** Email of the admin who issued the ban. */
+  bannedBy?: string | null
+  /** Only read when the `plans` prop is passed. */
+  plan?: string | null
   lastLoginAt: Date | null
   lastActiveAt: Date | null
   createdAt: Date
+}
+
+export type AdminUserPlans<TUser extends AdminUser = AdminUser> = {
+  options: { value: string; label: string }[]
+  /** Small text under the picker, e.g. a trial end date. */
+  note?: (user: TUser) => ReactNode
 }
 
 // A user counts as "online" if their heartbeat (sent every 30s while a
@@ -55,15 +67,32 @@ interface PaginationData {
   pages: number
 }
 
-interface AdminUsersTableProps {
-  initialUsers: User[]
+export interface AdminUsersTableProps<TUser extends AdminUser = AdminUser> {
+  initialUsers: TUser[]
   initialPagination: PaginationData
+  /**
+   * For apps with plans / subscriptions: adds a Plan column with a change-plan picker,
+   * which sends `PATCH /api/admin/users/:id` with `{ plan }`. Rows need a `plan` field.
+   */
+  plans?: AdminUserPlans<TUser>
+  /** App-specific columns (e.g. storage), shown before Status. Rows can carry extra fields. */
+  extraColumns?: Column<TUser>[]
+  /** Show the Impersonate action. Default true; pass false if impersonation is turned off. */
+  impersonation?: boolean
 }
 
-export default function AdminUsersTable({ initialUsers, initialPagination }: AdminUsersTableProps) {
+export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
+  initialUsers,
+  initialPagination,
+  plans,
+  extraColumns = [],
+  impersonation = true,
+}: AdminUsersTableProps<TUser>) {
   const router = useRouter()
   const { data: currentSession } = useSession()
-  const [users, setUsers] = useState<User[]>(initialUsers)
+  const [users, setUsers] = useState<TUser[]>(initialUsers)
+  const [banReason, setBanReason] = useState('')
+  const [updatingPlanFor, setUpdatingPlanFor] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
@@ -201,7 +230,7 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
           response = await fetch(`/api/admin/users/${actionUserId}/ban`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ban: true, reason: 'Banned by admin' }),
+            body: JSON.stringify({ ban: true, reason: banReason.trim() || 'Banned by admin' }),
           })
           successMessage = 'User banned successfully'
           break
@@ -251,12 +280,32 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
       toast.success(successMessage)
       setActionUserId(null)
       setActionType(null)
+      setBanReason('')
       await fetchUsers(page, search)
     } catch (error) {
       toast.error(`Failed to ${actionType} user`)
       console.error(error)
     } finally {
       setIsProcessing(false)
+    }
+  }
+
+  const handlePlanChange = async (userId: string, plan: string) => {
+    setUpdatingPlanFor(userId)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      if (!response.ok) throw new Error('Failed to update plan')
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, plan } : u)))
+      toast.success('Plan updated')
+    } catch (error) {
+      toast.error('Failed to update plan')
+      console.error(error)
+    } finally {
+      setUpdatingPlanFor(null)
     }
   }
 
@@ -413,12 +462,50 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                     </Badge>
                   ),
                 },
+                ...(plans
+                  ? [{
+                      name: 'plan',
+                      title: 'Plan',
+                      minWidth: 170,
+                      renderer: (user: TUser) => (
+                        <>
+                          <Select
+                            value={user.plan ?? undefined}
+                            onValueChange={(value) => handlePlanChange(user.id, value)}
+                            disabled={updatingPlanFor === user.id}
+                          >
+                            <SelectTrigger size="sm" className="w-32 text-xs" aria-label={`Plan for ${user.name || user.email}`}>
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                              {plans.options.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="text-xs">
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {plans.note?.(user) && (
+                            <p className="mt-1 text-xs text-muted-foreground">{plans.note(user)}</p>
+                          )}
+                        </>
+                      ),
+                    } satisfies Column<TUser>]
+                  : []),
+                ...extraColumns,
                 {
                   name: 'status',
                   title: 'Status',
+                  minWidth: 160,
                   renderer: (user) =>
                     user.banned ? (
-                      <Badge variant="destructive">Banned</Badge>
+                      <div className="space-y-1">
+                        <Badge variant="destructive">Banned</Badge>
+                        {user.bannedBy && <p className="text-xs text-muted-foreground">by {user.bannedBy}</p>}
+                        {user.bannedReason && (
+                          <p className="text-xs italic text-muted-foreground">&ldquo;{user.bannedReason}&rdquo;</p>
+                        )}
+                      </div>
                     ) : (
                       <Badge variant="outline">Active</Badge>
                     ),
@@ -443,18 +530,20 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                   minWidth: 340,
                   renderer: (user) => (
                     <div className="flex flex-wrap justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        disabled={user.id === currentUserId || user.banned}
-                        title={user.banned ? 'Cannot impersonate a banned user' : undefined}
-                        onClick={() => {
-                          setActionUserId(user.id)
-                          setActionType('impersonate')
-                        }}
-                      >
-                        Impersonate
-                      </Button>
+                      {impersonation && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={user.id === currentUserId || user.banned}
+                          title={user.banned ? 'Cannot impersonate a banned user' : undefined}
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType('impersonate')
+                          }}
+                        >
+                          Impersonate
+                        </Button>
+                      )}
                       {user.role === 'admin' ? (
                         <Button
                           variant="outline"
@@ -526,7 +615,7 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                     </div>
                   ),
                 },
-              ] satisfies Column<User>[]}
+              ] satisfies Column<TUser>[]}
               data={users}
               getRowId={(user) => user.id}
               pageSize={false}
@@ -549,7 +638,13 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
       </Card>
 
       {/* Action Confirmation Dialog */}
-      <AlertDialog open={!!actionUserId} onOpenChange={() => setActionUserId(null)}>
+      <AlertDialog
+        open={!!actionUserId}
+        onOpenChange={() => {
+          setActionUserId(null)
+          setBanReason('')
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -580,6 +675,18 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                 "You'll be signed in as this user until you stop impersonating. This is logged."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {actionType === 'ban' && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ban-reason">Reason (optional, shown to the user)</Label>
+              <Input
+                id="ban-reason"
+                placeholder="e.g. Spam"
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
             <AlertDialogAction

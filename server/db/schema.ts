@@ -37,6 +37,7 @@ export const users = pgTable("user", {
   banned: boolean('banned').default(false).notNull(),
   bannedAt: timestamp('bannedAt'),
   bannedReason: text('bannedReason'),
+  bannedBy: text('bannedBy'), // email of the admin who issued the ban
   // Required by better-auth's admin plugin schema (auto-expiring bans). We
   // never set this ourselves, so it stays null and bans behave as permanent,
   // same as before the plugin was added.

@@ -33,7 +33,7 @@ export const mockUser = {
 export const mockUsers = [
   mockUser,
   { ...mockUser, id: "usr_2", name: "Grace Hopper", email: "grace@example.com", role: "user", lastLoginAt: ago(120), createdAt: ago(60 * 24 * 3) },
-  { ...mockUser, id: "usr_3", name: "Alan Turing", email: "alan@example.com", role: "user", banned: true, bannedAt: ago(60 * 24), bannedReason: "Spam", lastLoginAt: ago(60 * 48) },
+  { ...mockUser, id: "usr_3", name: "Alan Turing", email: "alan@example.com", role: "user", banned: true, bannedAt: ago(60 * 24), bannedReason: "Spam", bannedBy: "ada@example.com", lastLoginAt: ago(60 * 48) },
   { ...mockUser, id: "usr_4", name: null, email: "anon@example.com", role: "user", emailVerified: false, lastLoginAt: null, lastActiveAt: null },
 ]
 

@@ -7,6 +7,7 @@ import { users, sessions } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/errors"
+import { sendBanEmail } from "@/lib/ban-email"
 
 export async function POST(
   request: NextRequest,
@@ -66,11 +67,14 @@ export async function POST(
           banned: true,
           bannedAt: new Date(),
           bannedReason: reason || null,
+          bannedBy: session.user.email,
         })
         .where(eq(users.id, userId))
 
       // Revoke all sessions
       await db.delete(sessions).where(eq(sessions.userId, userId))
+
+      await sendBanEmail(targetUser[0], reason || null)
 
       // Log the activity
       await logActivity({
@@ -93,6 +97,7 @@ export async function POST(
           banned: false,
           bannedAt: null,
           bannedReason: null,
+          bannedBy: null,
         })
         .where(eq(users.id, userId))
 
