@@ -293,6 +293,7 @@ Optional props for app-specific needs:
   }}
   extraColumns={[{ name: "storage", title: "Storage", renderer: (u) => u.storage }]}
   impersonation={false}           // hide Impersonate if createAuth has impersonation: false
+  userHref={() => null}           // names link to /dashboard/admin/users/:id by default; null = plain text
 />
 ```
 
@@ -324,10 +325,21 @@ export const auth = createAuth({
   twoFactor: { passwordless: true, challengeAfterOAuth: true }, // see below
   impersonation: false, // close the admin "sign in as user" endpoint (default true)
   deleteUser: true,     // self-service Delete account (default true)
+  logActivity: myLogger, // write the package's auth activity entries yourself (see below)
 })
 ```
 
 Hooks see better-auth's route pattern in `ctx.path`, e.g. `"/callback/:id"` for the Google callback, not `"/callback/google"`.
+
+### Logging through your own connection
+
+The package logs login, failed login, passkey added / removed and impersonation to `activity_log` through its own `db`. If your `activity_log` has row-level security that connection can't pass, the inserts are rejected and nothing is recorded. Pass `logActivity` to write them yourself (it receives the same entry, including the login fields `referrerUrl`, `os`, `browser`, `deviceType`, `country`, `city`):
+
+```ts
+import type { ActivityLogger } from "@xk2800/nextjs-template/activity/logger"
+
+const myLogger: ActivityLogger = (entry) => withAdmin((db) => db.insert(activityLogs).values({ ...entry, metadata: entry.metadata ? JSON.stringify(entry.metadata) : null }))
+```
 
 ### Two-factor after Google and One Tap
 

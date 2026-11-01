@@ -79,6 +79,11 @@ export interface AdminUsersTableProps<TUser extends AdminUser = AdminUser> {
   extraColumns?: Column<TUser>[]
   /** Show the Impersonate action. Default true; pass false if impersonation is turned off. */
   impersonation?: boolean
+  /**
+   * Where a user's name links. Default `/dashboard/admin/users/:id` (the template's user
+   * detail page); return null to show the name as plain text (an app without that page).
+   */
+  userHref?: (user: TUser) => string | null
 }
 
 export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
@@ -87,6 +92,7 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
   plans,
   extraColumns = [],
   impersonation = true,
+  userHref = (user) => `/dashboard/admin/users/${user.id}`,
 }: AdminUsersTableProps<TUser>) {
   const router = useRouter()
   const { data: currentSession } = useSession()
@@ -435,18 +441,25 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
                   name: 'name',
                   title: 'Name',
                   sticky: true,
-                  renderer: (user) => (
-                    <Link
-                      href={`/dashboard/admin/users/${user.id}`}
-                      className="inline-flex items-center gap-2 font-medium hover:underline"
-                    >
-                      <span
-                        className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                        title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
-                      />
-                      {user.name || 'N/A'}
-                    </Link>
-                  ),
+                  renderer: (user) => {
+                    const label = (
+                      <>
+                        <span
+                          className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                          title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
+                        />
+                        {user.name || 'N/A'}
+                      </>
+                    )
+                    const href = userHref(user)
+                    return href ? (
+                      <Link href={href} className="inline-flex items-center gap-2 font-medium hover:underline">
+                        {label}
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 font-medium">{label}</span>
+                    )
+                  },
                 },
                 {
                   name: 'email',

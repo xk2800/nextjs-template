@@ -59,3 +59,6 @@ export const WithExtraColumns: Story = {
 
 /** `impersonation={false}` hides the Impersonate action (for apps that turn it off in createAuth). */
 export const WithoutImpersonation: Story = { args: { impersonation: false } }
+
+/** `userHref` sets where names link; return null for plain text (an app without a user detail page). */
+export const WithoutUserLinks: Story = { args: { userHref: () => null } }

@@ -10,7 +10,7 @@ import { oneTap, admin as adminPlugin } from "better-auth/plugins";
 import { twoFactorPlugins } from "@/lib/two-factor"
 import { passkey } from "@better-auth/passkey";
 import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/api"
-import { logActivity } from "@/lib/activity-logger"
+import { logActivity, type ActivityLogger } from "@/lib/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
 import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/cookie-names"
 import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/lib/auth-throttle"
@@ -57,13 +57,19 @@ export type AuthOverrides = {
   impersonation?: boolean
   /** Self-service "Delete account" (better-auth's /delete-user). Default true. */
   deleteUser?: boolean
+  /**
+   * Writes the package's auth activity entries (login, failed login, passkey added /
+   * removed, impersonation) instead of its own logger. Use it when your activity table
+   * needs your own connection, e.g. it has row-level security the package's `db` can't pass.
+   */
+  logActivity?: ActivityLogger
 }
 
 // A failed credential sign-in, written to the activity feed — but only when
 // the attempted email maps to a real account (activityLogs.userId is NOT
 // NULL, and a miss has no user to attribute the row to). Best-effort: runs
 // in an after-hook and must never disturb the sign-in response.
-async function logFailedLogin(ctx: { body?: unknown; headers?: Headers | null }) {
+async function logFailedLogin(ctx: { body?: unknown; headers?: Headers | null }, log: ActivityLogger) {
   try {
     const raw = (ctx.body as { email?: unknown } | undefined)?.email
     const email = typeof raw === "string" ? raw.toLowerCase() : null
@@ -76,7 +82,7 @@ async function logFailedLogin(ctx: { body?: unknown; headers?: Headers | null })
       .limit(1)
     if (!user) return
 
-    await logActivity({
+    await log({
       userId: user.id,
       action: "login_failed",
       description: "Failed login attempt",
@@ -96,6 +102,7 @@ async function logFailedLogin(ctx: { body?: unknown; headers?: Headers | null })
 async function notifyPasskeyChange(
   ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0],
   action: "added" | "removed",
+  log: ActivityLogger,
 ) {
   try {
     const session = await getSessionFromCtx(ctx)
@@ -104,7 +111,7 @@ async function notifyPasskeyChange(
 
     const ip = getClientIp(ctx.headers)
 
-    await logActivity({
+    await log({
       userId: user.id,
       action: action === "added" ? "passkey_added" : "passkey_removed",
       description: `Passkey ${action}`,
@@ -138,7 +145,7 @@ async function notifyPasskeyChange(
 // Every new session row corresponds to a sign-in (credential or OAuth) — use that as
 // the "last logged in" signal rather than session updates, which also fire on
 // cookie-cache refresh / expiry extension.
-async function packageSessionCreated(...[session, context]: Parameters<CreateAfter<"session">>) {
+async function packageSessionCreated(log: ActivityLogger, ...[session, context]: Parameters<CreateAfter<"session">>) {
     // Impersonation sessions (created by the admin plugin's
     // impersonateUser endpoint) also go through session.create —
     // don't let "an admin looked at this account" show up as the
@@ -151,7 +158,7 @@ async function packageSessionCreated(...[session, context]: Parameters<CreateAft
         .where(eq(users.id, session.userId))
         .limit(1)
 
-      await logActivity({
+      await log({
         userId: impersonatedBy,
         action: 'impersonation_started',
         description: `Admin started impersonating ${target[0]?.email ?? session.userId}`,
@@ -195,7 +202,7 @@ async function packageSessionCreated(...[session, context]: Parameters<CreateAft
         .where(eq(sessions.userId, session.userId))
       const isFirstSession = Number(count) <= 1
 
-      await logActivity({
+      await log({
         userId: session.userId,
         action: 'login',
         description: isFirstSession
@@ -244,6 +251,8 @@ export function createAuth(overrides: AuthOverrides = {}) {
   // — WebAuthn credentials are bound to this exact origin, so it must never
   // fall back to better-auth's own "localhost" passkey default in production.
   const baseURL = process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000"
+
+  const log = overrides.logActivity ?? logActivity
 
   // TOTP (+ backup codes); see lib/two-factor.ts for the options.
   const [twoFactorPlugin, twoFactorExtras] = twoFactorPlugins(baseURL, {
@@ -365,7 +374,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
       session: {
         create: {
           async after(session, context) {
-            await packageSessionCreated(session, context)
+            await packageSessionCreated(log, session, context)
             await overrides.databaseHooks?.session?.create?.after?.(session, context)
           },
         },
@@ -475,7 +484,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
             .where(eq(users.id, current.session.userId))
             .limit(1)
 
-          await logActivity({
+          await log({
             userId: current.session.impersonatedBy,
             action: 'impersonation_stopped',
             description: `Admin stopped impersonating ${target[0]?.email ?? current.session.userId}`,
@@ -493,6 +502,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
           await notifyPasskeyChange(
             ctx,
             ctx.path === "/passkey/verify-registration" ? "added" : "removed",
+            log,
           )
           return
         }
@@ -526,7 +536,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
         // that ceiling ever bites.
         if (failed) {
           await Promise.all(keys.map((key) => recordDeviceAttempt(key, { ...meta, kind: "signin" })))
-          await logFailedLogin(ctx)
+          await logFailedLogin(ctx, log)
         } else {
           await Promise.all(keys.map((key) => clearDeviceThrottle(key)))
         }
