@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.1-beta.17",
+    "date": "2026-11-1",
+    "type": "beta",
+    "title": "feat: add email template and functionality for banned users",
+    "changes": [
+      "feat: add email template and functionality for banned users"
+    ]
+  },
+  {
     "version": "0.7.1-beta.16",
     "date": "2026-11-1",
     "type": "beta",
