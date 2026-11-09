@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import {
   PUSH_FLAG,
-  VAPID_PUBLIC_KEY,
   getRegistration,
   pushSupported,
   saveSubscription,
@@ -20,11 +19,14 @@ type State = 'loading' | 'unsupported' | 'no-worker' | 'denied' | 'off' | 'on'
 // Example: turn push notifications on or off for this device and send a test.
 // Hidden unless the VAPID keys are set (see .env.development.example).
 export default function PushNotificationsCard() {
+  const [publicKey, setPublicKey] = useState('')
   const [state, setState] = useState<State>('loading')
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
     ; (async () => {
+      const res = await fetch('/api/push')
+      if (res.ok) setPublicKey((await res.json()).publicKey ?? '')
       if (!pushSupported()) return setState('unsupported')
       const reg = await getRegistration()
       if (!reg) return setState('no-worker')
@@ -33,7 +35,7 @@ export default function PushNotificationsCard() {
     })().catch(() => setState('unsupported'))
   }, [])
 
-  if (!VAPID_PUBLIC_KEY) return null
+  if (!publicKey) return null
 
   async function toggle(next: boolean) {
     setBusy(true)
@@ -42,7 +44,7 @@ export default function PushNotificationsCard() {
       if (!reg) throw new Error('Service worker not registered')
       if (next) {
         if ((await Notification.requestPermission()) !== 'granted') return setState('denied')
-        const res = await saveSubscription(await subscribe(reg))
+        const res = await saveSubscription(await subscribe(reg, publicKey))
         if (!res.ok) throw new Error((await res.json()).error || 'Failed to save subscription')
         localStorage.setItem(PUSH_FLAG, '1')
         setState('on')

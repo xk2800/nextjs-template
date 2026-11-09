@@ -48,7 +48,7 @@ export default async function DashboardLayout({
   const body = (
     <>
       <Heartbeat />
-      <PushSync />
+      <PushSync publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''} />
       <ImpersonationBanner />
       {(config.FEEDBACK_DISCORD_WEBHOOK_URL || config.FEEDBACK_EMAIL) && <ErrorFeedbackHost />}
     </>

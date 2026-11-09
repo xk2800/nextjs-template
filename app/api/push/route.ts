@@ -11,6 +11,12 @@ async function userId() {
   return session?.user.id
 }
 
+// The public VAPID key, read at runtime so it needn't be set at build time.
+export async function GET() {
+  if (!(await userId())) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  return NextResponse.json({ publicKey: pushEnabled ? process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY : "" })
+}
+
 // Save this device's subscription. Called on enable and again on every app
 // open, so a subscription the browser rotated gets replaced.
 export async function POST(request: Request) {

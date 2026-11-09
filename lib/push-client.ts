@@ -1,5 +1,6 @@
 // Browser side of the push example. Server side: lib/push.ts.
-export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ''
+// The public key is passed in from a server component (read at runtime), so it
+// doesn't have to be present at build time.
 // Set when the user turns notifications on here, so a subscription the browser
 // dropped can be recreated silently without overriding a deliberate "off".
 export const PUSH_FLAG = 'push-enabled'
@@ -15,8 +16,8 @@ function keyBytes(base64Url: string) {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))
 }
 
-export const subscribe = (reg: ServiceWorkerRegistration) =>
-  reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) })
+export const subscribe = (reg: ServiceWorkerRegistration, publicKey: string) =>
+  reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey) })
 
 export const saveSubscription = (sub: PushSubscription) =>
   fetch('/api/push', {
@@ -28,11 +29,11 @@ export const saveSubscription = (sub: PushSubscription) =>
 // Run on every dashboard open. Push services expire subscriptions on devices
 // that stay unused for a while, and the server deletes them on 404/410, so
 // without this a user who comes back after days would never get pushes again.
-export async function syncPush() {
-  if (!VAPID_PUBLIC_KEY || !pushSupported() || Notification.permission !== 'granted') return
+export async function syncPush(publicKey: string) {
+  if (!publicKey || !pushSupported() || Notification.permission !== 'granted') return
   const reg = await getRegistration()
   if (!reg) return
   let sub = await reg.pushManager.getSubscription()
-  if (!sub && localStorage.getItem(PUSH_FLAG)) sub = await subscribe(reg)
+  if (!sub && localStorage.getItem(PUSH_FLAG)) sub = await subscribe(reg, publicKey)
   if (sub) await saveSubscription(sub)
 }

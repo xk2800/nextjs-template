@@ -5,9 +5,9 @@ import { syncPush } from '@/lib/push-client'
 
 // Renders nothing. Re-saves this device's push subscription each time the
 // dashboard opens (see syncPush).
-export default function PushSync() {
+export default function PushSync({ publicKey }: { publicKey: string }) {
   useEffect(() => {
-    syncPush().catch(() => {})
-  }, [])
+    syncPush(publicKey).catch(() => {})
+  }, [publicKey])
   return null
 }
