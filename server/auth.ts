@@ -222,6 +222,19 @@ async function packageSessionCreated(log: ActivityLogger, ...[session, context]:
     }
 }
 
+// First admin: ADMIN_EMAIL (set by create-nextjs) bootstraps the first admin only.
+// Called on signup (provider-verified, e.g. Google) and from afterEmailVerification
+// (the user actually clicked the link) — never on generic user updates, so a stale
+// emailVerified flag can't trigger it. No-op once any admin exists, so a demoted
+// account stays demoted and a later owner of the address gets nothing.
+async function promoteFirstAdmin(user: { id: string; email: string; emailVerified?: boolean | null }) {
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
+  if (!adminEmail || !user.emailVerified || user.email.toLowerCase() !== adminEmail) return
+  const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1)
+  if (existing) return
+  await db.update(users).set({ role: "admin" }).where(eq(users.id, user.id))
+}
+
 export function createAuth(overrides: AuthOverrides = {}) {
   const socialProviders: NonNullable<BetterAuthOptions["socialProviders"]> = {
     ...(config.AUTH_ENABLE_GOOGLE ? {
@@ -320,6 +333,9 @@ export function createAuth(overrides: AuthOverrides = {}) {
     // callback that flips users.emailVerified on click.
     emailVerification: {
       autoSignInAfterVerification: true,
+      async afterEmailVerification(user) {
+        await promoteFirstAdmin(user)
+      },
       async sendVerificationEmail({ user, url }) {
         const { EmailTemplateVerifyEmail } = await import("@/components/email/email-template-verify-email")
         await (await getResend()).emails.send({
@@ -367,6 +383,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
       user: {
         create: {
           async after(user, context) {
+            await promoteFirstAdmin(user)
             await overrides.databaseHooks?.user?.create?.after?.(user, context)
           },
         },

@@ -56,6 +56,7 @@ Use a separate pair for production, and set all three variables on your host. Th
 | Variable | Default | Description |
 |---|---|---|
 | `BETTER_AUTH_SECRET` *or* `AUTH_SECRET` | — | Signs cookies and tokens. **Required.** Generate with `openssl rand -base64 32`. Either name works. |
+| `ADMIN_EMAIL` | — | Email promoted to admin on first sign-in, but only while no admin exists. Use Google sign-in; email/password works only after the verification link is clicked (needs `RESEND_API_KEY`). Set by `create-nextjs`. Delete it after your first login; it's only needed once. |
 | `BETTER_AUTH_URL` | `http://localhost:3000` | Public base URL of the app. It's used for OAuth callbacks and email links, and it **binds passkeys to this origin**. |
 | `NEXT_PUBLIC_APP_URL` | — | Same origin as above. Used to validate `callbackUrl` redirects. |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | — | Google OAuth client. `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are accepted as fallbacks. |
