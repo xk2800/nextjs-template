@@ -38,8 +38,8 @@ export default async function ImpersonationLogCard({ showViewAllLink = true }: I
         ) : (
           <ul className="divide-y divide-border">
             {events.map((event) => (
-              <li key={event.id} className="flex items-center justify-between gap-4 py-3">
-                <div className="flex items-center gap-3">
+              <li key={event.id} className="md:flex items-center justify-between gap-4 py-3">
+                <div className="md:flex items-center gap-3">
                   <Badge variant={event.action === 'impersonation_started' ? 'destructive' : 'secondary'}>
                     {event.action === 'impersonation_started' ? 'Started' : 'Stopped'}
                   </Badge>

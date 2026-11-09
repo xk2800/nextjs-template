@@ -42,11 +42,23 @@ export default function RootLayout({
           <DeviceCheck />
           <CookieBanner />
         </ThemeProvider>
-        {/* Offline mode (public/sw.js), and keeps the install prompt for InstallAppCard. Skipped in dev so it can't get in the way of HMR. */}
-        {process.env.NODE_ENV === "production" && (
+        {/* Offline mode (public/sw.js), and keeps the install prompt for InstallAppCard. Production only. */}
+        {process.env.NODE_ENV === "production" ? (
           <Script id="register-sw" strategy="afterInteractive">
             {`if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
 addEventListener("beforeinstallprompt", (e) => { window.__pwaInstallPrompt = e })`}
+          </Script>
+        ) : (
+          // A worker left over from a local `bun start` keeps serving its cached
+          // /_next/static chunks, but dev chunks reuse names → stale code, hydration errors.
+          // Reload once after removal so the page runs on fresh chunks.
+          <Script id="unregister-sw" strategy="afterInteractive">
+            {`navigator.serviceWorker?.getRegistrations().then(async (regs) => {
+  if (!regs.length) return
+  await Promise.all(regs.map((r) => r.unregister()))
+  await Promise.all((await caches.keys()).map((k) => caches.delete(k)))
+  location.reload()
+})`}
           </Script>
         )}
       </body>

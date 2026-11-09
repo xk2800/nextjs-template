@@ -77,6 +77,7 @@ const columns: Column<ActivityLog>[] = [
     name: 'action',
     title: 'Action',
     sticky: true,
+    minWidth: 110,
     renderer: (log) => (
       <Badge variant={actionBadgeVariant[log.action] || 'outline'}>
         {log.action.replace(/_/g, ' ')}
@@ -86,6 +87,8 @@ const columns: Column<ActivityLog>[] = [
   {
     name: 'user',
     title: 'User',
+    priority: -1, // mobile/tablet: shown first (before Action)
+    minWidth: 260, // long emails: reserve real width so Action drops into the row detail instead of side-scrolling
     renderer: (log) => (
       <div className="text-sm">
         <div className="font-medium">{log.userName || 'N/A'}</div>
@@ -108,6 +111,7 @@ const columns: Column<ActivityLog>[] = [
   {
     name: 'createdAt',
     title: 'Time',
+    priority: 0, // stays visible on mobile/tablet after Action
     renderer: (log) => (
       <span className="text-sm text-gray-600 dark:text-gray-400">
         {formatDateTime(log.createdAt)}

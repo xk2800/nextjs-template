@@ -224,7 +224,7 @@
     }
   },
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "bun --env-file=.env.development next dev --turbopack",
     "build": "npm run build:lib && next build",
     "start": "next start",
     "lint": "next lint",

@@ -42,13 +42,13 @@ export interface AppSidebarProps {
   brandHref?: string
 }
 
-const workspaceLinks = [
+export const workspaceLinks = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/data-table", label: "DataTable", icon: Table },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ]
 
-const adminLinks = [
+export const adminLinks = [
   { href: "/dashboard/admin", label: "Admin home", icon: ShieldCheck },
   { href: "/dashboard/admin/users", label: "Users", icon: Users },
   { href: "/dashboard/admin/activity-logs", label: "Audit logs", icon: ScrollText },

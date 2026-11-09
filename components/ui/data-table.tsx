@@ -226,11 +226,19 @@ export function DataTable<TRow>({
     }
   }, [width, columns, collapseEnabled, minCellWidth, stickyBreakpoint])
 
-  const visible = collapseEnabled
-    ? colState.filter((c) => !c.autoHide)
-    : colState
   const hidden = collapseEnabled ? colState.filter((c) => c.autoHide) : []
   const isCollapsed = hidden.length > 0
+  // Narrow screens: also show columns in `priority` order (stable; default = index).
+  // Wide screens keep the declared order.
+  const visible = !collapseEnabled
+    ? colState
+    : isCollapsed
+      ? colState
+          .map((c, i) => [c, c.priority ?? i] as const)
+          .filter(([c]) => !c.autoHide)
+          .sort((a, b) => a[1] - b[1])
+          .map(([c]) => c)
+      : colState
 
   const [page, setPage] = React.useState(1)
   const pages = pageSize ? Math.max(1, Math.ceil(data.length / pageSize)) : 1

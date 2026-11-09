@@ -102,4 +102,24 @@ const withPin = (): Column[] => [
   assert.equal(recalculateColumns(c, 1000).columns[0].align, "right")
 }
 
+// `priority` decides what survives: lower number is kept longer (0 beats the default index), column 0 always stays.
+{
+  const c: Column[] = [
+    { name: "a", title: "A" },
+    { name: "b", title: "B" },
+    { name: "c", title: "C" },
+    { name: "d", title: "D", priority: 0 },
+  ]
+  assert.deepEqual(hidden(recalculateColumns(c, 350)), ["b", "c"])
+}
+
+// A negative-priority column becomes the anchor: kept even when only one column fits.
+{
+  const c: Column[] = [
+    { name: "a", title: "A" },
+    { name: "b", title: "B", priority: -1 },
+  ]
+  assert.deepEqual(hidden(recalculateColumns(c, 160)), ["a"])
+}
+
 console.log("recalculate-columns: all assertions passed")

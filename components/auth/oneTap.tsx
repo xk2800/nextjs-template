@@ -3,7 +3,7 @@
 import { authClient, useSession } from '../../lib/auth-client'
 import { useConsentFor } from '../../lib/cookie-consent'
 import { useRouter } from 'next/navigation'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 
 type OneTapProps = {
   /**
@@ -24,6 +24,8 @@ const OneTap = ({ callbackURL = '/dashboard' }: OneTapProps) => {
   // Google's One Tap script is third-party and can use Google's cookies, so
   // it only loads once the visitor consents to the "onetap" purpose.
   const oneTapAllowed = useConsentFor('onetap')
+  // Refs survive React strict mode's dev double-effect; a second prompt() aborts the first and GSI logs it as a console error.
+  const prompted = useRef(false)
 
   useEffect(() => {
     if (process.env.NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP !== 'true') return
@@ -40,6 +42,8 @@ const OneTap = ({ callbackURL = '/dashboard' }: OneTapProps) => {
     if (isPending || session) return
     if (oneTapOffered !== true) return
     if (!oneTapAllowed) return
+    if (prompted.current) return
+    prompted.current = true
 
     // Passing fetchOptions (and no callbackURL) turns off the client's own redirect, so
     // a 2FA challenge ({ twoFactorRedirect }) isn't overwritten by a jump to callbackURL.
@@ -51,9 +55,7 @@ const OneTap = ({ callbackURL = '/dashboard' }: OneTapProps) => {
             : callbackURL
         },
       },
-      onPromptNotification: (notification) => {
-        console.log('One Tap prompt notification:', notification)
-      }
+      // No onPromptNotification: it makes GSI call the display/skipped-moment methods, which FedCM deprecates.
     })
   }, [session, isPending, callbackURL, oneTapOffered, oneTapAllowed])
 

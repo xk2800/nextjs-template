@@ -447,7 +447,10 @@ Not covered by `bun run test`.
      Switch back online: it reloads by itself.
    - While signed in, the saved `/` shows the signed-out header (copies are
      fetched without cookies).
-   Under `bun dev`, no worker is registered.
+   Under `bun dev`, no worker is registered, and one left over from step 4
+   is removed: after `bun run start`, stop it, run `bun dev` on the same
+   port and open `/`. The page reloads once, Service workers is empty and
+   Cache storage has no `pages-v1` / `assets-v1`.
 5. Turn on maintenance mode: `/manifest.webmanifest` and the icons still load
    (the `proxy.ts` matcher skips paths with a file extension).
 

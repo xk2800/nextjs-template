@@ -59,7 +59,7 @@ Because copies are saved signed out, a signed-in visitor who goes offline sees t
 
 The worker isn't registered under `bun dev`. To test it, run `bun run build && bun run start`, open the site once, then go offline (DevTools → Network → Offline) and load any page.
 
-To try it under `bun dev` instead (handy when editing `sw.js`), register it by hand from the browser console: `navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })`. Tick "Update on reload" in DevTools → Application → Service Workers so edits are picked up, and click **Unregister** there when you're done, or the worker stays active on `localhost` for later dev sessions. Dev JS files aren't always content-hashed, so the worker's asset cache can serve old code after you edit the app. Use **Clear site data** (Application → Storage) if the page looks out of date.
+Under `bun dev` the layout goes further: it unregisters any worker it finds, clears its caches and reloads the page once. Dev JS files reuse their names, so a worker left over from a local `bun run start` would otherwise keep serving old code, which shows up as hydration errors or "module factory is not available". This also means you can't test `sw.js` under `bun dev`; use a production build.
 
 To remove offline mode, delete `public/sw.js` and the `register-sw` script in `app/layout.tsx`. Visitors who already have the worker keep it until it's unregistered, so to switch it off for them, replace `sw.js` with one that calls `self.registration.unregister()`.
 
