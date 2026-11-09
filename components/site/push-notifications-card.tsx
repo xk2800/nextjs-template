@@ -24,7 +24,7 @@ export default function PushNotificationsCard() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    ;(async () => {
+    ; (async () => {
       if (!pushSupported()) return setState('unsupported')
       const reg = await getRegistration()
       if (!reg) return setState('no-worker')
