@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.2-beta.2",
+    "date": "2026-11-10",
+    "type": "beta",
+    "title": "feat: add ADMIN_EMAIL variable for first admin promotion on signup",
+    "changes": [
+      "feat: add ADMIN_EMAIL variable for first admin promotion on signup"
+    ]
+  },
+  {
     "version": "0.7.2-beta.1",
     "date": "2026-11-10",
     "type": "beta",
