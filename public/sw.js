@@ -132,15 +132,21 @@ self.addEventListener("notificationclick", (event) => {
 // every browser (iOS doesn't), so the settings card also re-syncs on app open.
 self.addEventListener("pushsubscriptionchange", (event) => {
   event.waitUntil(
-    self.registration.pushManager
-      .subscribe(event.oldSubscription?.options || { userVisibleOnly: true })
-      .then((sub) =>
-        fetch("/api/push", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify(sub),
-        })
-      )
-      .catch(() => {})
+    (async () => {
+      // oldSubscription is often null (Chrome), and subscribe() needs the VAPID key.
+      let options = event.oldSubscription?.options;
+      if (!options?.applicationServerKey) {
+        const { publicKey } = await (await fetch("/api/push")).json();
+        if (!publicKey) return;
+        const b64 = (publicKey + "=".repeat((4 - (publicKey.length % 4)) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+        options = { userVisibleOnly: true, applicationServerKey: Uint8Array.from(atob(b64), (c) => c.charCodeAt(0)) };
+      }
+      const sub = await self.registration.pushManager.subscribe(options);
+      await fetch("/api/push", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(sub),
+      });
+    })().catch(() => {})
   );
 });

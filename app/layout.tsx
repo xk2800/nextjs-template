@@ -8,6 +8,7 @@ import { Toaster } from "sonner";
 import OneTap from "@/components/auth/oneTap";
 import DeviceCheck from "@/components/auth/deviceCheck";
 import { CookieBanner } from "@/components/site/cookie-banner";
+import PushSync from "@/components/site/push-sync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -41,6 +42,7 @@ export default function RootLayout({
           <OneTap />
           <DeviceCheck />
           <CookieBanner />
+          <PushSync publicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? ""} />
         </ThemeProvider>
         {/* Offline mode (public/sw.js), and keeps the install prompt for InstallAppCard. Production only. */}
         {process.env.NODE_ENV === "production" ? (
