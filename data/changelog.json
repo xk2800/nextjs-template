@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.7.2-beta.0",
+    "date": "2026-11-9",
+    "type": "beta",
+    "title": "feat: implement push notifications with runtime VAPID key and enhance subscription handling",
+    "changes": [
+      "feat: implement push notifications with runtime VAPID key and enhance subscription handling",
+      "fix: correct formatting in push notifications card useEffect",
+      "feat: implement push notifications feature",
+      "refactor: clean up comments and improve clarity in various components",
+      "feat: enhance dashboard layout with top navigation and customizable nav style fix: improve offline mode handling in development feat: add priority-based column visibility in data tables docs: update deployment instructions for development environment test: add tests for column priority behavior in recalculate-columns"
+    ]
+  },
+  {
     "version": "0.7.1-beta.18",
     "date": "2026-11-1",
     "type": "beta",
