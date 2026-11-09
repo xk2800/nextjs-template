@@ -1,13 +1,14 @@
 {
   "name": "@xk2800/nextjs-template",
-  "version": "0.3.0",
+  "version": "0.7.1-beta.18",
   "private": false,
   "repository": {
     "type": "git",
     "url": "https://github.com/xk2800/nextjs-template.git"
   },
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com"
+    "registry": "https://registry.npmjs.org",
+    "access": "public"
   },
   "sideEffects": [
     "./dist/config/env.js",
@@ -18,6 +19,8 @@
     "./dist/auth/index.mjs",
     "./dist/activity/logger.js",
     "./dist/activity/logger.mjs",
+    "./dist/api/feedback.js",
+    "./dist/api/feedback.mjs",
     "./dist/activity/queries.js",
     "./dist/activity/queries.mjs",
     "./dist/sessions/queries.js",
@@ -27,7 +30,11 @@
     "./dist/users/queries.js",
     "./dist/users/queries.mjs",
     "./dist/settings/queries.js",
-    "./dist/settings/queries.mjs"
+    "./dist/settings/queries.mjs",
+    "./dist/marketing/index.js",
+    "./dist/marketing/index.mjs",
+    "./dist/api/marketing.js",
+    "./dist/api/marketing.mjs"
   ],
   "files": [
     "dist",
@@ -37,11 +44,18 @@
     "components/providers",
     "components/email",
     "components/dashboard",
+    "components/site/cookie-banner.tsx",
     "lib/utils.ts",
     "lib/auth-client.ts",
     "lib/formatters.ts",
+    "lib/recalculate-columns.ts",
+    "lib/maintenance.ts",
     "lib/cookie-names.ts",
+    "lib/cookie-consent.ts",
+    "lib/device-fingerprint.ts",
     "lib/request-info.ts",
+    "hooks/use-dimensions.ts",
+    "hooks/use-mobile.ts",
     "types/auth",
     "styles/theme.css",
     "README.md"
@@ -93,6 +107,16 @@
       "import": "./dist/activity/logger.mjs",
       "require": "./dist/activity/logger.js"
     },
+    "./errors": {
+      "types": "./dist/errors.d.ts",
+      "import": "./dist/errors.mjs",
+      "require": "./dist/errors.js"
+    },
+    "./api/feedback": {
+      "types": "./dist/api/feedback.d.ts",
+      "import": "./dist/api/feedback.mjs",
+      "require": "./dist/api/feedback.js"
+    },
     "./activity/queries": {
       "types": "./dist/activity/queries.d.ts",
       "import": "./dist/activity/queries.mjs",
@@ -118,8 +142,26 @@
       "import": "./dist/settings/queries.mjs",
       "require": "./dist/settings/queries.js"
     },
+    "./marketing": {
+      "types": "./dist/marketing/index.d.ts",
+      "import": "./dist/marketing/index.mjs",
+      "require": "./dist/marketing/index.js"
+    },
+    "./api/marketing": {
+      "types": "./dist/api/marketing.d.ts",
+      "import": "./dist/api/marketing.mjs",
+      "require": "./dist/api/marketing.js"
+    },
     "./lib/utils": "./lib/utils.ts",
     "./lib/formatters": "./lib/formatters.ts",
+    "./lib/recalculate-columns": "./lib/recalculate-columns.ts",
+    "./lib/maintenance": "./lib/maintenance.ts",
+    "./lib/cookie-consent": "./lib/cookie-consent.ts",
+    "./lib/cookie-names": "./lib/cookie-names.ts",
+    "./lib/device-fingerprint": "./lib/device-fingerprint.ts",
+    "./lib/request-info": "./lib/request-info.ts",
+    "./hooks/use-dimensions": "./hooks/use-dimensions.ts",
+    "./hooks/use-mobile": "./hooks/use-mobile.ts",
     "./styles/theme.css": "./styles/theme.css",
     "./components/*": "./components/*.tsx"
   },
@@ -152,6 +194,12 @@
       "activity/logger": [
         "dist/activity/logger.d.ts"
       ],
+      "errors": [
+        "dist/errors.d.ts"
+      ],
+      "api/feedback": [
+        "dist/api/feedback.d.ts"
+      ],
       "activity/queries": [
         "dist/activity/queries.d.ts"
       ],
@@ -166,16 +214,26 @@
       ],
       "settings/queries": [
         "dist/settings/queries.d.ts"
+      ],
+      "marketing": [
+        "dist/marketing/index.d.ts"
+      ],
+      "api/marketing": [
+        "dist/api/marketing.d.ts"
       ]
     }
   },
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "bun run build:lib && next build",
+    "build": "npm run build:lib && next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "bun lib/recalculate-columns.test.ts && bun lib/two-factor.test.ts && bun lib/auth-throttle-limits.test.ts && bun lib/shared-devices.test.ts && bun lib/maintenance.test.ts && bun lib/install-target.test.ts && bun lib/file-upload-accept.test.ts && bun lib/cookie-names.test.ts && bun lib/marketing-email.test.ts && bun scripts/bump-version.test.ts",
     "build:lib": "tsup",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "typecheck": "tsc --noEmit -p tsconfig.build.json",
+    "doctor": "bun --env-file=.env.development scripts/doctor.ts",
     "prepublishOnly": "bun run typecheck && bun run build:lib",
     "bump-version": "bun scripts/bump-version.ts",
     "generate": "bun drizzle-kit generate",
@@ -193,60 +251,44 @@
     "docs:dev": "cd docs && bun run dev"
   },
   "dependencies": {
+    "@better-auth/passkey": "^1.7.6",
+    "@fingerprintjs/fingerprintjs": "^5.2.0",
     "@neondatabase/serverless": "^1.0.0",
     "@paralleldrive/cuid2": "^3.0.4",
+    "@react-email/components": "^1.0.1",
     "bcrypt": "^6.0.0",
-    "better-auth": "^1.3.34",
+    "better-auth": "^1.7.6",
     "drizzle-orm": "^0.45.0",
     "geoip-lite": "^2.0.3",
     "pg": "^8.16.0",
     "radix-ui": "^1.6.7",
+    "react-qr-code": "^2.2.0",
+    "resend": "^6.4.2",
     "server-only": "^0.0.1",
-    "ua-parser-js": "1.0.41",
-    "zod": "^4.1.12"
+    "ua-parser-js": "2.0.10",
+    "zod": "^4.6.5"
   },
   "peerDependencies": {
     "next": "^15.0.0 || ^16.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@radix-ui/react-alert-dialog": "^1.1.0",
-    "@radix-ui/react-avatar": "^1.1.0",
-    "@radix-ui/react-dialog": "^1.1.0",
-    "@radix-ui/react-dropdown-menu": "^2.1.0",
-    "@radix-ui/react-label": "^2.1.0",
-    "@radix-ui/react-separator": "^1.1.0",
-    "@radix-ui/react-slot": "^1.2.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
     "tailwind-merge": "^3.3.0",
     "lucide-react": "^1.16.0",
     "react-icons": "^5.5.0",
     "next-themes": "^0.4.0",
-    "@react-email/components": "^1.0.0",
-    "sonner": "^2.0.0"
-  },
-  "peerDependenciesMeta": {
-    "@react-email/components": {
-      "optional": true
-    },
-    "next-themes": {
-      "optional": true
-    },
-    "sonner": {
-      "optional": true
-    }
+    "sonner": "^2.0.0",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
+    "react-day-picker": "^10.0.0",
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@inquirer/prompts": "^8.5.2",
-    "@radix-ui/react-alert-dialog": "^1.1.15",
-    "@radix-ui/react-avatar": "^1.1.11",
-    "@radix-ui/react-dialog": "^1.1.15",
-    "@radix-ui/react-dropdown-menu": "^2.1.16",
-    "@radix-ui/react-label": "^2.1.8",
-    "@radix-ui/react-separator": "^1.1.8",
-    "@radix-ui/react-slot": "^1.2.4",
-    "@react-email/components": "^1.0.1",
+    "@storybook/addon-docs": "10.6.2",
+    "@storybook/nextjs-vite": "10.6.2",
     "@tailwindcss/postcss": "^4",
     "@types/bcrypt": "^6.0.0",
     "@types/geoip-lite": "^1.4.4",
@@ -255,26 +297,46 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19",
     "@types/ua-parser-js": "^0.7.39",
+    "bun-types": "^1.4.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.31.1",
     "eslint": "^10",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.0",
     "lucide-react": "^1.16.0",
-    "next": "16.2.12",
+    "next": "16.3.0",
     "next-themes": "^0.4.6",
     "playwright": "^1.62.0",
     "react": "^19.0.0",
+    "react-day-picker": "^10.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
-    "resend": "^6.4.2",
+    "recharts": "^3.8.1",
     "sonner": "^2.0.7",
+    "storybook": "10.6.2",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^4",
     "tsup": "^8.5.1",
     "tsx": "^4.19.4",
     "tw-animate-css": "^1.3.6",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite": "^8.3.4"
+  },
+  "peerDependenciesMeta": {
+    "cmdk": {
+      "optional": true
+    },
+    "date-fns": {
+      "optional": true
+    },
+    "react-day-picker": {
+      "optional": true
+    },
+    "recharts": {
+      "optional": true
+    }
   }
 }

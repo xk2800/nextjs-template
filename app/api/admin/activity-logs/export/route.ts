@@ -5,6 +5,7 @@ import { hasRole } from "@/lib/auth-helpers"
 import { getActivityLogsForExport, type ActivityActionFilter } from "@/lib/activity-queries"
 import { ActivityActionEnum } from "@/server/db/schema"
 import { toCsv } from "@/lib/csv"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -56,9 +57,8 @@ export async function GET(request: NextRequest) {
       },
     })
   } catch (error) {
-    console.error('Error exporting activity logs:', error)
     return NextResponse.json(
-      { error: "Failed to export activity logs" },
+      { error: unexpectedErrorMessage(error, "Failed to export activity logs") },
       { status: 500 }
     )
   }

@@ -1,0 +1,1 @@
+ALTER TABLE "system_settings" ADD COLUMN "maintenanceExemptPaths" text[] DEFAULT '{"/","/features","/changelog","/changelog-template","/privacy","/terms"}' NOT NULL;

@@ -5,7 +5,10 @@ export const SignupSchema = z.object({
     message: 'Name is required.',
   }),
   email: z.string().email(),
-  password: z.string().min(6, {
-    message: 'Password must be at least 6 characters long.',
+  // Matches better-auth's default minPasswordLength (server/auth.ts doesn't
+  // override it) — was 6 here, which let the client accept passwords the
+  // server would then reject.
+  password: z.string().min(8, {
+    message: 'Password must be at least 8 characters long.',
   }),
 })

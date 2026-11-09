@@ -64,8 +64,8 @@ export function hasRole(userRole: string | null | undefined, requiredRole: 'user
     return userRole === 'admin'
   }
 
-  // 'user' role check - both 'user' and 'admin' have access
-  return userRole === 'user' || userRole === 'admin'
+  // 'user' role check - every role ('user', 'admin', 'tester') has access
+  return userRole === 'user' || userRole === 'admin' || userRole === 'tester'
 }
 
 /**

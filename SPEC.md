@@ -1,0 +1,231 @@
+# Spec Sheet — @xk2800/nextjs-template
+
+Version `0.5.0` · A production-oriented Next.js starter/template that also publishes itself as a private, installable npm package (`@xk2800/nextjs-template` on GitHub Packages). Consuming projects can either fork the whole repo or `bun add` the package and import individual pieces.
+
+---
+
+## 1. Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Framework | Next.js 16.3.0 (App Router, Turbopack dev server) |
+| UI library | React 19 |
+| Language | TypeScript 6 |
+| Styling | Tailwind CSS 4 + `tw-animate-css` |
+| Components | Shadcn/ui (Radix UI primitives, `class-variance-authority`, `clsx`, `tailwind-merge`) |
+| Icons | `lucide-react`, `react-icons` |
+| Theming | `next-themes` (light/dark toggle, peer dep) |
+| ORM | Drizzle ORM 0.45 + `drizzle-kit` |
+| Database | PostgreSQL — self-hosted `pg` driver for dev/Docker, `@neondatabase/serverless` for production (Neon), switchable via `DB_DRIVER` |
+| Auth | Better-Auth 1.3.34 (database-backed sessions, not JWT-only) |
+| Password hashing | bcrypt (10 rounds) |
+| ID generation | `@paralleldrive/cuid2` |
+| Email | Resend + `@react-email/components` (dependencies of the package) |
+| Toasts | `sonner` (peer dep) |
+| Device/geo parsing | `ua-parser-js`, `geoip-lite` |
+| Validation | Zod 4 |
+| Runtime / package manager | Bun (dev/scripts), Node.js runtime in production |
+| Secrets | `.env.*` files, or Doppler as an opt-in alternative (`*:doppler` scripts) |
+| Library bundler | `tsup` (for the publishable package build) |
+| Deployment | Docker (`Dockerfile`), designed for Dokploy-style VPS deploys |
+| Docs site | Separate Next.js app under `docs/` |
+
+---
+
+## 2. Architecture Overview
+
+```
+app/                  Next.js App Router routes (pages, layouts, API routes)
+components/           UI components (shadcn primitives, auth, dashboard, email, site)
+server/
+  ├─ auth.ts          createAuth() factory + default `auth` singleton (Better-Auth)
+  ├─ db/
+  │   ├─ schema.ts    Drizzle schema (users, sessions, accounts, verifications, activity_log, system_settings)
+  │   └─ index.ts      DB connection (pg or neon, chosen via DB_DRIVER)
+  └─ test-connection/ Standalone DB connectivity check script
+config/env.ts         Zod-validated environment config (server-only)
+lib/                  Server query helpers, auth-client, formatters, csv export, resend wrapper, etc.
+types/auth/           Zod schemas for login/signup forms
+proxy.ts              Next 16 Proxy (ex-middleware): /dashboard/* cookie gate + site-wide maintenance mode
+docs/                 Standalone documentation site (separate Next.js app)
+```
+
+The package is also exported piecemeal via `package.json#exports` (`/auth`, `/auth-client`, `/db`, `/db/schema`, `/config/env`, `/activity/*`, `/sessions/queries`, `/admin/queries`, `/users/queries`, `/settings/queries`, `/marketing`, `/api/marketing`, `/components/*`, `/lib/*`, `/styles/theme.css`) so a consuming project can cherry-pick pieces instead of copying the whole template.
+
+---
+
+## 3. Authentication (Better-Auth)
+
+- **Providers:** Google OAuth, Email/Password (bcrypt-hashed, stored in `accounts` table with `providerId: "credential"`), Google One Tap (opt-in), passkeys / WebAuthn (passwordless, opt-in per user).
+- **Two-factor (TOTP):** Better-Auth's `twoFactor` plugin — opt-in per user from the Settings page (QR-code setup + 10 encrypted single-use backup codes). A password sign-in on a 2FA-enabled account returns `twoFactorRedirect` instead of a session; `/login/2fa` takes the authenticator code or a backup code, with a 30-day "trust this device" option.
+- **Passkeys (WebAuthn):** Better-Auth's `passkey` plugin — `rpID`/`origin` derived from `BETTER_AUTH_URL` (no extra env var). Register/remove credentials from Settings; "Sign in with a passkey" button on the login page. Passkey registration requires an existing authenticated session, so there is no passkey-based signup.
+- **Passkey change alerts:** A successful `/passkey/verify-registration` or `/passkey/delete-passkey` fires an auth `after` hook that emails the account owner (device / location / IP / time, via a React Email template through Resend) and writes a `passkey_added` / `passkey_removed` activity-log entry. Best-effort — a mail failure never fails the endpoint; self-disables when `RESEND_API_KEY` is unset.
+- **Extensible provider model:** `createAuth(overrides)` factory merges a project's own `socialProviders` (e.g. Apple) with the built-in Google provider without forking the template.
+- **Session strategy:** Database-backed sessions, 30-day expiration, updated every 24h, with a 5-minute cookie cache for performance.
+- **Runtime auth kill-switches:** Google, Email/Password, and One Tap can each be disabled live from the admin System Settings page (enforced server-side in a Better-Auth `hooks.before` middleware, not just hidden in the UI).
+- **Custom user fields:** `role` (`user`/`admin`, defaults to `user`, not client-settable), `banned`, `bannedAt`, `bannedReason`, `banExpires`, `lastLoginAt`, `lastActiveAt`.
+- **Admin plugin:** Better-Auth's `admin` plugin wired for impersonation (`impersonateUser` / `stopImpersonating`), with `adminRoles: ["admin"]` mapped to the app's own role column.
+- **Impersonation auditing:** Impersonation start/stop is logged to the activity log via database hooks (start) and a `before` hook reading the session prior to Better-Auth deleting it (stop), since the admin plugin's impersonation-stop path bypasses normal session-create hooks.
+- **Login activity capture:** Every real (non-impersonated) session creation logs an activity entry with IP, parsed user agent (OS/browser/device type via `ua-parser-js`), geo (country/city via `geoip-lite`), and referrer URL (captured via cookie before OAuth redirects, since the live referer header on an OAuth callback points at the provider, not the origin page).
+- **First-login detection:** Session count for the user distinguishes "new account registered and signed in" from "user logged in."
+- **Route protection:** `proxy.ts` guards `/dashboard/*`, checking for the Better-Auth session cookie (including `__Secure-` prefixed variant) and redirecting to `/login?callbackUrl=...`.
+- **Password reset:** Better-Auth-composed reset URL, delivered via a React Email template through Resend.
+- **Email verification:** Opt-in (`requireEmailVerification: false`). Users trigger it from the dashboard Account Details card via `authClient.sendVerificationEmail()`; Better-Auth composes the URL, mails it through Resend, and its `/api/auth/verify-email` callback flips `user.emailVerified` and auto-signs-in.
+- **Server-side session access:** `auth.api.getSession({ headers })`.
+- **Client-side:** `authClient` / `useSession` from `lib/auth-client.ts`; sign-in, sign-out, and social sign-in helpers.
+
+---
+
+## 4. Database Schema (Drizzle, PostgreSQL)
+
+| Table | Purpose |
+|---|---|
+| `user` | Core user record — id (cuid2), name, email, password (nullable, credential-only), emailVerified, image, role, ban fields, lastLoginAt/lastActiveAt, timestamps |
+| `session` | Database-backed sessions — token, expiry, IP, user agent, `impersonatedBy` (set while an admin is impersonating) |
+| `account` | OAuth + credential accounts — provider tokens, credential password hash |
+| `verification` | Email verification / password reset tokens |
+| `twoFactor` | Per-user TOTP secret + encrypted backup codes (`twoFactor` plugin); `user.twoFactorEnabled` flips true after first verification |
+| `passkey` | Registered WebAuthn credentials — public key, counter, device type, transports, AAGUID (`passkey` plugin) |
+| `activity_log` | Append-only audit trail — action enum (login, logout, login_failed, password_changed, email_changed, profile_updated, session_revoked, user_deleted, user_banned, user_unbanned, role_changed, impersonation_started/stopped, settings_changed), description, IP, user agent, parsed device/geo fields, metadata |
+| `system_settings` | Singleton row (`id = 'default'`, enforced via CHECK constraint) holding admin-editable runtime config: maintenance mode + message + exempt paths, auth method toggles (Google/email-password/One Tap), session-revocation toggle, `updatedBy` |
+| `device_fingerprint` | One row per (user, FingerprintJS `visitorId`) — answers "has this account signed in from this device before?" for new-device alerts, and (many accounts on one `visitorId`) the multi-account / trial-abuse signal. First-seen IP/UA/geo kept for context |
+| `auth_throttle` | Per-device fixed-window counter for `/sign-in/email` + `/sign-up/email` abuse, keyed by `visitorId` (not IP). Last IP/UA/email/kind kept so an admin can block the source. Rows untouched for 30 days are pruned on the write path (`RETENTION_MS`) |
+| `consent_log` | Proof of cookie consent (GDPR Art. 7(1)): one row per choice a signed-in user makes, posted by the banner to `/api/consent`, only when it differs from their latest record. `choice` (cookie value), `version` (`CONSENT_VERSION`), `previousId` (the record it follows, unique per user so concurrent posts from several tabs insert once, with no transaction needed), `createdAt`; no IP/UA; cascades on user delete |
+
+Migrations are generated with `drizzle-kit generate` and applied per-environment (`migrate:dev` / `migrate:prod` / `migrate:test`). The published package does not ship migrations — consuming projects re-export the schema locally so `drizzle-kit` can resolve it directly.
+
+---
+
+## 5. Features
+
+### Public site
+- Landing page, features page (with copy-install button and scroll reveal), changelog page (+ changelog template), privacy policy, terms of service, maintenance page.
+- Site header/footer, logo, theme toggle (light/dark via `next-themes`).
+- Installable web app (Beta): `app/manifest.ts` (name from `APP_NAME`, 192/512px icons generated from `app/favicon.ico` at build time by `app/icons/[file]/route.tsx`, `display: standalone`). Offline mode: `public/sw.js` (registered from `app/layout.tsx` in production only) saves the public pages in its `OFFLINE_PAGES` list (fetched signed out, plus their `/_next/static` assets, newest 300 kept, cleared by bumping `VERSION`) and shows them offline; any other page load that fails offline gets a built-in offline page. Install instructions: `components/dashboard/installAppCard.tsx` on Settings → This device (steps for the detected OS and browser via `detectInstallTarget()`, an Install app button from `beforeinstallprompt`, stashed as `window.__pwaInstallPrompt` by the layout script, and an installed state).
+- Cookie-consent banner (`components/site/cookie-banner.tsx`, state in `lib/cookie-consent.ts`): "Necessary only" / "Customize" / "Accept all", with consent per purpose (`fingerprint`, `onetap`; unticked by default under "Customize"), stored in the `cookie_consent` cookie (`all`, `necessary` or a comma list of purposes) for 1 year and reopened from the footer's "Cookie settings". The FingerprintJS device id and Google One Tap each run only with consent to their purpose; without `fingerprint` the sign-in throttle uses its per-IP cap. Withdrawing `fingerprint` consent erases the signed-in user's `device_fingerprint` row for that device (`DELETE /api/device-check`, sent by `<DeviceCheck />` with the id kept in `localStorage['device-visitor-id']`). Off with `NEXT_PUBLIC_COOKIE_BANNER=false`, which treats consent as granted.
+
+### Auth pages
+- Login, Signup, Forgot Password, Reset Password, 2FA challenge (`/login/2fa`) — all under `app/(auth)/`, built from shared `authCard` / `authShell` components.
+- Google One Tap prompt (self-gating, opt-in).
+- "Sign in with a passkey" button on the login page (WebAuthn, passwordless).
+- OAuth callback double-hit recovery (`components/auth/loginErrorRecovery.tsx`) — silently retries a stale `please_restart_the_process` redirect instead of stranding the user.
+
+### User dashboard (`/dashboard`)
+- Profile card, account details card.
+- Active sessions list with per-session revoke (device/IP/location shown via parsed user-agent + geoip).
+- Personal activity log feed (with skeleton loading states and error boundaries per section).
+- Client-side heartbeat to keep `lastActiveAt` fresh.
+- **Email updates** card (Beta, shown when `RESEND_MARKETING_SEGMENT_ID` is set): a switch to opt in or out of marketing broadcasts. On = Resend contact created or re-subscribed and added to the segment (verified email required); off = contact marked unsubscribed. State is read from Resend.
+- Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys, plus a **Danger zone** with self-serve account deletion (Better-Auth `deleteUser`: password confirm for credential users, fresh session (<24h) for OAuth-only; blocked while impersonating and for the last admin; all user rows cascade).
+
+- File upload component (Beta, `components/ui/file-upload.tsx`): camera, gallery and drag-and-drop sources, each off by default and enabled by its own prop (`camera`, `gallery`, `dragDrop`). Image previews, `accept` (default `image/*`, also enforced on drops), `multiple`, `maxFiles`, `maxSizeMB`, `onFilesChange`. Client-side only; the app does the actual upload.
+
+- Feedback button (Beta) in the dashboard header (`components/dashboard/feedbackDialog.tsx`, shown only when `FEEDBACK_DISCORD_WEBHOOK_URL` or `FEEDBACK_EMAIL` is set): a bug report / general feedback dialog that posts to `/api/feedback`. The route needs a session, validates the message (1–2000 chars) and limits each user to one message per 30s (in memory, per instance). It delivers to a Discord webhook (an embed with mentions disabled) and/or Resend email (Reply-To is the user). Nothing is stored. It succeeds if any destination succeeds.
+
+### Maintenance mode
+- Enforced in `proxy.ts` for every page and API route except the admin-editable exempt list (`system_settings.maintenanceExemptPaths`, default: `/`, `/features`, `/changelog`, `/changelog-template`, `/privacy`, `/terms`). Blocked pages redirect to `/maintenance`; blocked API routes return `503`.
+- Always open regardless (`lib/maintenance.ts`): `/maintenance`, `/login`, `/forgot-password`, `/reset-password`, `/api/auth`, `/api/settings/public` — so admins can always sign in to turn it off.
+- Admins, and admins impersonating a user, bypass it. Changes apply within the 10s settings cache.
+
+### Admin dashboard (`/dashboard/admin`)
+- Stats grid (aggregate user/session counts, etc.).
+- User management table — list, search, view detail, edit role, ban/unban (with reason), delete, bulk-ban, bulk-delete, CSV export.
+- Per-user detail view — login info, sessions, activity log, status card, impersonation controls and impersonation-log card, plus a **Devices** card (Beta): each `device_fingerprint` row with its FingerprintJS signals (`components` jsonb) in a collapsible section. Accessibility signals are never collected (`EXCLUDED_SIGNALS`, filtered on client and server), and values over 500 chars are stored as hashes. Also a **Consent** card (Beta): the user's `consent_log` records, with the current choice as allowed/declined per purpose and the full history with version and time (`getUserConsentLog()`).
+- Impersonation banner shown app-wide while an admin is impersonating a user.
+- System-wide activity log viewer with CSV export.
+- System Settings form — maintenance mode/message and the list of paths that stay open during it (defaults to the public pages), live auth-method toggles (Google, Email/Password, One Tap), session-revocation toggle, and **Require consent (GDPR / ePrivacy)** (Beta): `system_settings.consentRequired`, null = follow `NEXT_PUBLIC_COOKIE_BANNER`; `proxy.ts` mirrors it into the `consent_required` cookie for the client, and `/api/device-check` returns 403 without `cookie_consent=all` while it's on.
+- Device security cards — **New devices** (first sign-in per account/device, with one-click session revoke), **Device throttle** (fingerprints hitting the sign-in/sign-up abuse limit), and **Shared devices** (one device fingerprint used by 3+ accounts — multi-account / trial-abuse signal, each account linked for a ban).
+- Route- and section-level `error.tsx` / `loading.tsx` boundaries throughout the admin tree.
+
+### Email
+- Transactional templates via `@react-email/components`: welcome email, password reset, email verification, new-device alert, passkey-change alert, generic templates.
+- Sending wrapper around Resend (`lib/resend.ts`), plus a demo send-email button component and `/api/send` route.
+- **Marketing email** (Beta) at `/dashboard/admin/marketing`: admins send a plain-text update to a Resend segment as a **broadcast** (`POST /api/admin/marketing`, `resend.broadcasts.create` + `send`), or save it as a draft. Recent broadcasts can be previewed, and drafts sent from the list. A Subscribers card lists each segment's contacts (first 100) with their subscribed/unsubscribed status. Broadcasts use Resend's marketing quota, not the transactional daily limit. Contacts and segments are managed in Resend, an unsubscribe link is always added (`lib/marketing-email.ts`), and it needs a full access API key (`RESEND_BROADCAST_API_KEY`, falling back to `RESEND_API_KEY`).
+
+### API routes
+- `POST/GET /api/auth/[...all]` — Better-Auth handler.
+- `/api/activity-logs`, `/api/admin/activity-logs` (+ `/export`) — user and admin activity feeds.
+- `/api/admin/settings` — system settings CRUD.
+- `/api/admin/users`, `/[userId]`, `/[userId]/ban`, `/[userId]/role`, `/[userId]/sessions`, `/bulk-ban`, `/bulk-delete`, `/export` — full admin user management surface.
+- `/api/sessions/revoke` — user self-service session revocation.
+- `/api/settings/public` — public-safe subset of system settings for logged-out clients (currently just `{ oneTapEnabled }`).
+- `/api/heartbeat` — updates `lastActiveAt`.
+- `/api/send` — transactional email sending.
+- `POST /api/admin/marketing` — create a Resend broadcast for a segment, and send it unless it's a draft (admin only).
+- `GET/POST /api/admin/marketing/[id]` — preview a broadcast (subject + HTML), or send a draft; `409` if it already went out (admin only).
+- `PUT /api/marketing/subscription` — the signed-in user opts in or out of product updates (`{ subscribed }`); 403 to opt in with an unverified email, 404 when `RESEND_MARKETING_SEGMENT_ID` is unset.
+
+### Environment-driven feature flags (`config/env.ts`, Zod-validated)
+- `AUTH_ENABLE_GOOGLE`, `AUTH_ENABLE_EMAIL_PASSWORD`, `AUTH_ENABLE_ONE_TAP` (+ `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` for client-side gating).
+- `ENABLE_SESSION_REVOCATION` — seed value only; live value lives in `system_settings` once seeded, editable from admin UI.
+- `DB_DRIVER` (`pg` | `neon`) and `DATABASE_SSL` — dev typically uses local/Docker Postgres without SSL, production typically uses Neon.
+- `RESEND_API_KEY` for transactional email, and `EMAIL_FROM` for the sender address (must be on a domain verified in Resend).
+- `NEXT_PUBLIC_COOKIE_BANNER` (default `true`): default for the **Require consent** System Setting (the DB value wins once saved). `false` treats consent as granted for everyone. That's acceptable only with no EU/UK users; for an EU/UK audience it breaks GDPR/ePrivacy.
+
+### Distribution as a package
+- Publishes reusable auth/db/UI/query-helper modules to the npm registry as `@xk2800/nextjs-template`.
+- Selective `exports` map lets consumers import just what they need (`/auth`, `/auth-client`, `/db`, `/db/schema`, `/admin/queries`, `/sessions/queries`, `/users/queries`, `/activity/logger`, `/activity/queries`, `/settings/queries`, `/marketing`, `/api/marketing`, `/components/*`, `/lib/*`, `/styles/theme.css`).
+- UI components ship as raw `.tsx` (not pre-compiled) so `'use client'` boundaries survive — consumers add the package to `transpilePackages`.
+- No optional peers: everything the shipped code imports is either a dependency of the package (`resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs`, `react-qr-code`) or a required peer shared with the app (`next-themes`, `sonner`, React, Radix, …), so installs and upgrades never need a manual `bun add`.
+- Documented extension points: adding a social provider without forking (`createAuth({ socialProviders })`), disabling built-in providers via env flags, enabling One Tap.
+
+### Ops / deployment
+- Dockerfile for containerized deploys (Postgres SSL config, npm-based build).
+- Doppler integration as an opt-in alternative secrets source — every script has a `*:doppler` twin that injects secrets via `doppler run --` with no code changes required.
+- `bun --env-file=... server/test-connection/index.ts` for verifying DB connectivity per environment.
+- `bun run doctor` — checks runtime version, env validity, DB connectivity, and pending migrations in one command (`scripts/doctor.ts`, env schema split into `config/env-schema.ts` so it works outside Next's bundler).
+- Standalone `docs/` Next.js site for template documentation.
+
+---
+
+## 6. Environments
+
+Three supported environments, each with its own `.env.<env>` file and matching Drizzle/migration scripts: `development` (local/self-hosted Postgres), `production` (Neon), `test`. Doppler can replace `.env.*` files entirely for any environment.
+
+---
+
+## 7. Required Environment Variables
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | Postgres connection string |
+| `DB_DRIVER` | `pg` or `neon` |
+| `DATABASE_SSL` | Whether to use SSL for the `pg` driver |
+| `AUTH_SECRET` | Better-Auth cookie/token signing secret |
+| `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | Google OAuth credentials |
+| `BETTER_AUTH_URL` | Base URL for auth callbacks |
+| `NEXT_PUBLIC_APP_URL` | Client-side base URL |
+| `AUTH_ENABLE_GOOGLE` / `AUTH_ENABLE_EMAIL_PASSWORD` / `AUTH_ENABLE_ONE_TAP` | Auth method toggles |
+| `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` / `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client-side One Tap config |
+| `NEXT_PUBLIC_COOKIE_BANNER` | Default for the consent setting (default `true`). `false` = no banner, consent assumed; never with EU/UK users |
+| `ENABLE_SESSION_REVOCATION` | Seed value for the session-revocation setting |
+| `RESEND_API_KEY` | Transactional email |
+| `RESEND_BROADCAST_API_KEY` | Full access key for marketing broadcasts; falls back to `RESEND_API_KEY` |
+| `RESEND_MARKETING_SEGMENT_ID` | Segment for the dashboard "Email updates" opt-in; blank hides it |
+| `EMAIL_FROM` | Sender address for all email |
+| `PORT` | Server port (default 3000) |
+| `NODE_ENV` | `development` \| `production` \| `test` |
+
+---
+
+## 8. Key Commands
+
+```bash
+bun install                # install deps
+bun dev                    # dev server (Turbopack)
+bun run lint                # ESLint
+bun run typecheck           # tsc --noEmit
+
+bun run generate            # generate Drizzle migrations
+bun run migrate:dev|prod|test
+bun run studio:dev|prod
+
+bun run build                # build:lib (tsup) + next build
+bun start                    # start production server
+
+bun run dev:doppler / build:doppler / start:doppler / generate:doppler / migrate:doppler / studio:doppler
+```
+
+---
+
+*Generated from a scan of the current repository state (commit `2b3e754`, branch `dev`).*

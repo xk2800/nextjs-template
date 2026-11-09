@@ -1,0 +1,377 @@
+import { Callout, Steps } from 'nextra/components'
+
+# Using as a Package
+
+The reusable parts of this template (auth, db schema, query helpers and UI) are published to npm as **`@xk2800/nextjs-template`**.
+
+<Callout type="info">
+**Starting a new project?** Use `npx @xk2800/create-nextjs` (or `bunx`) instead; see [Quick Start](/#quick-start). It sets up everything on this page for you, plus all the pages, routes and env. This page is for adding the package to an app you **already have**.
+</Callout>
+
+## Setup
+
+<Steps>
+
+### Install
+
+```bash
+bun add @xk2800/nextjs-template
+```
+
+That one command is enough with Bun, npm or pnpm. Nothing the package imports has to be added by hand, on install or on a later upgrade:
+
+- **Dependencies** come with the package: `radix-ui`, `resend`, `@react-email/components`, `@fingerprintjs/fingerprintjs`, `react-qr-code` and the server libraries (Better-Auth, Drizzle, …). Every UI component imports Radix from the single `radix-ui` package, so dialogs, popovers, selects and menus share one layer stack and nest correctly (a popover or select inside a dialog stays clickable). If your app also imports Radix directly, use `radix-ui` at the same version rather than the separate `@radix-ui/react-*` packages, so there's still only one copy.
+- **Peers** are shared with your app, so there's only one copy: `next`, `react`, `react-dom`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react`, `react-icons`, `next-themes` and `sonner`. Bun, npm and pnpm install any you're missing. Yarn classic (v1) doesn't, so add them yourself there.
+- **Optional peers** are only needed by a few components, so they aren't installed for you. Add one when you start using a component that needs it (until then the component is simply never imported, so nothing breaks):
+
+| Component | Install |
+| --- | --- |
+| `command`, `category-selector`, `source-selector` | `bun add cmdk` |
+| `month-selector` | `bun add cmdk date-fns` |
+| `calendar` | `bun add react-day-picker` |
+| `date-picker-with-presets` | `bun add react-day-picker date-fns` |
+| `chart` | `bun add recharts` |
+
+For example, to use `Command` (a searchable list, also the base of a ⌘K palette):
+
+```bash
+bun add cmdk
+```
+
+```tsx
+"use client"
+import {
+  Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
+} from "@xk2800/nextjs-template/components/ui/command"
+
+// Inline, e.g. inside a Popover for a combobox
+<Command>
+  <CommandInput placeholder="Search..." />
+  <CommandList>
+    <CommandEmpty>No results found.</CommandEmpty>
+    <CommandGroup heading="Pages">
+      <CommandItem onSelect={() => router.push("/dashboard")}>Dashboard</CommandItem>
+    </CommandGroup>
+  </CommandList>
+</Command>
+
+// As a ⌘K palette: same children inside CommandDialog, controlled by your own state.
+// Open it with a button (onClick={() => setOpen(true)}) and/or ⌘K / Ctrl+K:
+const [open, setOpen] = useState(false)
+useEffect(() => {
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault()
+      setOpen((o) => !o)
+    }
+  }
+  document.addEventListener("keydown", onKeyDown)
+  return () => document.removeEventListener("keydown", onKeyDown)
+}, [])
+
+// ✕, Esc and clicking outside close it through onOpenChange; call setOpen(false) in each item's onSelect
+<CommandDialog open={open} onOpenChange={setOpen}>
+  <CommandInput placeholder="Type a command..." />
+  <CommandList>…</CommandList>
+</CommandDialog>
+```
+
+`CommandDialog` uses the package's `Dialog`, so add `tw-animate-css` for its animation (see below).
+
+### Transpile the package
+
+UI components ship as raw `.tsx` so their `'use client'` boundaries survive. In `next.config.ts`:
+
+```ts
+const nextConfig: NextConfig = {
+  transpilePackages: ["@xk2800/nextjs-template"],
+}
+```
+
+### Add the theme and Tailwind source
+
+Tailwind v4 doesn't scan `node_modules`. In `app/globals.css`:
+
+```css
+@import "tailwindcss";
+@import "@xk2800/nextjs-template/styles/theme.css";
+@source "../node_modules/@xk2800/nextjs-template";
+```
+
+If you use `Dialog`, `AlertDialog` or `DropdownMenu`, also install and import `tw-animate-css` for open and close animations.
+
+### Match your app's look
+
+The package's components read their shape from tokens in `theme.css`. Set them after the import to restyle every card, dialog, menu, select list, switch and badge at once, without per-component CSS:
+
+| Token | Default | Used by |
+| --- | --- | --- |
+| `--radius` | `0.625rem` | every corner (`0` squares them all) |
+| `--pill-radius` | `9999px` | switch, badge |
+| `--surface-border-width` | `1px` | card, dialog, menu, select list |
+| `--surface-border-color` | `var(--border)` | same |
+| `--card-shadow` | small shadow | card |
+| `--popover-shadow` | medium shadow | menu, select list |
+| `--dialog-shadow` | large shadow | dialog, confirm dialog |
+
+```css
+/* app/globals.css: a square, hard-shadow look */
+:root {
+  --radius: 0;
+  --pill-radius: 0;
+  --surface-border-width: 2px;
+  --surface-border-color: var(--foreground);
+  --card-shadow: none;
+  --popover-shadow: 4px 4px 0 0 var(--foreground);
+  --dialog-shadow: 6px 6px 0 0 var(--foreground);
+}
+```
+
+Tokens follow normal CSS scoping, so a second look can live under a selector, for example `[data-ui="soft"] { --radius: 0.625rem; … }`. A `className` on a single component still wins over the tokens.
+
+### Mount the auth route
+
+Route files can't be exported from a package, so create this one yourself:
+
+```ts
+// app/api/auth/[...all]/route.ts
+import { auth } from "@xk2800/nextjs-template/auth"  // or your own, see below
+import { toNextJsHandler } from "better-auth/next-js"
+
+export const { GET, POST } = toNextJsHandler(auth)
+```
+
+To protect pages, copy `proxy.ts` from the repo as well.
+
+### Wire up migrations
+
+The package ships the schema but no migrations. drizzle-kit needs a local file:
+
+```ts
+// server/db/schema.ts
+export * from "@xk2800/nextjs-template/db/schema"
+```
+
+```ts
+// drizzle.config.ts — read process.env directly; config/env is server-only and throws under drizzle-kit
+import { defineConfig } from "drizzle-kit"
+
+export default defineConfig({
+  out: "./server/drizzle",
+  schema: "./server/db/schema.ts",
+  dialect: "postgresql",
+  dbCredentials: { url: process.env.DATABASE_URL! },
+})
+```
+
+Then run `drizzle-kit generate` and `drizzle-kit migrate`.
+
+### Set env vars
+
+The same variables as the template. See [Configuration](/configuration). `config/env` reads `process.env`, so `.env` files and Doppler both work.
+
+</Steps>
+
+## What you can import
+
+```ts
+// auth
+import { auth, createAuth } from "@xk2800/nextjs-template/auth"
+import { requireAuth, requireRole, hasRole, getCurrentSession } from "@xk2800/nextjs-template/auth/helpers"
+import { authClient, useSession } from "@xk2800/nextjs-template/auth-client"
+
+// db
+import { db } from "@xk2800/nextjs-template/db"
+import { users, sessions } from "@xk2800/nextjs-template/db/schema"
+
+// server-only query helpers (throw if imported into a Client Component)
+import { getAdminStats } from "@xk2800/nextjs-template/admin/queries"
+import { getUserSessions } from "@xk2800/nextjs-template/sessions/queries"
+import { logActivity } from "@xk2800/nextjs-template/activity/logger"
+import { getUserActivityLogs, getAllActivityLogs } from "@xk2800/nextjs-template/activity/queries"
+import { getSystemSettings, isConsentRequired } from "@xk2800/nextjs-template/settings/queries"
+import { getUserDevices, getUserConsentLog } from "@xk2800/nextjs-template/admin/queries"
+import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@xk2800/nextjs-template/lib/request-info"
+import { getMarketingOverview, listSegmentContacts, isSubscribed, setSubscribed } from "@xk2800/nextjs-template/marketing"
+
+// config, types, isomorphic helpers
+import { config } from "@xk2800/nextjs-template/config/env"
+import { LoginSchema } from "@xk2800/nextjs-template/types/auth/loginSchema"
+import { SignupSchema } from "@xk2800/nextjs-template/types/auth/signupSchema"
+import { formatDate, formatDateTime, getUserInitials } from "@xk2800/nextjs-template/lib/formatters"
+import { useCookieConsent, useConsentFor, hasConsentFor } from "@xk2800/nextjs-template/lib/cookie-consent"
+import { consentAllows, CONSENT_VERSION, COOKIE_CONSENT_COOKIE } from "@xk2800/nextjs-template/lib/cookie-names" // no React; safe in route handlers and proxy.ts
+import { getVisitorId, getDeviceSignals } from "@xk2800/nextjs-template/lib/device-fingerprint" // client; consent-gated
+import { useIsMobile } from "@xk2800/nextjs-template/hooks/use-mobile"
+
+// components (raw .tsx; any file under ui/, auth/, dashboard/, email/, theme/, providers/)
+import { Button } from "@xk2800/nextjs-template/components/ui/button"
+import EmailPasswordLogin from "@xk2800/nextjs-template/components/auth/emailPasswordLogin"
+import OneTap from "@xk2800/nextjs-template/components/auth/oneTap"
+import SessionsCard from "@xk2800/nextjs-template/components/dashboard/sessionsCard"
+import DeleteAccountCard from "@xk2800/nextjs-template/components/dashboard/deleteAccountCard"
+import { ThemeProvider } from "@xk2800/nextjs-template/components/providers/theme-provider"
+import { CookieBanner, CookieSettingsButton } from "@xk2800/nextjs-template/components/site/cookie-banner"
+import MarketingSection from "@xk2800/nextjs-template/components/dashboard/admin/marketingSection"     // admin compose + broadcasts + subscribers
+import MarketingUpdatesSection from "@xk2800/nextjs-template/components/dashboard/marketingUpdatesSection" // user opt-in switch
+```
+
+### Marketing email
+
+The admin page and the user opt-in are components, and their API routes ship as handlers, so they work in your app with three one-line routes:
+
+```ts
+// app/api/admin/marketing/route.ts
+export { createBroadcastPOST as POST } from "@xk2800/nextjs-template/api/marketing"
+
+// app/api/admin/marketing/[id]/route.ts
+export { getBroadcastGET as GET, sendBroadcastPOST as POST } from "@xk2800/nextjs-template/api/marketing"
+
+// app/api/marketing/subscription/route.ts
+export { updateSubscriptionPUT as PUT } from "@xk2800/nextjs-template/api/marketing"
+```
+
+Then render the components. Both are server components; wrap them in `Suspense`.
+
+```tsx
+// app/dashboard/admin/marketing/page.tsx (behind requireRole('admin'))
+export default async function Page({ searchParams }: { searchParams: Promise<{ segment?: string }> }) {
+  const { segment } = await searchParams
+  return <MarketingSection segmentId={segment} />
+}
+
+// in your dashboard page
+<MarketingUpdatesSection email={session.user.email} emailVerified={session.user.emailVerified} />
+```
+
+`MarketingUpdatesSection` renders nothing until `RESEND_MARKETING_SEGMENT_ID` is set. The routes must live at these paths, because the components call them there. See [Marketing email](/admin#marketing-email-beta) for the env vars and behavior.
+
+Dashboard cards take their data as props. Fetch it with the query helpers in a server component and pass it down.
+
+Mount `<CookieBanner />` once in your root layout, and put `<CookieSettingsButton />` in your footer so visitors can change their choice.
+
+## Adding a social provider
+
+To add a provider (Apple, GitHub, …) in one project without forking, wrap `createAuth`:
+
+```ts
+// server/auth.ts (your project)
+import { createAuth } from "@xk2800/nextjs-template/auth"
+
+export const auth = createAuth({
+  socialProviders: {
+    apple: {
+      clientId: process.env.APPLE_CLIENT_ID!,
+      clientSecret: process.env.APPLE_CLIENT_SECRET!,
+    },
+  },
+})
+```
+
+Then:
+
+1. Point `app/api/auth/[...all]/route.ts` at **your** `auth`, not the package's. Otherwise the provider's callback will never work.
+2. Add a button: `authClient.signIn.social({ provider: "apple", callbackURL: "/dashboard" })`. The shipped `socialLogin` only does Google.
+
+Your providers are merged with Google. Session policy, hashing and schema stay fixed. The proxy, helpers and `useSession` work the same whichever provider signed the user in.
+
+## Admin users table
+
+`components/dashboard/admin/adminUsersTable` is the admin page's user list: search, CSV export, ban / unban (with a reason), make admin / tester, impersonate, delete, and bulk ban / delete. It calls the template's `/api/admin/users` routes, so an app using it needs routes with the same shapes.
+
+Banning records which admin did it (`user.bannedBy`, migration `0023_user_banned_by`) and emails the user (`email-template-banned`) when `RESEND_API_KEY` is set. The table shows "Banned by …" and the reason.
+
+Optional props for app-specific needs:
+
+```tsx
+<AdminUsersTable
+  initialUsers={users}            // rows can carry extra fields
+  initialPagination={pagination}
+  plans={{                        // only if your app has plans / subscriptions
+    options: [{ value: "free", label: "Free" }, { value: "pro", label: "Pro" }],
+    note: (u) => (u.plan === "trial" ? `until ${formatDate(u.trialEndsAt)}` : null),
+  }}
+  extraColumns={[{ name: "storage", title: "Storage", renderer: (u) => u.storage }]}
+  impersonation={false}           // hide Impersonate if createAuth has impersonation: false
+  userHref={() => null}           // names link to /dashboard/admin/users/:id by default; null = plain text
+/>
+```
+
+`plans` adds a Plan column with a change-plan picker that sends `PATCH /api/admin/users/:id` with `{ plan }`, which your app implements. `extraColumns` are shown before Status.
+
+## Adding your own auth behaviour
+
+`createAuth` also takes your app's own hooks and settings. They're **added to** the package's, never replace them: your hooks and database hooks run after the package's, so its guards (throttling, the One Tap / Google switches, the delete-account checks) always run first.
+
+```ts
+// server/auth.ts (your project)
+import { createAuth } from "@xk2800/nextjs-template/auth"
+import { createAuthMiddleware, APIError } from "better-auth/api"
+
+export const auth = createAuth({
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === "/delete-user" && (await hasActiveSubscription(ctx))) {
+        throw new APIError("FORBIDDEN", { message: "Cancel your subscription first." })
+      }
+    }),
+  },
+  databaseHooks: {
+    user: { create: { after: async (user) => { await startTrial(user.id) } } },
+  },
+  advanced: { crossSubDomainCookies: { enabled: true, domain: ".example.com" } },
+  rateLimit: { enabled: true, customRules: { "/sign-in/social": { window: 60, max: 5 } } },
+  plugins: [/* extra better-auth plugins, appended after the package's */],
+  twoFactor: { passwordless: true, challengeAfterOAuth: true }, // see below
+  impersonation: false, // close the admin "sign in as user" endpoint (default true)
+  deleteUser: true,     // self-service Delete account (default true)
+  logActivity: myLogger, // write the package's auth activity entries yourself (see below)
+})
+```
+
+Hooks see better-auth's route pattern in `ctx.path`, e.g. `"/callback/:id"` for the Google callback, not `"/callback/google"`.
+
+### Logging through your own connection
+
+The package logs login, failed login, passkey added / removed and impersonation to `activity_log` through its own `db`. If your `activity_log` has row-level security that connection can't pass, the inserts are rejected and nothing is recorded. Pass `logActivity` to write them yourself (it receives the same entry, including the login fields `referrerUrl`, `os`, `browser`, `deviceType`, `country`, `city`):
+
+```ts
+import type { ActivityLogger } from "@xk2800/nextjs-template/activity/logger"
+
+const myLogger: ActivityLogger = (entry) => withAdmin((db) => db.insert(activityLogs).values({ ...entry, metadata: entry.metadata ? JSON.stringify(entry.metadata) : null }))
+```
+
+### Two-factor after Google and One Tap
+
+Stock better-auth only asks for the 2FA code after an email/password sign-in, so a user with 2FA on who signs in with Google or One Tap isn't asked. `twoFactor: { challengeAfterOAuth: true }` asks after those too: the sign-in lands on `/login/2fa?callbackUrl=…` with no session until the code (or a backup code) is entered. It's off by default; turn it on only if your app has the `/login/2fa` page (apps created from the template do). Passkey sign-in isn't challenged either way, since a passkey is already two factors.
+
+`twoFactor: { passwordless: true }` is for apps where users have no password (Google-only). Enabling 2FA then needs no password, and turning it off or regenerating backup codes needs a current authenticator code, sent as `code` in the request body, instead of a password. The shipped `TwoFactorCard` asks for a password, so a passwordless app needs its own card for those two actions.
+
+## Turning providers off
+
+You don't need `createAuth` for this. Set the env flags in your project:
+
+```bash
+AUTH_ENABLE_GOOGLE=false
+AUTH_ENABLE_EMAIL_PASSWORD=false
+```
+
+A disabled provider is removed server-side, and the shipped forms hide it. Turning both off is only valid if you've added a provider through `createAuth`. Otherwise `createAuth` throws, because nobody could sign in.
+
+## Enabling One Tap
+
+```bash
+AUTH_ENABLE_ONE_TAP=true
+NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP=true
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...    # same client as AUTH_GOOGLE_ID
+```
+
+Mount `<OneTap />` once, in the root layout. It does nothing until it's enabled and the user is signed out. Add your origin to the Google client's **Authorized JavaScript origins**.
+
+<Callout type="warning">
+One Tap waits for cookie consent, so mount `<CookieBanner />` too. Without it nobody can consent and the prompt never appears. Setting `NEXT_PUBLIC_COOKIE_BANNER=false` also makes it appear, but only do that if none of your users are in the EU or UK: showing One Tap and fingerprinting without consent breaks GDPR/ePrivacy there. See [Consent mode](/security#consent-mode).
+</Callout>
+
+## Publishing a new version
+
+For maintainers: see `PUBLISHING.md` in the repo.

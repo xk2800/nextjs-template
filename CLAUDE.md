@@ -4,250 +4,57 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Next.js 15 template using TypeScript, Drizzle ORM, and Better-Auth for authentication. The project supports multiple environments (development, production, test) with separate database configurations for each.
+A Next.js 16 template with Better-Auth, Drizzle ORM and PostgreSQL, plus an admin dashboard and security features. The repo also publishes its reusable parts to npm as `@xk2800/nextjs-template` (built with `tsup`, see `tsup.config.ts`, the `exports` map in `package.json` and `PUBLISHING.md`).
 
-**Tech Stack:**
-- Next.js 15.3.3 with App Router
-- React 19
-- TypeScript
-- Drizzle ORM for database management
-- Better-Auth 1.3.34 for authentication
-- PostgreSQL (self-hosted for dev, Neon DB for production)
-- Bun as package manager and runtime
-- Tailwind CSS 4 + Shadcn/ui components
+**End users scaffold projects with `npx/bunx @xk2800/create-nextjs`** (separate repo, `xk2800/create-nextjs`). It clones this repo at the `v<version>` tag of the latest published package, then replaces every package-provided file with a one-line re-export of the package. Those files are tsup entries, string `.ts` entries in `exports`, and every `.tsx` under the `components/*` **directories** listed in `files`. So:
+- Entries under `components/` in `files` can be directories or single `.tsx` files (e.g. `components/site/cookie-banner.tsx`). Single files need create-nextjs with the `statSync` fix; older CLIs crash on them with `ENOTDIR`. So publish that CLI before any template release that adds a single-file entry.
+- Behavior that users should be able to change must be configurable (env, `system_settings`, `createAuth()` overrides). Code bundled into `dist/` can't be edited from a scaffolded app.
+- Scaffolded projects use this repo's `scripts/doctor.ts` as is (it imports the local `config/env-schema.ts`, so keep that file out of `exports` or the doctor validates against a shim). The CLI rewrites `.env.development` from `.env.development.example` (it fills in `PORT=`, `BASE_URL=`, `BETTER_AUTH_URL=`, `BETTER_AUTH_SECRET=`), so keep those keys as blank `KEY=` lines.
+
+**Full docs live in `docs/content/*.mdx`** (Nextra site, `bun run docs:dev`). Check them before guessing, and keep them current when behavior changes.
+
+**Tech stack:** Next.js 16 (App Router, `proxy.ts`), React 19, TypeScript 6, Drizzle 0.45, Better-Auth 1.7 (admin, twoFactor, passkey and oneTap plugins), Tailwind 4 + shadcn/ui, Resend + React Email, Bun.
 
 ## Key Commands
 
-### Development
 ```bash
-bun install                # Install dependencies
-bun dev                    # Start dev server with Turbopack
-bun run lint              # Run ESLint
+bun dev                          # dev server
+bun run doctor                   # env + DB connection + pending-migration check
+bun run test                     # unit tests for pure logic (lib/*.test.ts, scripts/*.test.ts)
+bun run storybook                # Storybook on :6006; stories in stories/ (not components/, which ships), DB/auth mocked in .storybook/mocks.ts
+bun run typecheck                # tsc against tsconfig.build.json (package files)
+bun run generate                 # drizzle migration from server/db/schema.ts
+bun run migrate:dev|prod|test    # apply migrations with .env.development|production|test
+bun run studio:dev|prod          # Drizzle Studio
+bun run <dev|build|start|generate|migrate|studio>:doppler   # same, secrets from Doppler
 ```
 
-### Database Management
-```bash
-bun run generate          # Generate Drizzle migrations from schema (works for all environments)
-bun run migrate:dev       # Run migrations against development database
-bun run migrate:prod      # Run migrations against production database
-bun run migrate:test      # Run migrations against test database
-bun run studio:dev        # Open Drizzle Studio for development database
-bun run studio:prod       # Open Drizzle Studio for production database
-```
-
-### Secrets via Doppler (optional alternative to `.env.*` files)
-
-```bash
-doppler login && doppler setup   # one-time, per machine
-bun run dev:doppler
-bun run build:doppler
-bun run start:doppler
-bun run generate:doppler
-bun run migrate:doppler
-bun run studio:doppler
-```
-
-`doppler run --` injects secrets into `process.env` before the command starts — no code changes needed, `config/env.ts` and `drizzle.config.ts` just read `process.env` regardless of source. See README's "Secrets management with Doppler" section for setup details.
-
-### Testing Database Connection
-```bash
-bun --env-file=.env.development server/test-connection/index.ts
-bun --env-file=.env.production server/test-connection/index.ts
-```
-
-### Password Migration (if migrating from NextAuth)
-```bash
-bun --env-file=.env.development scripts/migrate-passwords.ts
-```
-
-### Build & Deploy
-```bash
-bun run build            # Build for production
-bun start                # Start production server
-```
+`bun run lint` is currently broken: Next 16 removed `next lint`, and running `eslint .` directly crashes in `@typescript-eslint`.
 
 ## Architecture
 
-### Authentication (Better-Auth)
+- **Auth:** `server/auth.ts` exports `createAuth(overrides)`, a factory (only `socialProviders` can be overridden), and `auth`, a lazily built default instance. Its hooks implement the sign-in throttle, live provider kill-switches from `system_settings`, delete-account guards, login and impersonation activity logging, and passkey-change emails. Client: `lib/auth-client.ts`. Server helpers: `lib/auth-helpers.ts` (`getCurrentSession`, `requireAuth`, `requireRole`, `hasRole`, `normalizeCallbackUrl`).
+- **Passwords** live in `account.password` (`providerId: "credential"`) with Better-Auth's default hashing (scrypt). `user.password` is an unused legacy column.
+- **Sessions:** stored in the database. 30-day expiry, 24h update age, 5-minute cookie cache.
+- **Protection layers:** `proxy.ts` runs maintenance mode and a cookie-presence gate on `/dashboard`. Then `app/dashboard/layout.tsx` calls `requireAuth()` (DB check, signs out banned users) and `app/dashboard/admin/layout.tsx` calls `requireRole('admin')`. API routes check the session and role themselves (401/403).
+- **System settings:** a single `system_settings` row, cached for 10s in `lib/settings-queries.ts`, seeded from env on first read; after that the DB wins. Effective auth flag = env flag AND DB flag. If the DB is unreachable, settings fail open.
+- **DB:** `server/db/index.ts` uses `DB_DRIVER` (`pg` | `neon`) to pick the driver. Tables: `user`, `session`, `account`, `verification`, `twoFactor`, `passkey`, `activity_log`, `device_fingerprint`, `auth_throttle`, `consent_log`, `system_settings`. The role column is named **`roles`** in SQL and `role` in TS.
+- **Env:** Zod schema in `config/env-schema.ts` (no guard, safe for scripts), parsed and `server-only` in `config/env.ts`. drizzle-kit and `scripts/*` must not import `config/env.ts` or `server/db`.
+- **Activity actions:** a new action goes in both `ActivityActionEnum` (`server/db/schema.ts`, needs a migration) and the `ActivityAction` union (`lib/activity-logger.ts`).
+- **Package constraints:** components under `components/` ship as raw `.tsx`. Files that ship must use **relative imports, not `@/`**. Server-only modules are tsup entries; anything new that ships must be added to `files`, `exports` (and `typesVersions` for dist entries). A new import in shipped code needs a `dependencies` entry (or a required peer, if the app must share one copy) in the same commit; never an optional peer, because those aren't installed on upgrade.
 
-The authentication system is centralized in `server/auth.ts` and uses Better-Auth with:
+## Workflow
 
-- **Providers:**
-  - Google OAuth
-  - Email & Password (credentials) with bcrypt password hashing
+1. Schema change: edit `server/db/schema.ts`, run `bun run generate`, then `bun run migrate:dev`, and commit `server/drizzle/`.
+2. Auth change: edit `server/auth.ts`. Custom user fields go in `user.additionalFields` and `better-auth.d.ts`.
+3. Any feature added, changed or removed: update the docs (`docs/content/`), `app/features/page.tsx`, `SPEC.md` §5, `data/changelog.json` and `features-test.md` in the same change.
 
-- **Session Strategy:** Database-backed sessions with 30-day expiration
-  - Session cookies are cached for 5 minutes for performance (hybrid approach)
-  - Sessions automatically updated every 24 hours
+<!-- BEGIN:nextjs-agent-rules -->
 
-- **Database Adapter:** Better-Auth Drizzle adapter connected to PostgreSQL
+# This is NOT the Next.js you know
 
-- **User Fields:** Custom fields include:
-  - `id`, `role`, `name`, `email`, `image`, `emailVerified`
-  - Role defaults to "user" and cannot be set by users directly
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
 
-- **API Route:** Auth handlers exposed via `app/api/auth/[...all]/route.ts`
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
-**Important Auth Details:**
-- User passwords are stored in the `accounts` table with `providerId: "credential"`
-- Passwords are hashed with bcrypt (10 rounds) before storage
-- OAuth accounts are stored in `accounts` table with provider-specific IDs
-- Sessions are database-backed (not JWT-only like NextAuth v5)
-
-**Server-Side Session Access:**
-```typescript
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
-
-const session = await auth.api.getSession({
-  headers: await headers()
-})
-// Returns { session, user } or { session: null, user: null }
-```
-
-**Client-Side Usage:**
-```typescript
-import { authClient, useSession } from "@/lib/auth-client"
-
-// In components
-const { data: session, isPending } = useSession()
-
-// Sign in
-await authClient.signIn.email({ email, password })
-await authClient.signIn.social({ provider: "google", callbackURL: "/" })
-
-// Sign out
-await authClient.signOut()
-```
-
-### Database Architecture
-
-**Schema Location:** `server/db/schema.ts`
-
-**Tables:**
-- `users`: Main user table with id (cuid2), name, email, emailVerified (boolean), image, role (enum: user/admin), timestamps
-- `accounts`: OAuth and credential account storage
-  - Contains: accountId, providerId, userId, password (for credentials), OAuth tokens, timestamps
-- `sessions`: Database-backed sessions
-  - Contains: id, token, expiresAt, userId, ipAddress, userAgent, timestamps
-- `verifications`: Email verification and password reset tokens
-  - Contains: id, identifier, value, expiresAt, timestamps
-
-**Database Connection:**
-- Configured via `server/db/index.ts`
-- Uses `@neondatabase/serverless` driver
-- Connection URL managed through environment-specific config
-
-**Drizzle Configuration:**
-- Config file: `drizzle.config.ts`
-- Migrations output: `server/drizzle/`
-- Schema file: `server/db/schema.ts`
-
-### Environment Configuration
-
-**Location:** `config/env.ts`
-
-Uses Zod for environment validation with schema:
-- `NODE_ENV`: 'development' | 'production' | 'test'
-- `PORT`: Number (default: 3000)
-- `DATABASE_URL`: Connection string
-
-**Environment Files:**
-- `.env.development` - Local PostgreSQL
-- `.env.production` - Neon DB
-- `.env.test` - Test database
-- Examples provided with `.example` suffix
-
-**Required Auth Environment Variables:**
-- `AUTH_SECRET` - Better-Auth secret for signing cookies and tokens
-- `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` - Google OAuth credentials
-- `BETTER_AUTH_URL` - Base URL for auth callbacks (e.g., http://localhost:3000)
-- `NEXT_PUBLIC_APP_URL` - Client-side base URL for auth client
-
-### File Structure
-
-```
-server/
-  ├── db/
-  │   ├── schema.ts          # Drizzle schema definitions
-  │   └── index.ts           # Database connection
-  ├── drizzle/               # Generated migrations
-  ├── auth.ts                # Better-Auth configuration
-  └── test-connection/       # Database connection test scripts
-
-scripts/
-  └── migrate-passwords.ts   # Password migration utility (NextAuth → Better-Auth)
-
-app/
-  ├── (auth)/login/          # Login page
-  ├── api/auth/[...all]/     # Better-Auth API routes
-  └── ...                    # Other app routes
-
-components/
-  ├── auth/                  # Auth-related components
-  │   ├── components/
-  │   │   ├── authCard.tsx
-  │   │   └── socialLogin.tsx
-  │   └── logoutButtons.tsx
-  └── ui/                    # Shadcn/ui components
-
-lib/
-  ├── auth-client.ts         # Better-Auth React client configuration
-  └── utils.ts               # Utility functions
-
-types/
-  └── (auth)/
-      └── loginSchema.ts     # Zod schema for login validation
-
-config/
-  └── env.ts                 # Environment variable validation
-
-better-auth.d.ts             # Better-Auth type extensions
-```
-
-### TypeScript Configuration
-
-- Path alias: `@/*` maps to project root
-- Target: ES2017
-- Module resolution: bundler (Next.js style)
-
-## Development Workflow
-
-1. **Environment Setup:**
-   - Copy `.env.*.example` files to create your environment files
-   - Fill in database URLs and auth credentials
-   - Set `AUTH_SECRET` (generate with: `openssl rand -base64 32`)
-
-2. **Database Changes:**
-   - Modify `server/db/schema.ts`
-   - Run `bun run generate` to create migration
-   - Run `bun run migrate:dev` (or appropriate environment) to apply
-
-3. **Authentication Changes:**
-   - Modify `server/auth.ts` for provider/callback changes
-   - Update `server/db/schema.ts` if user/account schema changes
-   - Update `better-auth.d.ts` if adding custom user fields
-   - Client components use `@/lib/auth-client` for auth operations
-
-## Better-Auth Key Concepts
-
-**Session Management:**
-- Better-Auth uses database-backed sessions (not stateless JWT)
-- Sessions are stored in the `session` table
-- Cookie caching provides performance optimization (5-minute cache)
-- All existing sessions invalidate when switching from NextAuth
-
-**Password Storage:**
-- Passwords are stored in the `accounts` table, not `users` table
-- Each password has `providerId: "credential"` and `accountId: <user-email>`
-- Bcrypt hashing is used for compatibility
-
-**Account Linking:**
-- Multiple auth methods can link to same user via `accounts` table
-- OAuth providers create separate account records
-- Email/password creates credential account record
-
-**Plugin Architecture:**
-- Better-Auth uses plugins for extended features (2FA, magic links, etc.)
-- Core functionality is lightweight by design
-- Refer to Better-Auth docs for available plugins
+<!-- END:nextjs-agent-rules -->

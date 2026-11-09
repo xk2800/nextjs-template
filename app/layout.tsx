@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ModalProvider } from "@/components/Updates/modal-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "sonner";
 import OneTap from "@/components/auth/oneTap";
+import DeviceCheck from "@/components/auth/deviceCheck";
+import { CookieBanner } from "@/components/site/cookie-banner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,7 +39,16 @@ export default function RootLayout({
           {children}
           <Toaster richColors position="top-right" />
           <OneTap />
+          <DeviceCheck />
+          <CookieBanner />
         </ThemeProvider>
+        {/* Offline mode (public/sw.js), and keeps the install prompt for InstallAppCard. Skipped in dev so it can't get in the way of HMR. */}
+        {process.env.NODE_ENV === "production" && (
+          <Script id="register-sw" strategy="afterInteractive">
+            {`if ("serviceWorker" in navigator) navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })
+addEventListener("beforeinstallprompt", (e) => { window.__pwaInstallPrompt = e })`}
+          </Script>
+        )}
       </body>
     </html>
   );

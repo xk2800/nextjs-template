@@ -13,6 +13,10 @@ import AdminUserStatusCard from "@/components/dashboard/admin/adminUserStatusCar
 import AdminUserSessionsCard from "@/components/dashboard/admin/adminUserSessionsCard"
 import AdminUserActivityLogCard from "@/components/dashboard/admin/adminUserActivityLogCard"
 import AdminUserLoginInfoCard from "@/components/dashboard/admin/adminUserLoginInfoCard"
+import AdminUserDevicesCard from "@/components/dashboard/admin/adminUserDevicesCard"
+import AdminUserConsentCard from "@/components/dashboard/admin/adminUserConsentCard"
+import { getUserConsentLog, getUserDevices } from "@/lib/admin-queries"
+import { getSystemSettings, isConsentRequired } from "@/lib/settings-queries"
 
 export default async function AdminUserDetailPage({
   params,
@@ -26,10 +30,13 @@ export default async function AdminUserDetailPage({
     notFound()
   }
 
-  const [rawSessions, activityLogs, loginHistory] = await Promise.all([
+  const [rawSessions, activityLogs, loginHistory, devices, consentRecords, settings] = await Promise.all([
     getUserSessions(userId),
     getUserActivityLogs(userId, 50),
     getUserLoginHistory(userId, 20),
+    getUserDevices(userId),
+    getUserConsentLog(userId),
+    getSystemSettings(),
   ])
 
   // Client component can't parse user-agent/IP itself (geoip-lite needs
@@ -63,6 +70,10 @@ export default async function AdminUserDetailPage({
       <AdminUserSessionsCard userId={user.id} initialSessions={sessions} />
 
       <AdminUserLoginInfoCard logins={loginHistory} />
+
+      <AdminUserDevicesCard devices={devices} />
+
+      <AdminUserConsentCard records={consentRecords} consentRequired={isConsentRequired(settings)} />
 
       <AdminUserActivityLogCard logs={activityLogs} />
     </div>

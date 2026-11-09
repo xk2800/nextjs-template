@@ -5,6 +5,10 @@ import { useTheme } from 'next-themes'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import TwoFactorCard from '@/components/dashboard/twoFactorCard'
+import PasskeysCard from '@/components/dashboard/passkeysCard'
+import DeleteAccountCard from '@/components/dashboard/deleteAccountCard'
+import InstallAppCard from '@/components/dashboard/installAppCard'
 
 export default function SettingsPage() {
   const { theme, setTheme, systemTheme } = useTheme()
@@ -72,6 +76,31 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <div>
+        <h2 className="text-xl font-semibold">Security</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
+          Extra protection for signing in to your account
+        </p>
+      </div>
+      <TwoFactorCard />
+      <PasskeysCard />
+
+      <div>
+        <h2 className="text-xl font-semibold">This device</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
+          Install the app on your phone or computer
+        </p>
+      </div>
+      <InstallAppCard />
+
+      <div>
+        <h2 className="text-xl font-semibold">Danger zone</h2>
+        <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm">
+          Irreversible actions on your account
+        </p>
+      </div>
+      <DeleteAccountCard />
     </div>
   )
 }

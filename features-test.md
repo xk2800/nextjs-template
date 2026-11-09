@@ -1,0 +1,596 @@
+# Feature test notes
+
+How to exercise features that aren't covered by `bun run test` alone.
+
+---
+
+## Per-device abuse throttle (sign-in / sign-up)
+
+Throttles credential attempts by FingerprintJS `visitorId` (sent as the
+`x-device-fingerprint` header), not by IP. Policy lives in
+`lib/auth-throttle-limits.ts` (`MAX = 10` attempts / `WINDOW_MS = 15min`),
+storage in `auth_throttle`, wiring in `server/auth.ts` (`hooks.before` /
+`hooks.after`).
+
+### 1. Unit test (window / limit decision)
+
+```bash
+bun lib/auth-throttle-limits.test.ts   # or: bun run test
+```
+
+### 2. Load test (end-to-end, hits the real endpoint)
+
+Needs the dev server running (`bun dev`) — better-auth's own IP rate-limiter
+is off in dev and on in a production build, which would muddy the result.
+
+```bash
+bun scripts/loadtest-throttle.ts 30 1        # sequential
+bun scripts/loadtest-throttle.ts 100 25      # concurrent burst
+bun scripts/loadtest-throttle.ts 30 1 my-fp  # reuse a fixed fingerprint
+```
+
+Args: `[total=30] [concurrency=1] [fingerprint]`. Target defaults to
+`http://localhost:3000` (override with `LOADTEST_URL`).
+
+**Expected:**
+
+- Sequential run → exactly **10× `401`** then **`429`** for the rest.
+- `401`s are slow (~50–100ms — bcrypt runs); `429`s are fast (one indexed
+  `SELECT`, no bcrypt). Latency drops off a cliff after attempt #10.
+- A concurrent burst leaks a few extra `401`s past 10 — the tumbling-window
+  race noted in the `ponytail:` comment in `lib/auth-throttle.ts`. A large
+  leak means switch to a sliding window.
+- A different fingerprint gets its own fresh budget of 10.
+- No real user needed — a nonexistent email still counts as a failed attempt.
+
+### 3. Admin dashboard view
+
+After a load run, open `/dashboard/admin` (as an admin) → **Device throttle**
+card shows a `loadtest-*` row with the attempt count, a **Blocked** badge
+(window is 15 min), and the last IP / user agent / target email. Also shown
+on `/dashboard/admin/activity-logs`.
+
+### 4. Cleanup
+
+The script uses a fresh fingerprint per run unless you pass one, so this is
+only needed after using a fixed fingerprint:
+
+```sql
+DELETE FROM auth_throttle WHERE fingerprint LIKE 'loadtest-%';
+```
+
+### 5. Retention sweep
+
+Rows untouched for 30 days (`RETENTION_MS`) are deleted by
+`pruneStaleRows()` in `lib/auth-throttle.ts`, at most hourly per server
+instance, triggered by any throttle write. To check: restart the dev server,
+then plant a stale row:
+
+```sql
+INSERT INTO auth_throttle (fingerprint, "lastAttemptAt")
+VALUES ('retention-test', now() - interval '31 days');
+```
+
+Fail one sign-in, then confirm the row is gone:
+
+```sql
+SELECT * FROM auth_throttle WHERE fingerprint = 'retention-test';  -- 0 rows
+```
+
+---
+
+## New-device sign-in alert
+
+First time an account is seen on a given FingerprintJS `visitorId`, the user
+**and every admin** get an email and the sign-in shows on the admin panel's
+**New devices** card. Detection is fingerprint-only (not IP/UA). Route:
+`app/api/device-check/route.ts`, client trigger:
+`components/auth/deviceCheck.tsx`, storage: `device_fingerprint`.
+
+### 1. End-to-end test (hits the real endpoint)
+
+Needs the dev server running (`bun dev`) and a real account to sign in as.
+
+```bash
+TEST_EMAIL=you@example.com TEST_PASSWORD=secret bun scripts/test-new-device.ts
+```
+
+Target defaults to `http://localhost:3000` (override with `DEVICE_CHECK_URL`).
+
+**Expected:** four `PASS` lines —
+
+- no session → `401`
+- body with no `visitorId` → `400`
+- a fresh `visitorId` → `{ newDevice: true }` (row written; emails sent if the
+  server has `RESEND_API_KEY`)
+- the same `visitorId` again → `{ newDevice: false }` (dedup — no second email)
+
+Emails aren't asserted (no Resend mock) — check the dev server logs or the
+Resend dashboard. Without `RESEND_API_KEY` on the server the route still
+records the row and returns the JSON above, so the checks still pass.
+
+### 2. Admin dashboard view + session revoke
+
+After a run, open `/dashboard/admin` (as an admin) → **New devices** card
+shows the account, device, location, IP and time. Each row:
+
+- links to the user's admin detail page, and
+- has a one-click **Revoke sessions** (confirm dialog → `DELETE
+  /api/admin/users/[id]/sessions`, writes a `session_revoked` audit entry).
+
+The same **Revoke all sessions** button is on the user detail page's
+**Sessions** card. Cached sessions can linger up to 5 min
+(`session.cookieCache.maxAge` in `server/auth.ts`).
+
+### 3. Cleanup
+
+```sql
+DELETE FROM device_fingerprint WHERE "visitorId" LIKE 'testdev-%';
+```
+
+---
+
+## Multi-account / trial-abuse detection
+
+The admin panel's **Shared devices** card flags any FingerprintJS `visitorId`
+in `device_fingerprint` that 3+ distinct accounts have signed in from
+(threshold: `MIN_SHARED_ACCOUNTS` in `lib/admin-queries.ts`). Grouping / sort /
+threshold logic is pure and lives in `lib/shared-devices.ts`.
+
+### 1. Unit test (grouping / sort / limit / threshold)
+
+```bash
+bun lib/shared-devices.test.ts   # or: bun run test
+```
+
+### 2. Admin dashboard view
+
+Seed 3+ accounts on one fingerprint (use real user ids), then open
+`/dashboard/admin` (as an admin) → **Shared devices** card lists the device, its
+account count, and every account (each links to its admin page for a ban). Two
+accounts on one device is below threshold and won't show.
+
+```sql
+INSERT INTO device_fingerprint ("userId", "visitorId") VALUES
+  ('<uid1>', 'sharedtest-1'),
+  ('<uid2>', 'sharedtest-1'),
+  ('<uid3>', 'sharedtest-1');
+```
+
+### 3. Cleanup
+
+```sql
+DELETE FROM device_fingerprint WHERE "visitorId" LIKE 'sharedtest-%';
+```
+
+---
+
+## Two-factor auth (TOTP) & passkeys
+
+Better-Auth's `twoFactor` + `passkey` plugins, wired in `server/auth.ts` /
+`lib/auth-client.ts`. UI: `components/dashboard/twoFactorCard.tsx`,
+`components/dashboard/passkeysCard.tsx` (dashboard **Settings** → Security),
+`components/auth/twoFactorVerifyForm.tsx` (`/login/2fa`),
+`components/auth/passkeyLogin.tsx` (login page). Tables: `twoFactor`,
+`passkey`, `user.twoFactorEnabled` (migration `0013`).
+
+Not covered by `bun run test` — WebAuthn needs a real authenticator, TOTP
+needs an authenticator app or a code generator.
+
+### 1. TOTP — end-to-end via the API (no app needed)
+
+Needs the dev server running. Origin checks require the request `Origin` to
+match `BETTER_AUTH_URL`, so run the server on the port that env var points at
+(default `3000`).
+
+```bash
+bun scripts/test-2fa.ts   # signs up a throwaway user, enables 2FA,
+                          # verifies setup, re-logs-in through the challenge,
+                          # tests a backup code, then disables
+```
+
+**Expected:** `enable` returns a `totpURI` + 10 backup codes; setup
+`verify-totp` → `200` and `user.twoFactorEnabled` becomes true in the DB
+(the cookie-cache means `get-session` can lag up to 5 min — check the row);
+a second `sign-in/email` returns `twoFactorRedirect: true` with **no**
+session token; `verify-totp` / `verify-backup-code` then complete the
+session; `disable` clears the flag and deletes the `twoFactor` row.
+
+### 2. TOTP — in the browser
+
+`/dashboard/settings` → Security → **Enable 2FA** → enter password → scan the
+QR with any authenticator app → enter the 6-digit code → save the backup
+codes. Sign out, sign in with email/password → you land on `/login/2fa` →
+code (or "use a backup code instead") → dashboard. Tick "trust this device
+for 30 days" and the next password sign-in skips the challenge on that
+browser. Back in Settings: **Regenerate backup codes** and **Disable 2FA**
+both re-prompt for the password.
+
+Known limitation: enabling/disabling 2FA and viewing backup codes require the
+account password — a Google-only account with no password set can't use 2FA.
+
+### 3. Passkeys — in the browser (needs a platform authenticator)
+
+`/dashboard/settings` → Security → Passkeys → optional name → **Add a
+passkey** → complete the OS prompt (Touch ID / Windows Hello / security key,
+or a virtual authenticator in Chrome DevTools → *WebAuthn*). The credential
+appears in the list. Sign out → login page → **Sign in with a passkey** →
+pick the credential → dashboard. Back in Settings, **Remove** deletes it.
+
+API smoke check (server on `BETTER_AUTH_URL`'s port):
+
+```bash
+# authed GET, returns [] before any passkey is registered
+curl -s -H "cookie: <session>" http://localhost:3000/api/auth/passkey/list-user-passkeys
+# authed GET, rp.id === BETTER_AUTH_URL host, rp.name === "Next.js Template"
+curl -s -H "cookie: <session>" -H "origin: http://localhost:3000" \
+  http://localhost:3000/api/auth/passkey/generate-register-options
+```
+
+### 4. Cleanup
+
+```sql
+DELETE FROM "user" WHERE email LIKE '2fa-test-%';   -- cascades to twoFactor / passkey
+```
+
+---
+
+## Email verification
+
+Better-Auth's core `emailVerification` config in `server/auth.ts` (Resend +
+`components/email/email-template-verify-email.tsx`). Opt-in:
+`requireEmailVerification: false`. UI: **Verify email** button on the
+dashboard **Account Details** card
+(`components/dashboard/verifyEmailButton.tsx`), shown only while
+`user.emailVerified` is false. No new table — reuses `verification`.
+
+Not covered by `bun run test` — needs a real inbox (Resend) to click the link.
+
+### 1. In the browser
+
+1. Sign up / sign in with an unverified account → dashboard shows the
+   `Unverified` badge and a **Verify email** button.
+2. Click it → toast "Verification email sent", button disables.
+3. Open the email, click **Verify email** → lands on `/dashboard`,
+   auto-signed-in, badge now `Verified`.
+
+### 2. Via the API (no app needed)
+
+```bash
+# authed POST; 200 and an email is dispatched via Resend
+curl -s -X POST -H "cookie: <session>" -H "content-type: application/json" \
+  -d '{"email":"<user-email>","callbackURL":"/dashboard"}' \
+  http://localhost:3000/api/auth/send-verification-email
+# the link resolves to /api/auth/verify-email?token=...; hitting it flips
+# user.emailVerified true and redirects to callbackURL
+```
+
+### 3. Cleanup
+
+```sql
+DELETE FROM "verification" WHERE identifier LIKE 'email-verification%';
+```
+
+---
+
+## Passkey add/remove alerts
+
+An auth `after` hook in `server/auth.ts` (`notifyPasskeyChange`) fires on a
+successful `/passkey/verify-registration` or `/passkey/delete-passkey`: it
+emails the account owner via `components/email/email-template-passkey-change.tsx`
+(Resend) and writes a `passkey_added` / `passkey_removed` row to the activity
+log. Best-effort — never fails the endpoint; self-disables without
+`RESEND_API_KEY`. Needs migration `0014` (new `activity_actions` enum values).
+
+Not covered by `bun run test` — passkey registration needs a real
+authenticator.
+
+### 1. In the browser
+
+1. Dashboard **Settings → Security → Passkeys**, register a passkey with a
+   platform authenticator.
+2. Inbox gets **"A passkey was added to your account"**; dashboard activity
+   log shows `Passkey added`.
+3. Remove the passkey from the same card → **"A passkey was removed…"** email
+   + `Passkey removed` activity row.
+
+### 2. Verify without email configured
+
+Unset `RESEND_API_KEY`, repeat step 1 — no send attempt, but the activity-log
+row is still written and the endpoint succeeds.
+
+### 3. Cleanup
+
+```sql
+DELETE FROM "activity_log" WHERE action IN ('passkey_added','passkey_removed');
+```
+
+---
+
+## OAuth callback double-hit recovery (`?error=please_restart_the_process`)
+
+Better-Auth's OAuth `state` is a one-time `verification` row the callback
+deletes on use. A second hit of `/api/auth/callback/google` (browser Back
+after Google's no-consent redirect, bfcache replay, prefetch, double-nav —
+better-auth#5658 / #6544) finds no row and redirects to
+`/login?error=please_restart_the_process` (via `onAPIError.errorURL` in
+`server/auth.ts`). `components/auth/loginErrorRecovery.tsx`, rendered by
+`app/(auth)/login/page.tsx` whenever `?error=` is present, recovers from it.
+
+Not covered by `bun run test` — needs a real Google round trip.
+
+### 1. In the browser
+
+1. Sign in with Google → land on `/dashboard`. Press browser **Back**.
+   Previously stuck on `/login?error=please_restart_the_process`; now shows
+   **"Reconnecting your session…"** briefly, then lands on `/dashboard`.
+2. While signed in, open `http://localhost:3000/login?error=please_restart_the_process`
+   directly → immediately redirected to `/dashboard`.
+3. While signed out, open the same URL → "Reconnecting…" → one silent Google
+   retry. If it fails again → **"Sign-in didn't complete. Please try again."**
+   with no redirect loop (guarded by `sessionStorage['login-oauth-retried']`,
+   cleared once a session is detected).
+4. `http://localhost:3000/login?error=account_banned` (or any non-transient
+   code) → static message, no session check, no Google retry.
+
+---
+
+## Cookie-consent banner
+
+`components/site/cookie-banner.tsx` (UI, mounted in `app/layout.tsx`) +
+`lib/cookie-consent.ts` (state in the `cookie_consent` cookie). Gates
+`getVisitorId()` (`lib/device-fingerprint.ts`) and `<OneTap />`.
+
+Not covered by `bun run test`. Needs a browser.
+
+### 1. In the browser
+
+1. Clear site cookies and open `/`. The banner appears bottom-center.
+2. **Necessary only** hides the banner and sets the `cookie_consent=necessary`
+   cookie (DevTools → Application → Cookies). Reload: no banner. Sign in with
+   email/password. The `/api/auth/sign-in/email` request has **no**
+   `x-device-fingerprint` header, `/api/device-check` is **not** called, and no
+   One Tap prompt appears when signed out (even with One Tap enabled).
+3. Footer → **Cookie settings** brings the banner back and removes the cookie.
+4. **Accept all** sets `cookie_consent=all`. Without a reload, the One Tap
+   prompt shows (if enabled and signed out), sign-in requests carry
+   `x-device-fingerprint`, and after sign-in `/api/device-check` is called once.
+4b. Per-purpose choice. Clear cookies → **Customize**: two unticked boxes,
+   "Security fingerprint" and "Google One Tap". Tick only the fingerprint →
+   **Save choices** sets `cookie_consent=fingerprint`: sign-in carries
+   `x-device-fingerprint`, `/api/device-check` is called, and **no** One Tap
+   prompt. Redo with only One Tap ticked → `cookie_consent=onetap`: the
+   prompt shows, but no header and no device check. Ticking both stores
+   `all`; ticking neither stores `necessary`. Unit test:
+   `bun lib/cookie-names.test.ts`.
+4c. Proof of consent. Signed in, make a choice: `POST /api/consent` is sent
+   once and a `consent_log` row appears with that `choice` and `version`.
+   Reloading sends nothing (the `localStorage['consent-recorded']` marker),
+   and repeating the same choice adds no row. A different choice (Cookie
+   settings → pick again) adds a new row. Choosing while signed out, then
+   signing in, records the choice at sign-in. The user's admin page
+   (`/dashboard/admin/users/<id>`) → **Consent** card shows the current
+   choice per purpose and each change, newest first. Deleting the account removes
+   its rows.
+
+   ```sql
+   SELECT choice, version, "createdAt" FROM consent_log WHERE "userId" = '<id>' ORDER BY "createdAt";
+   ```
+
+5. Rebuild with `NEXT_PUBLIC_COOKIE_BANNER=false`. There's no banner and no
+   footer link, and the fingerprint and One Tap behave as in step 4.
+6. Withdrawal erases the device row. Signed in with **Accept all**,
+   `localStorage['device-visitor-id']` is set and a `device_fingerprint` row
+   exists for it. Footer → **Cookie settings** → **Necessary only** (or
+   **Customize** with only One Tap ticked): `DELETE /api/device-check` is
+   sent, the row is gone and the localStorage key is removed. API-level check: `bun scripts/test-new-device.ts` (step 6).
+7. Consent mode. In Admin → System Settings, turn **Require consent** off
+   and save. Within 10s, a fresh page load sets `consent_required=0`, and
+   there's no banner and no footer link even with `cookie_consent` cleared.
+   Sign-in requests carry `x-device-fingerprint` and `/api/device-check` is
+   called, and `/privacy` says the site doesn't ask for cookie consent.
+   Turn it back on: `consent_required=1`, the banner returns, and `/privacy`
+   describes the per-purpose consent flow again.
+   `bun scripts/test-new-device.ts` checks the server side: with consent
+   required, a POST without `cookie_consent=all` gets 403.
+
+---
+
+## Device signals (admin user page)
+
+`lib/device-fingerprint.ts` (`getDeviceSignals()`) →
+`components/auth/deviceCheck.tsx` → `app/api/device-check/route.ts`
+(`device_fingerprint.components`) → `getUserDevices()` in
+`lib/admin-queries.ts` → `components/dashboard/admin/adminUserDevicesCard.tsx`.
+
+1. Allow the security fingerprint (or Accept all) and sign in. Open
+   `/dashboard/admin/users/<your id>` as an admin → **Devices** card →
+   expand the device. Signals such as `platform`, `screenResolution`, `fonts`
+   and `timezone` are listed; `canvas` and other large values show as
+   `{"hash":…}`.
+2. None of `reducedMotion`, `reducedTransparency`, `contrast`,
+   `forcedColors`, `invertedColors`, `monochrome` or `colorGamut` appear,
+   and they aren't in the DB either:
+
+   ```sql
+   SELECT components ? 'reducedMotion' FROM device_fingerprint;  -- all false/null
+   ```
+
+3. A device recorded before this feature shows "No signals yet" until its
+   next browser session, which fills it in.
+
+---
+
+## Installable app (PWA manifest)
+
+`app/manifest.ts` + `app/icons/[file]/route.tsx` (icons generated from
+`app/favicon.ico`) + `public/sw.js` (offline page) +
+`components/dashboard/installAppCard.tsx` (Settings → This device).
+
+Not covered by `bun run test`.
+
+1. `curl -s http://localhost:3000/manifest.webmanifest` returns JSON with
+   `name` equal to `APP_NAME` and both icons.
+   `/icons/icon-192.png` and `/icons/icon-512.png` are PNGs of that size
+   showing the favicon; `/icons/icon-64.png` is a 404. After replacing
+   `app/favicon.ico` and rebuilding, both icons show the new one.
+2. View source on `/`: there's a `<link rel="manifest" href="/manifest.webmanifest">`.
+3. Chrome → DevTools → Application → Manifest shows no errors, and the
+   address bar shows the install icon. Installing opens `/` in its own window.
+4. Offline mode (production build only: `bun run build && bun run start`).
+   Open `/`, then DevTools → Application → Service workers shows `sw.js`
+   activated. Visit `/features`, then Application → Cache storage →
+   `pages-v1` lists `/` and `/features`. Network → Offline:
+   - `/features` and `/` load the saved copy, fully styled, and clicking the
+     header's Features link works too.
+   - `/changelog` (not visited yet) and `/dashboard` show "You're offline".
+     Switch back online: it reloads by itself.
+   - While signed in, the saved `/` shows the signed-out header (copies are
+     fetched without cookies).
+   Under `bun dev`, no worker is registered.
+5. Turn on maintenance mode: `/manifest.webmanifest` and the icons still load
+   (the `proxy.ts` matcher skips paths with a file extension).
+
+6. Install card: Settings → **This device**. `bun lib/install-target.test.ts`
+   covers detection. In the browser, DevTools device mode (or a different UA)
+   changes what it shows: "Safari on iPhone / iPad" with 3 Share steps;
+   "Samsung Internet on Android" with the ☰ menu; "Chrome on this computer"
+   with the address-bar install icon; desktop Firefox says it can't install.
+   In a production build in Chrome or Edge, an **Install app** button appears
+   (also after reaching Settings via a client-side link). Installing, then
+   opening Settings in the installed app, shows "You're using the installed
+   app on this device." instead of the steps.
+---
+
+## Delete account (self-serve)
+
+`components/dashboard/deleteAccountCard.tsx` (Settings → Danger zone) calls
+Better-Auth's `deleteUser` (`user.deleteUser.enabled` in `server/auth.ts`).
+Guards live in the `hooks.before` branch for `/delete-user`.
+
+Not covered by `bun run test`. Needs a browser or curl.
+
+1. Sign up a throwaway email/password user, open `/dashboard/settings` →
+   **Delete account**. A wrong password shows "Invalid password"; the right one
+   signs you out and lands on `/`. Signing in with that email now fails, and
+   its `session`, `account`, `passkey`, `activity_logs` rows are gone.
+2. Google-only user: the dialog asks you to type your email instead. Works on a
+   session under 24h old; on an older one it says to sign out and back in.
+3. As an admin, impersonate a user and try it: **403** "Stop impersonating…".
+4. As the only admin, try it on yourself: **403** "You're the only admin…".
+
+---
+
+## Maintenance mode (site-wide, configurable exempt paths)
+
+Enforced in `proxy.ts`. Everything is blocked for non-admins except the paths
+in **Admin → System Settings → Paths that stay open during maintenance**
+(`system_settings.maintenanceExemptPaths`, default = public pages) plus the
+always-open auth paths in `lib/maintenance.ts`.
+
+### 1. Unit test (path matching)
+
+```bash
+bun lib/maintenance.test.ts   # or: bun run test
+```
+
+### 2. Manual
+
+Turn maintenance on in System Settings, then in a logged-out / non-admin
+browser:
+
+- `/`, `/features`, `/privacy`, `/login` → **200**
+- `/signup`, `/dashboard` → **307 → /maintenance**
+- `curl -i localhost:3000/api/heartbeat` → **503**
+- As an admin: `/dashboard/*` works normally.
+- Add `/signup` to the list and save → `/signup` opens within **~10s** (the
+  proxy has its own settings cache, so the save can't invalidate it instantly).
+
+---
+
+## Feedback form (Discord webhook / email)
+
+Route: `app/api/feedback/route.ts`. UI: `components/dashboard/feedbackDialog.tsx`
+in the dashboard header.
+
+### Setup
+
+In Discord, open *Channel settings → Integrations → Webhooks → New Webhook* and
+copy its URL. Add it to `.env.development` and restart `bun dev`:
+
+```bash
+FEEDBACK_DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
+# and/or
+FEEDBACK_EMAIL=you@example.com   # needs RESEND_API_KEY + a verified EMAIL_FROM
+```
+
+### Manual
+
+1. With neither var set, the dashboard header has **no** Feedback button.
+   `POST /api/feedback` returns **503**.
+2. With a var set, open **Feedback**, pick *Bug report*, type `@everyone test` and send.
+   You get the toast "Thanks!". In Discord, a red embed appears with the user, page and
+   user agent, and **nobody is pinged**.
+3. Send again within 30s → toast "Please wait a moment…" (**429**).
+4. Logged out: `curl -i -X POST localhost:3000/api/feedback -H 'content-type: application/json' -d '{"type":"bug","message":"x"}'` → **401**.
+5. Set the webhook URL to a bad one (e.g. delete the webhook in Discord) and send. You get
+   the toast "Failed to send feedback" (**502**), and you can retry right away (the
+   cooldown isn't used up).
+6. Email: the message arrives at `FEEDBACK_EMAIL`. Replying goes to the user.
+
+---
+
+## File upload component (Beta)
+
+`components/ui/file-upload.tsx`. Accept-type matching is unit-tested:
+
+```bash
+bun lib/file-upload-accept.test.ts   # or: bun run test
+```
+
+Manual, in Storybook (`bun run storybook` → UI/FileUpload):
+
+1. **Defaults:** `<FileUpload />` with no props renders nothing.
+2. **Each prop alone** (CameraOnly / GalleryOnly / DragDropOnly stories): only that method shows.
+3. **Camera:** on a phone (open Storybook over LAN), "Take photo" opens the rear camera; on desktop it opens a file picker.
+4. **Drag and drop:** dropping a PDF with the default `accept` shows "not an accepted file type"; dropping images adds previews.
+5. **Limits:** SingleFileMax2MB story: a file over 2 MB is rejected; a second pick replaces the first.
+6. **Clickable drop zone:** ClickableDropzone story: no buttons show. On a phone the text reads "Tap to add files", a tap opens an "Add photos" bottom sheet (a centered modal in the ClickableModal story), each button closes it and opens its picker, the × and a tap outside close it, and scrolling with a finger starting on the drop zone does not open it. On desktop the text reads "…or click to browse", and a click or Enter opens the file picker directly with no modal. ClickableGalleryOnly: a tap opens the gallery picker straight away, with no modal.
+7. **Remove:** the × on a preview removes it; `onFilesChange` fires (Actions panel) with the new list.
+
+---
+
+## Marketing email (Beta)
+
+`/dashboard/admin/marketing` → `POST /api/admin/marketing` → Resend Broadcasts.
+Text → HTML conversion (escaping, paragraphs, unsubscribe link) is unit-tested:
+
+```bash
+bun lib/marketing-email.test.ts   # or: bun run test
+```
+
+Needs a **full access** `RESEND_BROADCAST_API_KEY` (or `RESEND_API_KEY` if that is blank) and an `EMAIL_FROM` on a verified domain.
+
+1. **No key / sending-only key:** the page shows "Resend isn't reachable" with the Resend error.
+2. **No segments:** the page says to create one in Resend → Audience.
+3. In Resend, create a segment holding one contact (your own address). Reload; it's in the dropdown.
+4. **Save as draft:** toast "Draft saved in Resend". It shows as `draft` under Recent broadcasts and in the Resend dashboard, and no email arrives.
+5. **Send now:** a "Send this broadcast?" dialog opens (Cancel closes it and nothing is sent); Send now → toast "Broadcast sent", status `queued`/`sent`, and the email arrives with paragraphs intact and an **Unsubscribe** link. HTML typed in the message (`<b>x</b>`) shows as literal text.
+6. Click Unsubscribe → the contact shows as unsubscribed in Resend, and the next broadcast skips it.
+7. **Preview:** under Recent broadcasts, Preview opens a dialog showing the email (subject, sender, rendered HTML). Links and scripts in it are inert (sandboxed iframe).
+8. **Send a draft:** a `draft` row has Send (in the row and in the preview). Confirm in the dialog → toast "Broadcast sent", the row turns `queued`/`sent` and the Send button disappears. Sending the same id again: `curl -X POST …/api/admin/marketing/<id>` (as admin) → **409**.
+9. As a non-admin: `POST /api/admin/marketing` → **403**; logged out → **401**; empty subject → **400**. Same for `GET/POST /api/admin/marketing/<id>`.
+10. **Subscribers:** the card lists the segment's contacts with counts. After step 6 the contact shows as `unsubscribed`. With two segments, clicking the other one switches the list (`?segment=<id>`); a bad `?segment=` falls back to the first segment.
+11. **Live status:** right after Send now or Send, the row shows a pulsing "Sending…" while it's `queued`. Without reloading, it flips to `sent` within a few seconds and the indicator goes away (Network tab: `GET /api/admin/marketing/<id>` every 3s, then stops).
+
+### Self-serve opt-in (dashboard "Email updates" card)
+
+Set `RESEND_MARKETING_SEGMENT_ID` to a segment's ID (from Resend → Audience → Segments) and restart.
+
+1. Without the env var the card isn't on `/dashboard`; `PUT /api/marketing/subscription` → **404**.
+2. With it, `/dashboard` shows **Email updates** with the switch off (no Resend contact yet).
+3. **Unverified email:** the switch is disabled with "Verify your email address to subscribe"; forcing it with `curl -X PUT …/api/marketing/subscription -d '{"subscribed":true}'` (signed in) → **403**.
+4. **Verified:** turn it on → toast "Subscribed to product updates". In Resend the contact exists, is subscribed and is in the segment; the admin Subscribers card lists it. Reload → still on.
+5. Turn it off → contact is `unsubscribed` in Resend; reload → off.
+6. Turn it on again, then click Unsubscribe in a broadcast → reload `/dashboard` → switch is off.
+7. Logged out: `PUT /api/marketing/subscription` → **401**.

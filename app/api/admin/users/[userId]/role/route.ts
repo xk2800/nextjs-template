@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function PATCH(
   request: NextRequest,
@@ -66,7 +67,7 @@ export async function PATCH(
     }
 
     // Prevent demoting the last remaining admin
-    if (oldRole === 'admin' && role === 'user') {
+    if (oldRole === 'admin' && role !== 'admin') {
       const admins = await db
         .select()
         .from(users)
@@ -101,9 +102,8 @@ export async function PATCH(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error changing user role:', error)
     return NextResponse.json(
-      { error: "Failed to update role" },
+      { error: unexpectedErrorMessage(error, "Failed to update role") },
       { status: 500 }
     )
   }

@@ -1,0 +1,68 @@
+# API Reference
+
+All routes are under `app/api/`. They authenticate with the session cookie. Errors come back as `{ "error": string }` with these status codes:
+
+- `400` invalid input
+- `401` no session
+- `403` wrong role, a feature that's turned off, or a self-action guard
+- `404` not found
+- `500` server error
+
+During maintenance, non-exempt routes return `503` to non-admins.
+
+## Auth
+
+| Route | Method | Auth | Description |
+|---|---|---|---|
+| `/api/auth/*` | GET, POST | — | Better-Auth handler: sign-in, sign-up, sign-out, session, OAuth callbacks, 2FA, passkeys, admin plugin, delete-user. See the [Better-Auth docs](https://better-auth.com/docs). Call it through `authClient`, not directly. |
+| `/api/settings/public` | GET | none | `{ oneTapEnabled }`. Only settings that are safe for logged-out visitors. |
+
+## Current user
+
+| Route | Method | Body / query | Description |
+|---|---|---|---|
+| `/api/sessions/revoke` | POST | `{ sessionId }` | Revoke one of **your own** sessions. Returns `403` if revocation is turned off in System Settings. |
+| `/api/activity-logs` | GET | `?limit=50&offset=0` | Your activity. Admins get every user's activity. |
+| `/api/heartbeat` | POST | — | Updates `user.lastActiveAt`. Called by `<Heartbeat />` in the dashboard layout. |
+| `/api/device-check` | POST | `{ visitorId }` | Records the device and sends a new-device alert the first time it's seen. Called by `<DeviceCheck />`. |
+| `/api/feedback` | POST | `{ type: "bug" \| "feedback", message, page? }` | Sends a message (1–2000 chars) to `FEEDBACK_DISCORD_WEBHOOK_URL` and/or `FEEDBACK_EMAIL`. Returns `503` if neither is set, `429` if the user sent one in the last 30s, and `502` if every destination failed. See [Feedback](/configuration#feedback-beta). |
+| `/api/send` | POST | `{ template?: "1" \| "2" \| "welcome" }` | Demo: emails a sample template to the signed-in user. |
+
+## Admin (role `admin`)
+
+| Route | Method | Body / query | Description |
+|---|---|---|---|
+| `/api/admin/users` | GET | `?search=&page=1&limit=10` | Paginated user list |
+| `/api/admin/users/export` | GET | `?search=` | CSV download |
+| `/api/admin/users/[userId]` | DELETE | — | Delete a user (not yourself) |
+| `/api/admin/users/[userId]/role` | PATCH | `{ role: "user" \| "admin" }` | Change role. You can't change your own or demote the last admin. |
+| `/api/admin/users/[userId]/ban` | POST | `{ ban: boolean, reason?: string }` | Ban (also revokes all their sessions) or unban |
+| `/api/admin/users/[userId]/sessions` | GET | — | The user's sessions |
+| `/api/admin/users/[userId]/sessions` | DELETE | `?sessionId=` | Revoke one session, or all of them if you leave out `sessionId` |
+| `/api/admin/users/bulk-ban` | POST | `{ userIds: string[], ban: boolean, reason?: string }` | Bulk ban or unban (not yourself, not every admin) |
+| `/api/admin/users/bulk-delete` | DELETE | `{ userIds: string[] }` | Bulk delete (not yourself, not every admin) |
+| `/api/admin/activity-logs` | GET | `?search=&action=&dateFrom=&dateTo=&page=1&limit=20` | System-wide activity |
+| `/api/admin/activity-logs/export` | GET | same filters, no paging | CSV download |
+| `/api/admin/settings` | PATCH | Any subset of `maintenanceMode`, `maintenanceMessage`, `maintenanceExemptPaths` (array of `/`-prefixed paths), `authEnableGoogle`, `authEnableEmailPassword`, `authEnableOneTap`, `enableSessionRevocation` | Update System Settings |
+
+## Server-side query helpers
+
+Pages read the database directly through these `server-only` helpers instead of calling the API. Use them in server components:
+
+| Module | Key exports |
+|---|---|
+| `lib/admin-queries.ts` | `getAdminStats`, new-device, throttle and shared-device lists |
+| `lib/user-queries.ts` | Admin user list and detail queries |
+| `lib/session-queries.ts` | `getUserSessions` |
+| `lib/activity-queries.ts` | `getUserActivityLogs`, `getAllActivityLogs` |
+| `lib/settings-queries.ts` | `getSystemSettings`, `updateSystemSettings`, `getEffectiveAuthFlags` |
+| `lib/activity-logger.ts` | `logActivity` |
+
+## Error refs
+
+Unexpected errors never reach the browser. API routes and server actions log them with a short reference and send the user a generic message carrying it, for example `Failed to update role (ref: K7Q2PX)`. When a user reports a problem from that error, the ref comes with the report. Search the server logs for `error ref K7Q2PX` to find the full error and stack trace.
+
+`@xk2800/nextjs-template/errors` exports the helpers:
+
+- `unexpectedErrorMessage(error, message?)` logs the error and returns the message with its ref. Use it in a route's `catch` block.
+- `withActionErrors(action)` wraps a server action so it returns `{ ok: true, data }` or `{ ok: false, message }` instead of throwing. Throw `ActionError` for messages that are safe to show as-is (validation, permissions, conflicts). Anything else becomes a generic message with a ref.

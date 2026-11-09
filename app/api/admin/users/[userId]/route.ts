@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function DELETE(
   request: NextRequest,
@@ -63,9 +64,8 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error deleting user:', error)
     return NextResponse.json(
-      { error: "Failed to delete user" },
+      { error: unexpectedErrorMessage(error, "Failed to delete user") },
       { status: 500 }
     )
   }

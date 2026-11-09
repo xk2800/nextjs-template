@@ -13,6 +13,16 @@ export async function getUserById(id: string) {
   return result[0] || null
 }
 
+// Recipients for security alerts (new-device sign-ins, etc.). Every admin.
+export async function getAdminEmails(): Promise<string[]> {
+  const rows = await db
+    .select({ email: users.email })
+    .from(users)
+    .where(eq(users.role, "admin"))
+
+  return rows.map((r) => r.email)
+}
+
 export interface UserFilters {
   search?: string
   page?: number

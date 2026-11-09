@@ -1,106 +1,132 @@
+import { Callout } from 'nextra/components'
+
 # Components
 
-## UI Components (shadcn/ui)
+<Callout type="info">
+In a scaffolded project, everything in `components/ui`, `auth`, `dashboard`, `email`, `theme` and `providers` is a one-line re-export of the package. To restyle or change one, replace that file with your own code; it then stops receiving updates. Often it's easier to write a new component that wraps the shipped one. `components/site/` is your own code, except `cookie-banner.tsx`, which is a re-export too. See [Your project and the package](/architecture#your-project-and-the-package).
+</Callout>
 
-The project uses [shadcn/ui](https://ui.shadcn.com) with the **new-york** style variant. Components are located in `components/ui/` and built on [Radix UI](https://radix-ui.com) primitives with Tailwind CSS styling.
+## UI primitives (`components/ui/`)
 
-| Component | File | Description |
-|---|---|---|
-| AlertDialog | `components/ui/alert-dialog.tsx` | Confirmation dialogs with cancel/confirm actions |
-| Avatar | `components/ui/avatar.tsx` | User avatar with image and fallback initials |
-| Badge | `components/ui/badge.tsx` | Status labels and tags |
-| Button | `components/ui/button.tsx` | Clickable buttons with variants (default, destructive, outline, etc.) |
-| Card | `components/ui/card.tsx` | Content containers with header, content, and footer sections |
-| Dialog | `components/ui/dialog.tsx` | Modal dialogs |
-| DropdownMenu | `components/ui/dropdown-menu.tsx` | Dropdown menus with items, separators, and sub-menus |
-| Input | `components/ui/input.tsx` | Text input fields |
-| Label | `components/ui/label.tsx` | Form labels |
-| Separator | `components/ui/separator.tsx` | Visual dividers |
-| Skeleton | `components/ui/skeleton.tsx` | Loading placeholder animations |
-| Table | `components/ui/table.tsx` | Data tables with header, body, rows, and cells |
+[shadcn/ui](https://ui.shadcn.com) (new-york style) on Radix UI and Tailwind 4:
 
-### Import Pattern
+`alert-dialog`, `avatar`, `badge`, `button`, `card`, `checkbox`, `data-table`, `dialog`, `dropdown-menu`, `file-upload`, `input`, `label`, `password-input`, `select`, `separator`, `sheet`, `sidebar`, `skeleton`, `switch`, `table`, `textarea`, `tooltip`
 
-```typescript
+```tsx
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 ```
 
-### Adding New Components
+Add more with `bunx shadcn@latest add <name>`. The config is in `components.json`. Adding a component that already exists, such as `button`, overwrites the re-export with shadcn's source, and that file becomes yours.
 
-Install additional shadcn/ui components with:
+- `password-input` is an `Input` with a show/hide toggle.
+- `file-upload` (Beta) collects photos or files from the camera, the gallery and drag and drop. Every method is **off by default**; turn each one on with a prop. It renders nothing if none are on. It only collects files; the app decides where to send them.
 
-```bash
-bunx shadcn@latest add <component-name>
+  ```tsx
+  import { FileUpload } from "@/components/ui/file-upload"
+
+  <FileUpload camera gallery dragDrop maxFiles={5} maxSizeMB={10} onFilesChange={setFiles} />
+  ```
+
+  | Prop | Default | Notes |
+  |---|---|---|
+  | `camera` | `false` | "Take photo" button (`capture="environment"`). Opens the rear camera on mobile and a file picker on desktop. |
+  | `gallery` | `false` | "Choose from gallery" button. |
+  | `dragDrop` | `false` | Drop zone. |
+| `clickable` | `false` | Pressing the drop zone opens the picker and the separate buttons are hidden. On a touch screen with `camera` and `gallery` both on, a tap asks "Take photo" or "Choose from gallery" (see `chooser`). A mouse click or Enter/Space opens the gallery directly, since the camera only opens a file picker on desktop. With only one source on, it opens that picker directly. The text reads "Tap to add files" on touch screens and "…or click to browse" elsewhere. Needs `dragDrop`. |
+| `chooser` | `"sheet"` | How `clickable` asks on touch screens: `"sheet"` slides up from the bottom (within thumb reach, like the native iOS/Android choice), `"modal"` is a centered dialog. |
+  | `accept` | `"image/*"` | Same format as `<input accept>`. Also checked on dropped files. |
+  | `multiple` | `true` | `false` keeps one file and replaces it on each pick. |
+  | `maxFiles`, `maxSizeMB` | none | Extra files and oversized files are rejected with an inline message. |
+  | `disabled` | `false` | |
+  | `icon` | upload icon | Drop zone icon, any React node. `null` hides it. |
+  | `label` | "Drag and drop files here" | Drop zone text, any React node. |
+  | `description` | — | Smaller sub text under the label, any React node. |
+  | `dropzoneClassName` | — | Extra classes for the dashed drop zone box. |
+  | `labelClassName` | — | Extra classes for the label text. |
+  | `descriptionClassName` | — | Extra classes for the description text. |
+  | `onFilesChange` | | Called with the full current list after every add or remove. |
+
+- `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `/dashboard/data-table` is a working example.
+
+## Auth (`components/auth/`)
+
+| Component | Purpose |
+|---|---|
+| `authCard`, `authShell` | Layout shell and card used by every auth page |
+| `emailPasswordLogin`, `emailPasswordSignup` | Forms. They send the device fingerprint and handle the 2FA redirect. |
+| `socialLogin` | Google button (Google only; add your own for other providers) |
+| `passkeyLogin` | "Sign in with a passkey" |
+| `oneTap` | Google One Tap. Mount it once; it checks its own env flag, session and consent. |
+| `twoFactorVerifyForm` | TOTP or backup-code form for `/login/2fa` |
+| `forgotPasswordForm`, `resetPasswordForm` | Password reset flow |
+| `deviceCheck` | New-device detection. Mounted in the root layout. |
+| `loginErrorRecovery` | Retries a stale OAuth `please_restart_the_process` error |
+| `logoutButtons` | Sign out |
+
+## Dashboard (`components/dashboard/`)
+
+These are presentational components. Fetch data with the query helpers in a server component and pass it in as props.
+
+| Component | Purpose |
+|---|---|
+| `dashboardHeader`, `appSidebar` | Navigation. `dashboardHeader` takes optional `brandName`, `brandHref` and `navLinks`. |
+| `profileCard`, `accountDetailsCard`, `verifyEmailButton` | Profile |
+| `sessionsCard` / `sessionsSection` | Active sessions with revoke |
+| `activityLogsCard` / `activityLogsSection` | Personal activity |
+| `twoFactorCard`, `passkeysCard`, `deleteAccountCard` | Settings → Security and Danger zone |
+| `installAppCard` | Settings → This device. Install steps for the visitor's own OS and browser, an **Install app** button where the browser supports it, and a confirmation once it runs installed. See [Installable app](/deployment#installable-app-pwa-beta). |
+| `feedbackDialog` (Beta) | **Feedback** button in the dashboard header. It opens a bug report / general feedback form that posts to `/api/feedback`. The layout renders it only when a destination is configured. See [Feedback](/configuration#feedback-beta). |
+| `impersonationBanner`, `heartbeat` | App-wide helpers |
+| `sectionErrorFallback`, `*Skeleton` | Error boundary fallback and loading states |
+| `admin/*` | Admin stats, users table, user detail cards, device cards, settings form |
+
+`*Section` components are async server components that fetch data and render the matching `*Card`. The page wraps each one in `<ErrorBoundary fallback={<SectionErrorFallback />}>` and `<Suspense fallback={<…Skeleton />}>`, so one slow or failing widget doesn't block the rest. `app/dashboard/page.tsx` shows the pattern to copy.
+
+## Site (`components/site/`)
+
+`site-header`, `site-footer`, `logo`, `window-chrome` and `cookie-banner` (exports `CookieBanner` and `CookieSettingsButton`). The repo and docs links come from `lib/site.ts`.
+
+## Email (`components/email/`)
+
+[React Email](https://react.email) templates, sent through Resend:
+
+| Template | Sent when |
+|---|---|
+| `email-template-reset-password` | Password reset requested |
+| `email-template-verify-email` | User asks to verify their email |
+| `email-template-new-device` | First sign-in from a device (to the user and admins) |
+| `email-template-passkey-change` | Passkey added or removed |
+| `email-template-welcome`, `email-template`, `email-template-2` | Demo templates for `/api/send` |
+
+**Before sending real email:**
+
+1. Verify a sending domain in Resend.
+2. Set `RESEND_API_KEY`.
+3. Set `EMAIL_FROM` to an address on that domain, e.g. `My App <noreply@myapp.com>`.
+
+The auth emails (reset, verification, new device, passkey change) are sent by the package's auth, using its own copies of these templates. To change their wording or design, use your own `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)).
+
+Sending your own email:
+
+```ts
+import { getResend, EMAIL_FROM } from "@/lib/resend"
+import { EmailTemplateWelcome } from "@/components/email/email-template-welcome"
+
+await (await getResend()).emails.send({
+  from: EMAIL_FROM,
+  to: [user.email],
+  subject: "Welcome!",
+  react: EmailTemplateWelcome({ firstName: user.name }),
+})
 ```
 
-For example:
+`resend` and `@react-email/components` are imported lazily, so a project that never sends email doesn't need them installed.
 
-```bash
-bunx shadcn@latest add tooltip
-bunx shadcn@latest add tabs
-bunx shadcn@latest add select
-```
+## Theme
 
-The configuration is in `components.json` at the project root.
+`ThemeProvider` (`components/providers/theme-provider.tsx`, next-themes, `attribute="class"`) is mounted in the root layout. `ThemeToggle` (`components/theme/theme-toggle.tsx`) switches between light, dark and system. Theme tokens are in `styles/theme.css`.
 
-## Auth Components
+## Changelog and update modal
 
-Located in `components/auth/`:
-
-| Component | File | Description |
-|---|---|---|
-| AuthCard | `components/auth/components/authCard.tsx` | Login/signup card wrapper with title and description |
-| SocialLogin | `components/auth/components/socialLogin.tsx` | Google OAuth sign-in button |
-| LogoutButtons | `components/auth/logoutButtons.tsx` | Sign-out button that redirects to home |
-
-### SocialLogin Usage
-
-```tsx
-<SocialLogin callbackURL="/dashboard" />
-```
-
-Uses `authClient.signIn.social({ provider: "google" })` under the hood.
-
-## Email Components
-
-Located in `components/email/`, built with [@react-email](https://react.email):
-
-| Component | File | Description |
-|---|---|---|
-| EmailTemplate | `components/email/email-template.tsx` | Base email template |
-| EmailTemplate2 | `components/email/email-template-2.tsx` | Alternative email template |
-| WelcomeEmail | `components/email/email-template-welcome.tsx` | Welcome email for new users |
-| SendEmailButton | `components/email/send-email-button.tsx` | Button to trigger email sending |
-
-Emails are sent via [Resend](https://resend.com) through the `/api/send` endpoint.
-
-## Theme Components
-
-| Component | File | Description |
-|---|---|---|
-| ThemeToggle | `components/theme/theme-toggle.tsx` | Dark/light mode toggle button |
-| ThemeProvider | `components/providers/theme-provider.tsx` | next-themes provider wrapper |
-
-The `ThemeProvider` is mounted in the root layout (`app/layout.tsx`) with `attribute="class"` and system theme detection enabled.
-
-## Dashboard Components
-
-Located in `app/dashboard/components/`, these are specific to the dashboard pages:
-
-| Component | File | Description |
-|---|---|---|
-| ProfileCard | `app/dashboard/components/profileCard.tsx` | Displays user profile information |
-| AccountDetailsCard | `app/dashboard/components/accountDetailsCard.tsx` | Shows account details |
-| SessionsCard | `app/dashboard/components/sessionsCard.tsx` | Lists active sessions with revoke functionality |
-| ActivityLogsCard | `app/dashboard/components/activityLogsCard.tsx` | Displays user activity history |
-| AdminSection | `app/dashboard/components/adminSection.tsx` | Admin-only panel (user management) |
-
-## Update Modal
-
-| Component | File | Description |
-|---|---|---|
-| UpdateModal | `components/Updates/UpdateModal.tsx` | Changelog/update notification modal |
-| ModalProvider | `components/Updates/modal-provider.tsx` | Modal context provider |
-
-The modal provider is mounted in the root layout and shows update notifications based on changelog data from `data/changelog.json`.
+`data/changelog.json` drives `/changelog` and the "what's new" modal (`components/Updates/`). Add an entry there for each release.

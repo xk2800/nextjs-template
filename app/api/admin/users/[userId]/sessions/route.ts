@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { sessions } from "@/server/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function GET(
   request: NextRequest,
@@ -34,9 +35,8 @@ export async function GET(
 
     return NextResponse.json({ sessions: userSessions })
   } catch (error) {
-    console.error('Error fetching user sessions:', error)
     return NextResponse.json(
-      { error: "Failed to fetch user sessions" },
+      { error: unexpectedErrorMessage(error, "Failed to fetch user sessions") },
       { status: 500 }
     )
   }
@@ -113,9 +113,8 @@ export async function DELETE(
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Error revoking user sessions:', error)
     return NextResponse.json(
-      { error: "Failed to revoke sessions" },
+      { error: unexpectedErrorMessage(error, "Failed to revoke sessions") },
       { status: 500 }
     )
   }

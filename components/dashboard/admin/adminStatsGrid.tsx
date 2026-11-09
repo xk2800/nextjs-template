@@ -1,6 +1,6 @@
 import { Users, UserPlus, Activity, Ban } from "lucide-react"
 import { getAdminDashboardStats } from "@xk2800/nextjs-template/admin/queries"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent } from "../../ui/card"
 
 const STAT_CONFIG = [
   { key: "totalUsers", label: "Total users", icon: Users },

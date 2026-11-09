@@ -3,14 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../ui/card"
 import { Badge } from "../ui/badge"
 import { Button } from "../ui/button"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "../ui/table"
+import { DataTable, type Column } from "../ui/data-table"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,6 +34,31 @@ interface SessionsCardProps {
   currentSessionToken: string
   enableSessionRevocation: boolean
 }
+
+const baseColumns: Column<Session>[] = [
+  {
+    name: 'createdAt',
+    title: 'Created',
+    renderer: (session) => <span className="text-sm">{formatDateTime(session.createdAt)}</span>,
+  },
+  {
+    name: 'expiresAt',
+    title: 'Expires',
+    renderer: (session) => <span className="text-sm">{formatDateTime(session.expiresAt)}</span>,
+  },
+  {
+    name: 'ipAddress',
+    title: 'IP Address',
+    renderer: (session) => <span className="text-sm font-mono">{session.ipAddress || 'N/A'}</span>,
+  },
+  {
+    name: 'userAgent',
+    title: 'User Agent',
+    renderer: (session) => (
+      <span className="text-sm max-w-xs truncate block">{session.userAgent || 'N/A'}</span>
+    ),
+  },
+]
 
 export default function SessionsCard({
   userId,
@@ -99,61 +117,43 @@ export default function SessionsCard({
               No active sessions found
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Expires</TableHead>
-                    <TableHead>IP Address</TableHead>
-                    <TableHead>User Agent</TableHead>
-                    {enableSessionRevocation && (
-                      <TableHead>Actions</TableHead>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {activeSessions.map((session) => {
+            <DataTable
+              columns={[
+                {
+                  name: 'status',
+                  title: 'Status',
+                  renderer: (session) => {
                     const isCurrent = isCurrentSession(session.token)
                     return (
-                      <TableRow key={session.id}>
-                        <TableCell>
-                          <Badge variant={isCurrent ? "default" : "secondary"}>
-                            {isCurrent ? "Current" : "Active"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {formatDateTime(session.createdAt)}
-                        </TableCell>
-                        <TableCell className="text-sm">
-                          {formatDateTime(session.expiresAt)}
-                        </TableCell>
-                        <TableCell className="text-sm font-mono">
-                          {session.ipAddress || 'N/A'}
-                        </TableCell>
-                        <TableCell className="text-sm max-w-xs truncate">
-                          {session.userAgent || 'N/A'}
-                        </TableCell>
-                        {enableSessionRevocation && (
-                          <TableCell>
-                            {!isCurrent && (
-                              <Button
-                                variant="destructive"
-                                size="sm"
-                                onClick={() => setSessionToRevoke(session.id)}
-                              >
-                                Revoke
-                              </Button>
-                            )}
-                          </TableCell>
-                        )}
-                      </TableRow>
+                      <Badge variant={isCurrent ? "default" : "secondary"}>
+                        {isCurrent ? "Current" : "Active"}
+                      </Badge>
                     )
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                  },
+                },
+                ...baseColumns,
+                ...(enableSessionRevocation
+                  ? [
+                      {
+                        name: 'actions',
+                        title: 'Actions',
+                        renderer: (session: Session) =>
+                          !isCurrentSession(session.token) && (
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => setSessionToRevoke(session.id)}
+                            >
+                              Revoke
+                            </Button>
+                          ),
+                      },
+                    ]
+                  : []),
+              ]}
+              data={activeSessions}
+              getRowId={(session) => session.id}
+            />
           )}
 
           {/* Show expired sessions count if any */}

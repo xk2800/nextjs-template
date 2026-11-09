@@ -1,7 +1,550 @@
 [
   {
-    "version": "0.0.1",
-    "date": "2025-6-10",
-    "changes": ["This is a what the changelog looks like"]
+    "version": "0.7.1-beta.18",
+    "date": "2026-11-1",
+    "type": "beta",
+    "title": "0.7.1-beta.18",
+    "changes": [
+      "0.7.1-beta.18"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.17",
+    "date": "2026-11-1",
+    "type": "beta",
+    "title": "feat: add email template and functionality for banned users",
+    "changes": [
+      "feat: add email template and functionality for banned users"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.16",
+    "date": "2026-11-1",
+    "type": "beta",
+    "title": "feat: add tooltip for disabled delete account button with reason",
+    "changes": [
+      "feat: add tooltip for disabled delete account button with reason"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.15",
+    "date": "2026-11-1",
+    "type": "beta",
+    "title": "feat: implement two-factor authentication with TOTP and Google sign-in challenge",
+    "changes": [
+      "feat: implement two-factor authentication with TOTP and Google sign-in challenge"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.14",
+    "date": "2026-11-1",
+    "type": "beta",
+    "title": "feat: migrate Radix components to single radix-ui package and update documentation",
+    "changes": [
+      "feat: migrate Radix components to single radix-ui package and update documentation"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.13",
+    "date": "2026-10-31",
+    "type": "beta",
+    "title": "feat: update titles in CategorySelector and SourceSelector stories to include namespace",
+    "changes": [
+      "feat: update titles in CategorySelector and SourceSelector stories to include namespace",
+      "feat: add pagination, popover, and source selector components",
+      "feat: add ColumnPicker component and integrate with DataTable for user-configurable column visibility"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.12",
+    "date": "2026-10-31",
+    "type": "beta",
+    "title": "feat: enhance Input component to handle number input key events and prevent default behavior",
+    "changes": [
+      "feat: enhance Input component to handle number input key events and prevent default behavior"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.11",
+    "date": "2026-10-31",
+    "type": "beta",
+    "title": "feat: enhance Switch component with additional size options and update stories for better alignment and usage examples",
+    "changes": [
+      "feat: enhance Switch component with additional size options and update stories for better alignment and usage examples",
+      "feat: add success variant to badge component and define success colors in theme"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.10",
+    "date": "2026-10-31",
+    "type": "beta",
+    "title": "feat: add column alignment support in data table and update tests",
+    "changes": [
+      "feat: add column alignment support in data table and update tests"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.9",
+    "date": "2026-10-25",
+    "type": "beta",
+    "title": "docs: add instructions for finding segment ID in Resend for marketing email functionality",
+    "changes": [
+      "docs: add instructions for finding segment ID in Resend for marketing email functionality"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.8",
+    "date": "2026-10-25",
+    "type": "beta",
+    "title": "feat: implement marketing email functionality with admin and user components",
+    "changes": [
+      "feat: implement marketing email functionality with admin and user components"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.7",
+    "date": "2026-10-25",
+    "type": "beta",
+    "title": "feat: add marketing email functionality with confirmation dialog and subscriber management",
+    "changes": [
+      "feat: add marketing email functionality with confirmation dialog and subscriber management",
+      "docs: improve formatting and clarity in README.md"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.6",
+    "date": "2026-10-21",
+    "type": "beta",
+    "title": "fix: improve error reporting message handling in feedback dialog",
+    "changes": [
+      "fix: improve error reporting message handling in feedback dialog"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.5",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: add consent management settings and utility functions for user consent",
+    "changes": [
+      "feat: add consent management settings and utility functions for user consent"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.4",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: update architecture and security documentation; enhance package exports for cookie consent and device handling",
+    "changes": [
+      "feat: update architecture and security documentation; enhance package exports for cookie consent and device handling",
+      "feat(database): add snapshot for user authentication and activity logging",
+      "feat: update cookie consent documentation and settings for GDPR compliance",
+      "feat: enhance cookie consent management with per-purpose choices",
+      "feat: clarify device record erasure process in privacy and security documentation",
+      "feat: implement consent mode and device signals handling"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.3",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: enhance FileUpload component to support chooser option for modal or bottom sheet",
+    "changes": [
+      "feat: enhance FileUpload component to support chooser option for modal or bottom sheet",
+      "feat: update FileUpload component to use modal for photo selection and improve clickable drop zone behavior",
+      "feat: add clickable drop zone functionality to FileUpload component",
+      "feat: enhance bump-version script to support bumping existing beta versions"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.2",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: enhance FileUpload component with description and className props",
+    "changes": [
+      "feat: enhance FileUpload component with description and className props"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.1",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "fix: update FileUpload component to manage object URLs correctly in useEffect",
+    "changes": [
+      "fix: update FileUpload component to manage object URLs correctly in useEffect"
+    ]
+  },
+  {
+    "version": "0.7.1-beta.0",
+    "date": "2026-10-20",
+    "type": "beta",
+    "title": "feat: enhance FileUpload component with customizable icon and label; update documentation and stories",
+    "changes": [
+      "feat: enhance FileUpload component with customizable icon and label; update documentation and stories"
+    ]
+  },
+  {
+    "version": "0.7.0",
+    "date": "2026-10-20",
+    "type": "feature",
+    "title": "feat: add file upload component with camera, gallery, and drag-and-drop support; update documentation and tests",
+    "changes": [
+      "feat: add file upload component with camera, gallery, and drag-and-drop support; update documentation and tests",
+      "feat: add feedbackAttachErrors option and update tsconfig exclusions",
+      "feat: add new database schema for user authentication and activity logging",
+      "feat: enhance FeedbackDialog component with props for better control and default values",
+      "feat: implement feedback API route with Discord and email integration",
+      "feat: add feedback form to dashboard with Discord and email integration",
+      "feat: add Dockerfile for Storybook static build and nginx serving",
+      "Add Storybook stories for various components",
+      "feat: add 'tester' role and update user role management functionality",
+      "feat: add installable app functionality with user-specific installation instructions and update documentation",
+      "feat: update package dependencies and clarify peer dependency requirements in documentation",
+      "feat: enhance offline mode functionality and documentation",
+      "feat: implement offline mode with service worker and custom offline page",
+      "feat: add PWA support with installable app manifest and icons",
+      "feat: update documentation and include cookie-banner component details",
+      "Enhance README and documentation; update environment variables and CLI setup",
+      "feat: update database documentation and add deployment guide",
+      "feat: add DeleteAccountCard component import to dashboard",
+      "feat: add self-serve account deletion feature in settings",
+      "chore: add hooks/use-dimensions.ts to package.json files list",
+      "chore: update dependencies and improve authentication logic",
+      "chore: update bun.lockb file",
+      "feat: add support for beta releases in version bumping and changelog"
+    ]
+  },
+  {
+    "version": "0.8.0-beta.6",
+    "date": "2026-10-18",
+    "type": "beta",
+    "title": "feat: add new database schema for user authentication and activity logging",
+    "changes": [
+      "feat: add new database schema for user authentication and activity logging"
+    ]
+  },
+  {
+    "version": "0.8.0-beta.5",
+    "date": "2026-10-18",
+    "type": "beta",
+    "title": "feat: enhance FeedbackDialog component with props for better control and default values",
+    "changes": [
+      "feat: enhance FeedbackDialog component with props for better control and default values"
+    ]
+  },
+  {
+    "version": "0.8.0-beta.4",
+    "date": "2026-10-18",
+    "type": "beta",
+    "title": "feat: implement feedback API route with Discord and email integration",
+    "changes": [
+      "feat: implement feedback API route with Discord and email integration"
+    ]
+  },
+  {
+    "version": "0.8.0-beta.3",
+    "date": "2026-10-18",
+    "type": "beta",
+    "title": "feat: add feedback form to dashboard with Discord and email integration",
+    "changes": [
+      "feat: add feedback form to dashboard with Discord and email integration",
+      "feat: add Dockerfile for Storybook static build and nginx serving"
+    ]
+  },
+  {
+    "version": "0.8.0-beta.2",
+    "date": "2026-10-17",
+    "type": "beta",
+    "title": "Add Storybook stories for various components",
+    "changes": [
+      "Add Storybook stories for various components",
+      "feat: add 'tester' role and update user role management functionality"
+    ]
+  },
+  {
+    "version": "0.8.0-beta.1",
+    "date": "2026-10-14",
+    "type": "beta",
+    "title": "feat: add installable app functionality with user-specific installation instructions and update documentation",
+    "changes": [
+      "feat: add installable app functionality with user-specific installation instructions and update documentation",
+      "feat: update package dependencies and clarify peer dependency requirements in documentation",
+      "feat: enhance offline mode functionality and documentation",
+      "feat: implement offline mode with service worker and custom offline page",
+      "feat: add PWA support with installable app manifest and icons"
+    ]
+  },
+  {
+    "version": "0.8.0-beta.0",
+    "date": "2026-10-6",
+    "type": "beta",
+    "title": "feat: update documentation and include cookie-banner component details",
+    "changes": [
+      "feat: update documentation and include cookie-banner component details",
+      "Enhance README and documentation; update environment variables and CLI setup",
+      "feat: update database documentation and add deployment guide",
+      "feat: add DeleteAccountCard component import to dashboard"
+    ]
+  },
+  {
+    "version": "0.7.0-beta.0",
+    "date": "2026-10-5",
+    "type": "beta",
+    "title": "feat: add self-serve account deletion feature in settings",
+    "changes": [
+      "feat: add self-serve account deletion feature in settings"
+    ]
+  },
+  {
+    "version": "0.6.1-beta.3",
+    "date": "2026-9-29",
+    "type": "beta",
+    "title": "chore: add hooks/use-dimensions.ts to package.json files list",
+    "changes": [
+      "chore: add hooks/use-dimensions.ts to package.json files list"
+    ]
+  },
+  {
+    "version": "0.6.1-beta.2",
+    "date": "2026-9-29",
+    "type": "beta",
+    "title": "chore: update dependencies and improve authentication logic",
+    "changes": [
+      "chore: update dependencies and improve authentication logic",
+      "chore: update bun.lockb file"
+    ]
+  },
+  {
+    "version": "0.6.1-beta.2",
+    "date": "2026-9-29",
+    "type": "beta",
+    "title": "chore: update bun.lockb file",
+    "changes": [
+      "chore: update bun.lockb file"
+    ]
+  },
+  {
+    "version": "0.6.1-beta.1",
+    "date": "2026-9-29",
+    "type": "beta",
+    "title": "0.6.1-beta.1",
+    "changes": [
+      "0.6.1-beta.1"
+    ]
+  },
+  {
+    "version": "0.6.1-beta.0",
+    "date": "2026-9-26",
+    "type": "beta",
+    "title": "feat: add support for beta releases in version bumping and changelog",
+    "changes": [
+      "feat: add support for beta releases in version bumping and changelog"
+    ]
+  },
+  {
+    "version": "0.6.0",
+    "date": "2026-9-26",
+    "type": "improvement",
+    "title": "feat: implement configurable maintenance mode with exempt paths",
+    "changes": [
+      "feat: implement configurable maintenance mode with exempt paths",
+      "feat: add cookie-consent banner and related functionality for GDPR compliance"
+    ]
+  },
+  {
+    "version": "0.5.3",
+    "date": "2026-9-25",
+    "type": "improvement",
+    "title": "0.5.3",
+    "changes": [
+      "0.5.3"
+    ]
+  },
+  {
+    "version": "0.5.2",
+    "date": "2026-9-25",
+    "type": "improvement",
+    "title": "feat: implement DataTablePagination for improved pagination handling in admin tables",
+    "changes": [
+      "feat: implement DataTablePagination for improved pagination handling in admin tables",
+      "refactor: migrate tables to DataTable component for improved consistency and functionality",
+      "Add initial HTML structure and animations for brag output composition",
+      "feat: enhance auth throttling by adding IP-based limits and updating device throttling logic",
+      "feat: add bun-types to dependencies and update tsconfig for type support",
+      "feat: update feature descriptions and add new data structure for features and screens",
+      "build: publish to npmjs instead of GitHub Packages",
+      "feat: extract env schema into standalone module, add doctor script"
+    ]
+  },
+  {
+    "version": "0.5.1",
+    "date": "2026-9-6",
+    "type": "fix",
+    "title": "feat(auth): add login error recovery component and update OAuth callback handling",
+    "changes": [
+      "feat(auth): add login error recovery component and update OAuth callback handling"
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-9-6",
+    "type": "feature",
+    "title": "fix: update version number from 0.6.0 to 0.5.0 in spec sheet and changelog",
+    "changes": [
+      "fix: update version number from 0.6.0 to 0.5.0 in spec sheet and changelog",
+      "feat(database): add new snapshot for user authentication and activity logging",
+      "feat: implement device security features including sign-in throttle, new-device alerts, and multi-account detection",
+      "feat: add new-device sign-in alert feature",
+      "fix: ensure top-level await type-checks by exporting an empty module",
+      "feat: add load testing script for per-device sign-in throttle",
+      "feat: implement device throttling for sign-in and sign-up attempts",
+      "feat: implement device check functionality with email alerts for new sign-ins"
+    ]
+  },
+  {
+    "version": "0.5.0",
+    "date": "2026-9-6",
+    "type": "feature",
+    "title": "Auth hardening: device security, 2FA, passkeys & email verification",
+    "changes": [
+      "Add a per-device sign-in / sign-up abuse throttle keyed by FingerprintJS visitorId, not IP",
+      "Add new-device sign-in alerts — email the user and every admin the first time an account is seen on a device, plus a New devices admin card with one-click session revoke",
+      "Add multi-account / trial-abuse detection — a Shared devices admin card flags any device fingerprint shared by 3+ accounts, each linked for a ban",
+      "Add TOTP two-factor auth via better-auth's twoFactor plugin — QR-code setup, encrypted backup codes, and enable/disable/regenerate from the Settings page",
+      "Add a /login/2fa code challenge for password sign-ins on 2FA-enabled accounts, with a 30-day \"trust this device\" option and backup-code fallback",
+      "Add passkeys (WebAuthn) via better-auth's passkey plugin — register/remove credentials in Settings and a passwordless \"Sign in with a passkey\" button on the login page",
+      "Email the account owner (device / location / IP / time) whenever a passkey is registered or deleted, mirrored to the activity log as passkey_added / passkey_removed",
+      "Add self-serve email verification — better-auth emailVerification config, a Verify email button on the dashboard Account Details card, Resend-delivered React Email template; stays opt-in (requireEmailVerification: false)",
+      "Add APP_NAME env var — drives the 2FA issuer label and passkey rpName instead of the hardcoded \"Next.js Template\"",
+      "Schema: new twoFactor and passkey tables, user.twoFactorEnabled, and passkey_added / passkey_removed activity_actions values (migrations 0013-0014)"
+    ]
+  },
+  {
+    "version": "0.4.0",
+    "date": "2026-8-31",
+    "type": "feature",
+    "title": "feat: add DataTable component and related utilities for enhanced data display",
+    "changes": [
+      "feat: add DataTable component and related utilities for enhanced data display",
+      "fix: add DATABASE_SSL configuration for Postgres and update SSL handling in db connection",
+      "fix: update Dockerfile to use npm for build and remove unused ARGs",
+      "fix: update Dockerfile to correct dependency base image and comment out unused ARG",
+      "fix: update base image version in Dockerfile to 1.3.13",
+      "update docker file",
+      "update docker file",
+      "feat: implement dynamic maintenance page and add new sidebar component",
+      "feat: Enhance form validation and error handling in authentication components",
+      "feat: Implement authentication flows with password reset, signup, and login features; enhance UI components and email templates",
+      "feat: Refactor features page and enhance layout with new components",
+      "feat: add CopyInstallButton and RevealOnScroll components; create page styles and main FeaturesPage",
+      "build(deps): bump ua-parser-js from 1.0.41 to 2.0.10",
+      "build(deps-dev): bump next from 16.2.12 to 16.3.0",
+      "build(deps-dev): bump eslint-config-next from 16.2.12 to 16.3.0"
+    ]
+  },
+  {
+    "version": "0.3.3",
+    "date": "2026-8-10",
+    "type": "fix",
+    "title": "Import path consistency",
+    "changes": [
+      "Fix inconsistent import paths across components"
+    ]
+  },
+  {
+    "version": "0.3.0",
+    "date": "2026-8-10",
+    "type": "feature",
+    "title": "System settings, impersonation & bulk admin actions",
+    "changes": [
+      "Add live System Settings management (feature flags, maintenance mode)",
+      "Add admin impersonation with logging and an always-visible banner",
+      "Add bulk ban and bulk delete actions for users",
+      "Add CSV export for activity logs and users",
+      "Add per-user activity log, login info, sessions, and status cards"
+    ]
+  },
+  {
+    "version": "0.2.7",
+    "date": "2026-8-9",
+    "type": "improvement",
+    "title": "Auth client & import cleanup",
+    "changes": [
+      "Improve One Tap plugin integration and type handling in the auth client",
+      "Clean up import paths across activity, admin, and user components"
+    ]
+  },
+  {
+    "version": "0.2.4",
+    "date": "2026-8-9",
+    "type": "feature",
+    "title": "Customizable One Tap redirect",
+    "changes": [
+      "Add a callbackURL prop to One Tap for a customizable post-sign-in redirect"
+    ]
+  },
+  {
+    "version": "0.2.3",
+    "date": "2026-8-9",
+    "type": "fix",
+    "title": "Fix One Tap import path",
+    "changes": [
+      "Fix an incorrect authClient import path in the One Tap component"
+    ]
+  },
+  {
+    "version": "0.2.1",
+    "date": "2026-8-9",
+    "type": "improvement",
+    "title": "Release tooling defaults",
+    "changes": [
+      "Default the release script to publish to GitHub Packages"
+    ]
+  },
+  {
+    "version": "0.1.13",
+    "date": "2026-8-9",
+    "type": "feature",
+    "title": "Google One Tap & live status",
+    "changes": [
+      "Add Google One Tap sign-in, behind a configurable flag",
+      "Add a heartbeat endpoint and a live online/offline dashboard status",
+      "Add error handling and loading states across dashboard sections",
+      "Fix stale requests and a loading-state bug in the activity log table",
+      "Auto-generate GitHub release notes from commit history"
+    ]
+  },
+  {
+    "version": "0.1.12",
+    "date": "2026-8-1",
+    "type": "feature",
+    "title": "Configurable auth providers",
+    "changes": [
+      "Add an automated version-bump and release script",
+      "Enable Google and email/password sign-in by default, toggleable via env vars",
+      "Centralize and harden callback URL normalization against open redirects",
+      "Add an admin activity logs API and dashboard components"
+    ]
+  },
+  {
+    "version": "0.1.10",
+    "date": "2026-7-25",
+    "type": "improvement",
+    "title": "Publish as a package",
+    "changes": [
+      "Add repository and publishConfig metadata for GitHub Packages",
+      "Add a publishing guide"
+    ]
+  },
+  {
+    "version": "0.1.9",
+    "date": "2026-7-3",
+    "type": "feature",
+    "title": "Dashboard foundations",
+    "changes": [
+      "Add dashboard components and admin statistics",
+      "Add Doppler secrets management support",
+      "Add Tailwind theme support",
+      "Update database connection handling and migration instructions"
+    ]
   }
 ]

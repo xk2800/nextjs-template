@@ -1,4 +1,6 @@
 import AuthCard from '@/components/auth/authCard'
+import { AuthShell } from '@/components/auth/authShell'
+import LoginErrorRecovery from '@/components/auth/loginErrorRecovery'
 import React from 'react'
 import { auth } from "@/server/auth"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
@@ -9,7 +11,7 @@ import { redirect } from "next/navigation"
 const LoginPage = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ callbackUrl?: string }>
+  searchParams: Promise<{ callbackUrl?: string; error?: string }>
 }) => {
   // If already logged in, redirect to dashboard or callback URL
   const session = await auth.api.getSession({
@@ -26,17 +28,27 @@ const LoginPage = async ({
   const authFlags = await getEffectiveAuthFlags()
 
   return (
-    <div className="max-w-4xl mx-auto mt-12">
+    <AuthShell
+      headline="Auth, admin and audit — already wired up."
+      bullets={[
+        "Google OAuth and email sign-in out of the box",
+        "Database-backed sessions you can revoke per device",
+        "Audit logging and admin impersonation built in",
+      ]}
+    >
+      {params.error && (
+        <LoginErrorRecovery error={params.error} callbackUrl={callbackUrl} />
+      )}
       <AuthCard
-        authCardTitle="Login"
-        authCardDescription="Login to your account"
+        authCardTitle="Log in"
+        authCardDescription="Log in to your account to continue."
         authCardAction="Login"
         showSocials={authFlags.google}
         showEmailPassword={authFlags.emailPassword}
         variant="login"
         callbackUrl={callbackUrl}
       />
-    </div>
+    </AuthShell>
   )
 }
 

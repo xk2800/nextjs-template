@@ -1,0 +1,11 @@
+# Static Storybook build served by nginx. DB/auth are mocked (.storybook/mocks.ts), so no env needed.
+FROM oven/bun:1 AS builder
+WORKDIR /app
+COPY package.json bun.lockb ./
+RUN bun install --frozen-lockfile
+COPY . .
+RUN bun run build-storybook
+
+FROM nginx:alpine
+COPY --from=builder /app/storybook-static /usr/share/nginx/html
+EXPOSE 80

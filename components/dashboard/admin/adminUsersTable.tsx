@@ -1,20 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../ui/card'
 import { Button } from '../../ui/button'
 import { Input } from '../../ui/input'
 import { Badge } from '../../ui/badge'
 import { Skeleton } from '../../ui/skeleton'
 import { Checkbox } from '../../ui/checkbox'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../ui/table'
+import { Label } from '../../ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select'
+import { DataTable, DataTablePagination, type Column } from '../../ui/data-table'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,9 +25,9 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
 import { Download } from 'lucide-react'
-import { authClient, useSession } from '@/lib/auth-client'
+import { authClient, useSession } from '@xk2800/nextjs-template/auth-client'
 
-interface User {
+export interface AdminUser {
   id: string
   name: string | null
   email: string
@@ -40,9 +35,19 @@ interface User {
   banned: boolean
   bannedAt: Date | null
   bannedReason: string | null
+  /** Email of the admin who issued the ban. */
+  bannedBy?: string | null
+  /** Only read when the `plans` prop is passed. */
+  plan?: string | null
   lastLoginAt: Date | null
   lastActiveAt: Date | null
   createdAt: Date
+}
+
+export type AdminUserPlans<TUser extends AdminUser = AdminUser> = {
+  options: { value: string; label: string }[]
+  /** Small text under the picker, e.g. a trial end date. */
+  note?: (user: TUser) => ReactNode
 }
 
 // A user counts as "online" if their heartbeat (sent every 30s while a
@@ -62,21 +67,44 @@ interface PaginationData {
   pages: number
 }
 
-interface AdminUsersTableProps {
-  initialUsers: User[]
+export interface AdminUsersTableProps<TUser extends AdminUser = AdminUser> {
+  initialUsers: TUser[]
   initialPagination: PaginationData
+  /**
+   * For apps with plans / subscriptions: adds a Plan column with a change-plan picker,
+   * which sends `PATCH /api/admin/users/:id` with `{ plan }`. Rows need a `plan` field.
+   */
+  plans?: AdminUserPlans<TUser>
+  /** App-specific columns (e.g. storage), shown before Status. Rows can carry extra fields. */
+  extraColumns?: Column<TUser>[]
+  /** Show the Impersonate action. Default true; pass false if impersonation is turned off. */
+  impersonation?: boolean
+  /**
+   * Where a user's name links. Default `/dashboard/admin/users/:id` (the template's user
+   * detail page); return null to show the name as plain text (an app without that page).
+   */
+  userHref?: (user: TUser) => string | null
 }
 
-export default function AdminUsersTable({ initialUsers, initialPagination }: AdminUsersTableProps) {
+export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
+  initialUsers,
+  initialPagination,
+  plans,
+  extraColumns = [],
+  impersonation = true,
+  userHref = (user) => `/dashboard/admin/users/${user.id}`,
+}: AdminUsersTableProps<TUser>) {
   const router = useRouter()
   const { data: currentSession } = useSession()
-  const [users, setUsers] = useState<User[]>(initialUsers)
+  const [users, setUsers] = useState<TUser[]>(initialUsers)
+  const [banReason, setBanReason] = useState('')
+  const [updatingPlanFor, setUpdatingPlanFor] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationData | null>(initialPagination)
   const [actionUserId, setActionUserId] = useState<string | null>(null)
-  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | 'impersonate' | null>(null)
+  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | 'tester' | 'untester' | 'impersonate' | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
@@ -208,7 +236,7 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
           response = await fetch(`/api/admin/users/${actionUserId}/ban`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ban: true, reason: 'Banned by admin' }),
+            body: JSON.stringify({ ban: true, reason: banReason.trim() || 'Banned by admin' }),
           })
           successMessage = 'User banned successfully'
           break
@@ -236,18 +264,54 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
           })
           successMessage = 'Admin access removed'
           break
+        case 'tester':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'tester' }),
+          })
+          successMessage = 'User marked as tester'
+          break
+        case 'untester':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'user' }),
+          })
+          successMessage = 'Tester role removed'
+          break
       }
 
       if (!response?.ok) throw new Error('Action failed')
       toast.success(successMessage)
       setActionUserId(null)
       setActionType(null)
+      setBanReason('')
       await fetchUsers(page, search)
     } catch (error) {
       toast.error(`Failed to ${actionType} user`)
       console.error(error)
     } finally {
       setIsProcessing(false)
+    }
+  }
+
+  const handlePlanChange = async (userId: string, plan: string) => {
+    setUpdatingPlanFor(userId)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      if (!response.ok) throw new Error('Failed to update plan')
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, plan } : u)))
+      toast.success('Plan updated')
+    } catch (error) {
+      toast.error('Failed to update plan')
+      console.error(error)
+    } finally {
+      setUpdatingPlanFor(null)
     }
   }
 
@@ -352,67 +416,134 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
           ) : users.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No users found</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-10">
-                      <Checkbox
-                        checked={allSelected ? true : someSelected ? 'indeterminate' : false}
-                        onCheckedChange={toggleSelectAll}
-                        aria-label="Select all users on this page"
-                      />
-                    </TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Last Login</TableHead>
-                    <TableHead>Joined</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedIds.has(user.id)}
-                          onCheckedChange={() => toggleSelectOne(user.id)}
-                          disabled={user.id === currentUserId}
-                          aria-label={`Select ${user.name || user.email}`}
+            <DataTable
+              columns={[
+                {
+                  name: 'select',
+                  title: (
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all users on this page"
+                    />
+                  ),
+                  minWidth: 40,
+                  renderer: (user) => (
+                    <Checkbox
+                      checked={selectedIds.has(user.id)}
+                      onCheckedChange={() => toggleSelectOne(user.id)}
+                      disabled={user.id === currentUserId}
+                      aria-label={`Select ${user.name || user.email}`}
+                    />
+                  ),
+                },
+                {
+                  name: 'name',
+                  title: 'Name',
+                  sticky: true,
+                  renderer: (user) => {
+                    const label = (
+                      <>
+                        <span
+                          className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                          title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
                         />
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        <Link
-                          href={`/dashboard/admin/users/${user.id}`}
-                          className="inline-flex items-center gap-2 hover:underline"
-                        >
-                          <span
-                            className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
-                            title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
-                          />
-                          {user.name || 'N/A'}
-                        </Link>
-                      </TableCell>
-                      <TableCell className="text-sm">{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                          {user.role}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {user.banned ? (
-                          <Badge variant="destructive">Banned</Badge>
-                        ) : (
-                          <Badge variant="outline">Active</Badge>
+                        {user.name || 'N/A'}
+                      </>
+                    )
+                    const href = userHref(user)
+                    return href ? (
+                      <Link href={href} className="inline-flex items-center gap-2 font-medium hover:underline">
+                        {label}
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 font-medium">{label}</span>
+                    )
+                  },
+                },
+                {
+                  name: 'email',
+                  title: 'Email',
+                  renderer: (user) => <span className="text-sm">{user.email}</span>,
+                },
+                {
+                  name: 'role',
+                  title: 'Role',
+                  renderer: (user) => (
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  ),
+                },
+                ...(plans
+                  ? [{
+                      name: 'plan',
+                      title: 'Plan',
+                      minWidth: 170,
+                      renderer: (user: TUser) => (
+                        <>
+                          <Select
+                            value={user.plan ?? undefined}
+                            onValueChange={(value) => handlePlanChange(user.id, value)}
+                            disabled={updatingPlanFor === user.id}
+                          >
+                            <SelectTrigger size="sm" className="w-32 text-xs" aria-label={`Plan for ${user.name || user.email}`}>
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                              {plans.options.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="text-xs">
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {plans.note?.(user) && (
+                            <p className="mt-1 text-xs text-muted-foreground">{plans.note(user)}</p>
+                          )}
+                        </>
+                      ),
+                    } satisfies Column<TUser>]
+                  : []),
+                ...extraColumns,
+                {
+                  name: 'status',
+                  title: 'Status',
+                  minWidth: 160,
+                  renderer: (user) =>
+                    user.banned ? (
+                      <div className="space-y-1">
+                        <Badge variant="destructive">Banned</Badge>
+                        {user.bannedBy && <p className="text-xs text-muted-foreground">by {user.bannedBy}</p>}
+                        {user.bannedReason && (
+                          <p className="text-xs italic text-muted-foreground">&ldquo;{user.bannedReason}&rdquo;</p>
                         )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}
-                      </TableCell>
-                      <TableCell className="text-sm">{formatDate(user.createdAt)}</TableCell>
-                      <TableCell className="text-right space-x-2">
+                      </div>
+                    ) : (
+                      <Badge variant="outline">Active</Badge>
+                    ),
+                },
+                {
+                  name: 'lastLoginAt',
+                  title: 'Last Login',
+                  renderer: (user) => (
+                    <span className="text-sm">
+                      {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}
+                    </span>
+                  ),
+                },
+                {
+                  name: 'createdAt',
+                  title: 'Joined',
+                  renderer: (user) => <span className="text-sm">{formatDate(user.createdAt)}</span>,
+                },
+                {
+                  name: 'actions',
+                  title: 'Actions',
+                  minWidth: 340,
+                  renderer: (user) => (
+                    <div className="flex flex-wrap justify-end gap-2">
+                      {impersonation && (
                         <Button
                           variant="outline"
                           size="sm"
@@ -425,107 +556,108 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
                         >
                           Impersonate
                         </Button>
-                        {user.role === 'admin' ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setActionUserId(user.id)
-                              setActionType('demote')
-                            }}
-                          >
-                            Remove Admin
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setActionUserId(user.id)
-                              setActionType('promote')
-                            }}
-                          >
-                            Make Admin
-                          </Button>
-                        )}
-                        {user.banned ? (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setActionUserId(user.id)
-                              setActionType('unban')
-                            }}
-                          >
-                            Unban
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              setActionUserId(user.id)
-                              setActionType('ban')
-                            }}
-                          >
-                            Ban
-                          </Button>
-                        )}
+                      )}
+                      {user.role === 'admin' ? (
                         <Button
-                          variant="destructive"
+                          variant="outline"
                           size="sm"
                           onClick={() => {
                             setActionUserId(user.id)
-                            setActionType('delete')
+                            setActionType('demote')
                           }}
                         >
-                          Delete
+                          Remove Admin
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType('promote')
+                          }}
+                        >
+                          Make Admin
+                        </Button>
+                      )}
+                      {user.role !== 'admin' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType(user.role === 'tester' ? 'untester' : 'tester')
+                          }}
+                        >
+                          {user.role === 'tester' ? 'Remove Tester' : 'Make Tester'}
+                        </Button>
+                      )}
+                      {user.banned ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType('unban')
+                          }}
+                        >
+                          Unban
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setActionUserId(user.id)
+                            setActionType('ban')
+                          }}
+                        >
+                          Ban
+                        </Button>
+                      )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => {
+                          setActionUserId(user.id)
+                          setActionType('delete')
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  ),
+                },
+              ] satisfies Column<TUser>[]}
+              data={users}
+              getRowId={(user) => user.id}
+              pageSize={false}
+            />
           )}
 
           {/* Pagination */}
-          {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Page {pagination.page} of {pagination.pages}
-              </p>
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(page - 1)
-                    fetchUsers(page - 1, search)
-                  }}
-                  disabled={page === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(page + 1)
-                    fetchUsers(page + 1, search)
-                  }}
-                  disabled={page === pagination.pages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+          {pagination && (
+            <DataTablePagination
+              page={page}
+              pages={pagination.pages}
+              onPageChange={(p) => {
+                setPage(p)
+                fetchUsers(p, search)
+              }}
+              className="mt-6 pt-6"
+            />
           )}
         </CardContent>
       </Card>
 
       {/* Action Confirmation Dialog */}
-      <AlertDialog open={!!actionUserId} onOpenChange={() => setActionUserId(null)}>
+      <AlertDialog
+        open={!!actionUserId}
+        onOpenChange={() => {
+          setActionUserId(null)
+          setBanReason('')
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -534,6 +666,8 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               {actionType === 'unban' && 'Unban User?'}
               {actionType === 'promote' && 'Promote to Admin?'}
               {actionType === 'demote' && 'Remove Admin Access?'}
+              {actionType === 'tester' && 'Make Tester?'}
+              {actionType === 'untester' && 'Remove Tester Role?'}
               {actionType === 'impersonate' && 'Impersonate User?'}
             </AlertDialogTitle>
             <AlertDialogDescription>
@@ -544,12 +678,28 @@ export default function AdminUsersTable({ initialUsers, initialPagination }: Adm
               {actionType === 'unban' && 'This will restore the user access.'}
               {actionType === 'promote' &&
                 'This will grant the user full admin dashboard access.'}
+              {actionType === 'tester' &&
+                'Marks this account as a test account. It gets no admin access.'}
+              {actionType === 'untester' &&
+                'Turns this test account back into a regular user.'}
               {actionType === 'demote' &&
                 "This will revoke the user's admin dashboard access."}
               {actionType === 'impersonate' &&
                 "You'll be signed in as this user until you stop impersonating. This is logged."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {actionType === 'ban' && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ban-reason">Reason (optional, shown to the user)</Label>
+              <Input
+                id="ban-reason"
+                placeholder="e.g. Spam"
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
             <AlertDialogAction

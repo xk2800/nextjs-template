@@ -17,8 +17,10 @@ export type ActivityAction =
   | 'impersonation_started'
   | 'impersonation_stopped'
   | 'settings_changed'
+  | 'passkey_added'
+  | 'passkey_removed'
 
-interface LogActivityParams {
+export interface LogActivityParams {
   userId: string
   action: ActivityAction
   description: string
@@ -33,6 +35,9 @@ interface LogActivityParams {
   country?: string | null
   city?: string | null
 }
+
+/** Signature for createAuth({ logActivity }): an app-supplied writer for these entries. */
+export type ActivityLogger = (entry: LogActivityParams) => Promise<void>
 
 export async function logActivity({
   userId,

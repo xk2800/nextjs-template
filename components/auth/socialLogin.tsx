@@ -9,9 +9,10 @@ import { toast } from 'sonner'
 
 type Props = {
   callbackUrl?: string
+  label?: string
 }
 
-const SocialLogin = ({ callbackUrl }: Props) => {
+const SocialLogin = ({ callbackUrl, label = 'Sign in with Google' }: Props) => {
   const handleGoogleSignIn = async () => {
     // The OAuth round trip through Google means the server only sees
     // accounts.google.com as the referer on the callback request — stash
@@ -41,7 +42,7 @@ const SocialLogin = ({ callbackUrl }: Props) => {
         className="w-full"
         onClick={handleGoogleSignIn}
       >
-        <div className="flex items-center gap-1"><FcGoogle /> Sign in with Google</div>
+        <div className="flex items-center gap-1"><FcGoogle /> {label}</div>
       </Button>
     </div>
   )

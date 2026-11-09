@@ -1,0 +1,110 @@
+import { Callout } from "nextra/components";
+
+# Deployment
+
+## Production checklist
+
+- [ ] `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` set to the real `https://` origin. Passkeys bind to this, so pick the final domain before users register any.
+- [ ] A fresh `BETTER_AUTH_SECRET` (`openssl rand -base64 32`), not your dev value.
+- [ ] `DATABASE_URL` and `DB_DRIVER` set (`neon` for Neon, or `pg` with `DATABASE_SSL=true` for managed Postgres).
+- [ ] Migrations applied to the production database (see below).
+- [ ] The Google OAuth client has the production redirect URI: `https://your.app/api/auth/callback/google`.
+- [ ] `RESEND_API_KEY` set, a sending domain verified, and `EMAIL_FROM` set to an address on it.
+- [ ] `APP_NAME` set to your product name. It's what users see in authenticator apps and as the installed-app name.
+- [ ] `app/favicon.ico` replaced with your own (the installed-app icons are built from it), and the colors in `app/manifest.ts` set to your brand.
+- [ ] The first admin promoted (see [Quick Start](/#make-yourself-an-admin)).
+- [ ] Your reverse proxy forwards the client IP in `x-forwarded-for` or `x-real-ip`.
+
+## Installable app (PWA) <Badge>Beta</Badge>
+
+`app/manifest.ts` serves `/manifest.webmanifest` and Next.js links it from every page, so browsers offer **Install app** (Chrome and Edge on desktop and Android, and Add to Home Screen on iOS). It uses `APP_NAME` for the name and opens in a standalone window at `/`. It's your own code, so edit it freely.
+
+The 192px and 512px icons (`/icons/icon-192.png`, `/icons/icon-512.png`) are generated from `app/favicon.ico` at build time by `app/icons/[file]/route.tsx`. Replace the favicon and rebuild, and they follow. The favicon needs a PNG-encoded image inside it (most icon tools add one; use 256px or larger so the 512px icon stays sharp). An old BMP-only `.ico` fails the build with a message saying so. Both the name and the icons are fixed at build time, so changing `APP_NAME` also needs a rebuild.
+
+### Install instructions
+
+**Settings → This device** shows `InstallAppCard` (`components/dashboard/installAppCard.tsx`). It reads the visitor's OS and browser and shows only the steps for that combination:
+
+| Detected | What it shows |
+|---|---|
+| iPhone / iPad, any browser | **Share** → **Add to Home Screen** → **Add**. iOS has no install button, so these steps are the only way. |
+| Android: Chrome, Edge, Firefox, others | **⋮** menu → **Install app** / **Add to Home screen** |
+| Android: Samsung Internet | **☰** menu → **Add page to** → **Home screen** |
+| Desktop: Chrome or Edge | The install icon in the address bar, or the browser menu |
+| Mac: Safari | **File** → **Add to Dock** (macOS Sonoma or later) |
+| Desktop: Firefox and others | A note that the browser can't install apps, with which browsers can |
+
+Where the browser offers one-click install (Chrome and Edge, on Android and desktop), an **Install app** button appears above the steps. The `app/layout.tsx` script keeps the browser's install event so the button still works after moving between pages. Once the app runs installed, the card shows a confirmation instead. Detection lives in the exported `detectInstallTarget()` (tested in `lib/install-target.test.ts`); the card renders after page load because the server can't see the visitor's device.
+
+<Callout type="info">
+Projects created before this card existed get the component when they update the package, but not the settings section or the layout script, because those are your own files. Add `<InstallAppCard />` to `app/dashboard/settings/page.tsx`, and add `addEventListener("beforeinstallprompt", (e) => { window.__pwaInstallPrompt = e })` to the `register-sw` script in `app/layout.tsx`. Without that line the button still appears, but only when the event fires while the settings page is open.
+</Callout>
+
+### Offline mode
+
+In production builds, `app/layout.tsx` registers `public/sw.js`. It does two things:
+
+- **Saved pages.** Pages listed in `OFFLINE_PAGES` at the top of `sw.js` are saved each time someone visits them, and the saved copy is shown when they're offline. A page only works offline after it has been visited once. By default the list is `/`, `/features`, `/changelog`, `/privacy` and `/terms`. Add or remove paths to change it.
+- **Offline page.** Any other page load that fails without a network shows a built-in "You're offline" page instead of the browser's error screen. It reloads by itself when the connection comes back.
+
+```js filename="public/sw.js"
+const OFFLINE_PAGES = ["/", "/features", "/changelog", "/privacy", "/terms"];
+```
+
+<Callout type="warning">
+Only list public pages. Never add `/dashboard` or `/api/*`. Saved copies are fetched without cookies (signed out), so a protected page would only save the login redirect anyway, but keep the list public so nothing personal ends up on a shared device.
+</Callout>
+
+Because copies are saved signed out, a signed-in visitor who goes offline sees the signed-out version of the page (for example, the header shows **Log in**). The worker also caches the `/_next/static` JS, CSS and font files those pages need. They're content-hashed, so they never go stale, and the cache keeps the newest 300. To clear every saved page and file, change `VERSION` in `sw.js`; the old caches are deleted the next time a visitor loads the site. Saving a page costs one extra signed-out request to your server per visit to a listed page. API calls and everything else go straight to the network.
+
+The worker isn't registered under `bun dev`. To test it, run `bun run build && bun run start`, open the site once, then go offline (DevTools → Network → Offline) and load any page.
+
+To try it under `bun dev` instead (handy when editing `sw.js`), register it by hand from the browser console: `navigator.serviceWorker.register("/sw.js", { updateViaCache: "none" })`. Tick "Update on reload" in DevTools → Application → Service Workers so edits are picked up, and click **Unregister** there when you're done, or the worker stays active on `localhost` for later dev sessions. Dev JS files aren't always content-hashed, so the worker's asset cache can serve old code after you edit the app. Use **Clear site data** (Application → Storage) if the page looks out of date.
+
+To remove offline mode, delete `public/sw.js` and the `register-sw` script in `app/layout.tsx`. Visitors who already have the worker keep it until it's unregistered, so to switch it off for them, replace `sw.js` with one that calls `self.registration.unregister()`.
+
+If you extend it to cache pages, only cache public ones. Never cache `/dashboard` or `/api/*`, or a signed-out user on a shared device can see the previous user's pages.
+
+## Migrations
+
+Deploys **don't** run migrations; neither the Dockerfile nor `next build` touches the database. Apply them before rolling out a release that needs them:
+
+```bash
+bun run migrate:prod                 # uses .env.production
+# or
+doppler run --config prd -- bun run migrate:doppler
+```
+
+Run `bun --env-file=.env.production scripts/doctor.ts` before and after migrating. It checks the production env, auth secret, database connection and pending migrations.
+
+After `bun update @xk2800/nextjs-template`, run `bun run generate` and commit any new migration before deploying. A package release can change the schema.
+
+## Docker
+
+If you picked the **Docker** module in `create-nextjs`, your project has a multi-stage `Dockerfile`: Bun installs the dependencies, and the app is built and run on `node:22-alpine` with Next's `output: "standalone"`. It works on any container host (Dokploy, Coolify, Fly, a plain VPS). If you skipped the module, copy `Dockerfile` and `.dockerignore` from the [template repo](https://github.com/xk2800/nextjs-template).
+
+```bash
+docker build \
+  --build-arg DATABASE_URL=postgres://... \
+  --build-arg BETTER_AUTH_URL=https://your.app \
+  --build-arg NEXT_PUBLIC_APP_URL=https://your.app \
+  --build-arg DB_DRIVER=pg \
+  -t myapp .
+
+docker run -p 3000:3000 --env-file .env.production myapp
+```
+
+<Callout type="warning">`NEXT_PUBLIC_*` values are baked into the client bundle at **build** time. The Dockerfile only passes `NEXT_PUBLIC_APP_URL` through as a build arg. If you use One Tap, a custom cookie-banner setting or `NEXT_PUBLIC_GOOGLE_CLIENT_ID`, add matching `ARG`/`ENV` lines to the builder stage, or they'll silently fall back to their defaults.</Callout>
+
+All other (server) variables are read at runtime, so pass them with `docker run --env-file` or your host's env settings.
+
+## Vercel and other serverless hosts
+
+The app is a standard Next.js app and deploys without changes. On serverless hosts:
+
+- Use `DB_DRIVER=neon` with a Neon database. The HTTP driver avoids exhausting connection pools across function instances.
+- Set every variable in the host's env settings, including `NEXT_PUBLIC_*`, which must be present at build time.
+
+## Secrets with Doppler
+
+See [Configuration → Doppler](/configuration#doppler). In CI, set `DOPPLER_TOKEN` and use `doppler run --config prd -- <command>`.

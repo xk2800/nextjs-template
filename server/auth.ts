@@ -1,22 +1,225 @@
 import "server-only"
-import { betterAuth, type BetterAuthOptions } from "better-auth"
+import { betterAuth, type BetterAuthOptions, type BetterAuthPlugin } from "better-auth"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
+import { createId } from "@paralleldrive/cuid2"
 import { eq, sql } from "drizzle-orm"
 import { db } from "./db"
-import { users, accounts, sessions, verifications } from "./db/schema"
+import { users, accounts, sessions, verifications, twoFactors, passkeys } from "./db/schema"
 import { config } from "@/config/env"
-import bcrypt from 'bcrypt'
 import { oneTap, admin as adminPlugin } from "better-auth/plugins";
+import { twoFactorPlugins } from "@/lib/two-factor"
+import { passkey } from "@better-auth/passkey";
 import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/api"
-import { logActivity } from "@/lib/activity-logger"
-import { getClientIp, parseUserAgent, lookupGeoLocation } from "@/lib/request-info"
-import { LOGIN_REFERRER_COOKIE } from "@/lib/cookie-names"
+import { logActivity, type ActivityLogger } from "@/lib/activity-logger"
+import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
+import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/cookie-names"
+import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/lib/auth-throttle"
+import { MAX_IP } from "@/lib/auth-throttle-limits"
 import { getEffectiveAuthFlags } from "@/lib/settings-queries"
+import { getResend, EMAIL_FROM } from "@/lib/resend"
+// Email templates are imported lazily where they're sent, so
+// @react-email/components only loads when an email goes out.
 
-type AuthOverrides = {
+type AuthMiddleware = ReturnType<typeof createAuthMiddleware>
+type DatabaseHooks = NonNullable<BetterAuthOptions["databaseHooks"]>
+type CreateAfter<M extends "user" | "session"> = NonNullable<NonNullable<NonNullable<DatabaseHooks[M]>["create"]>["after"]>
+
+export type AuthOverrides = {
   // Merged with (not replacing) the default `google` provider below, so
   // consuming projects can add e.g. `apple` without forking this file.
   socialProviders?: BetterAuthOptions["socialProviders"]
+  /** App hooks. They run after the package's own hooks, so its guards still apply. */
+  hooks?: { before?: AuthMiddleware; after?: AuthMiddleware }
+  /** App database hooks, run after the package's own (e.g. start a trial on signup). */
+  databaseHooks?: {
+    user?: { create?: { after?: CreateAfter<"user"> } }
+    session?: { create?: { after?: CreateAfter<"session"> } }
+  }
+  /** Extra better-auth plugins, appended after the package's. */
+  plugins?: BetterAuthPlugin[]
+  /** e.g. crossSubDomainCookies when login and marketing live on different subdomains. */
+  advanced?: Pick<NonNullable<BetterAuthOptions["advanced"]>, "crossSubDomainCookies">
+  /** better-auth's rate limiter (off outside production by default). */
+  rateLimit?: BetterAuthOptions["rateLimit"]
+  twoFactor?: {
+    /**
+     * For apps whose users have no password (OAuth-only). Enabling 2FA needs no
+     * password; disabling it or regenerating backup codes needs a current TOTP `code`.
+     */
+    passwordless?: boolean
+    /**
+     * Also ask for the code after Google and One Tap sign-in (stock better-auth only
+     * asks after email/password). Needs the /login/2fa page. Default false.
+     */
+    challengeAfterOAuth?: boolean
+  }
+  /** Admins can sign in as a user ("impersonate"). Default true. */
+  impersonation?: boolean
+  /** Self-service "Delete account" (better-auth's /delete-user). Default true. */
+  deleteUser?: boolean
+  /**
+   * Writes the package's auth activity entries (login, failed login, passkey added /
+   * removed, impersonation) instead of its own logger. Use it when your activity table
+   * needs your own connection, e.g. it has row-level security the package's `db` can't pass.
+   */
+  logActivity?: ActivityLogger
+}
+
+// A failed credential sign-in, written to the activity feed — but only when
+// the attempted email maps to a real account (activityLogs.userId is NOT
+// NULL, and a miss has no user to attribute the row to). Best-effort: runs
+// in an after-hook and must never disturb the sign-in response.
+async function logFailedLogin(ctx: { body?: unknown; headers?: Headers | null }, log: ActivityLogger) {
+  try {
+    const raw = (ctx.body as { email?: unknown } | undefined)?.email
+    const email = typeof raw === "string" ? raw.toLowerCase() : null
+    if (!email) return
+
+    const [user] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, email))
+      .limit(1)
+    if (!user) return
+
+    await log({
+      userId: user.id,
+      action: "login_failed",
+      description: "Failed login attempt",
+      ipAddress: getClientIp(ctx.headers),
+      userAgent: ctx.headers?.get("user-agent") ?? null,
+    })
+  } catch (error) {
+    console.error("Failed to log login_failed activity", error)
+  }
+}
+
+// Email the account owner that a passkey was added or removed. Runs from the
+// auth `after` hook on a successful /passkey/verify-registration or
+// /passkey/delete-passkey; best-effort — a mail failure must not fail the
+// endpoint. Also written to the activity feed. Self-disables when Resend
+// isn't configured.
+async function notifyPasskeyChange(
+  ctx: Parameters<Parameters<typeof createAuthMiddleware>[0]>[0],
+  action: "added" | "removed",
+  log: ActivityLogger,
+) {
+  try {
+    const session = await getSessionFromCtx(ctx)
+    const user = session?.user
+    if (!user) return
+
+    const ip = getClientIp(ctx.headers)
+
+    await log({
+      userId: user.id,
+      action: action === "added" ? "passkey_added" : "passkey_removed",
+      description: `Passkey ${action}`,
+      ipAddress: ip,
+      userAgent: ctx.headers?.get("user-agent") ?? null,
+    })
+
+    if (!config.RESEND_API_KEY) return
+
+    const { EmailTemplatePasskeyChange } = await import("@/components/email/email-template-passkey-change")
+    await (await getResend()).emails.send({
+      from: EMAIL_FROM,
+      to: [user.email],
+      subject: action === "added" ? "A passkey was added to your account" : "A passkey was removed from your account",
+      react: EmailTemplatePasskeyChange({
+        firstName: user.name || "there",
+        action,
+        device: formatDeviceInfo(parseUserAgent(ctx.headers?.get("user-agent") ?? null)),
+        location: formatLocation(lookupGeoLocation(ip)),
+        ipAddress: ip || "Unknown",
+        when: new Date().toUTCString(),
+        manageUrl: `${process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard/settings`,
+      }),
+    })
+  } catch (error) {
+    console.error("Failed to send passkey-change notification", error)
+  }
+}
+
+// The package's own sign-in bookkeeping: last-login time and the login activity entry.
+// Every new session row corresponds to a sign-in (credential or OAuth) — use that as
+// the "last logged in" signal rather than session updates, which also fire on
+// cookie-cache refresh / expiry extension.
+async function packageSessionCreated(log: ActivityLogger, ...[session, context]: Parameters<CreateAfter<"session">>) {
+    // Impersonation sessions (created by the admin plugin's
+    // impersonateUser endpoint) also go through session.create —
+    // don't let "an admin looked at this account" show up as the
+    // user's own last login, and log it as an audit event instead.
+    const impersonatedBy = (session as { impersonatedBy?: string | null }).impersonatedBy
+    if (impersonatedBy) {
+      const target = await db
+        .select({ email: users.email })
+        .from(users)
+        .where(eq(users.id, session.userId))
+        .limit(1)
+
+      await log({
+        userId: impersonatedBy,
+        action: 'impersonation_started',
+        description: `Admin started impersonating ${target[0]?.email ?? session.userId}`,
+        metadata: { impersonatedUserId: session.userId },
+      })
+      return
+    }
+
+    try {
+      await db
+        .update(users)
+        .set({ lastLoginAt: new Date() })
+        .where(eq(users.id, session.userId))
+    } catch (error) {
+      console.error("Failed to update lastLoginAt", error)
+    }
+
+    try {
+      const headers = context?.headers
+      const ipAddress = getClientIp(headers)
+      const userAgent = headers?.get('user-agent') ?? null
+      // For OAuth, the live referer header on this request is the
+      // provider's own callback page (e.g. accounts.google.com), not
+      // the page the user actually came from — socialLogin.tsx stashes
+      // the real page in a cookie right before the redirect, which
+      // survives the round trip since it's set on our own origin.
+      // Falls back to the live header for email/password sign-in,
+      // where this request *is* the originating request.
+      const referrerUrl = context?.getCookie?.(LOGIN_REFERRER_COOKIE)
+        || headers?.get('referer')
+        || null
+      const device = parseUserAgent(userAgent)
+      const geo = lookupGeoLocation(ipAddress)
+
+      // Every session row for this user, including the one just
+      // created — count === 1 means signup just auto-signed them in
+      // (better-auth's default), anything higher is a returning login.
+      const [{ count }] = await db
+        .select({ count: sql<number>`count(*)` })
+        .from(sessions)
+        .where(eq(sessions.userId, session.userId))
+      const isFirstSession = Number(count) <= 1
+
+      await log({
+        userId: session.userId,
+        action: 'login',
+        description: isFirstSession
+          ? 'New account registered and signed in'
+          : 'User logged in',
+        ipAddress,
+        userAgent,
+        referrerUrl,
+        os: device.os,
+        browser: device.browser,
+        deviceType: device.deviceType,
+        country: geo.country,
+        city: geo.city,
+      })
+    } catch (error) {
+      console.error("Failed to log login activity", error)
+    }
 }
 
 export function createAuth(overrides: AuthOverrides = {}) {
@@ -44,6 +247,30 @@ export function createAuth(overrides: AuthOverrides = {}) {
     )
   }
 
+  // Shared by the `baseURL` field below and the passkey plugin's rpID/origin
+  // — WebAuthn credentials are bound to this exact origin, so it must never
+  // fall back to better-auth's own "localhost" passkey default in production.
+  const baseURL = process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000"
+
+  const log = overrides.logActivity ?? logActivity
+
+  // TOTP (+ backup codes); see lib/two-factor.ts for the options.
+  const [twoFactorPlugin, twoFactorExtras] = twoFactorPlugins(baseURL, {
+    issuer: config.APP_NAME,
+    passwordless: overrides.twoFactor?.passwordless,
+    challengeAfterOAuth: overrides.twoFactor?.challengeAfterOAuth,
+  })
+
+  // The app's own hooks ride in a plugin: plugin hooks run after the top-level ones
+  // below, in plugin order, so the package's guards always run first.
+  const appHooks = {
+    id: "app-hooks",
+    hooks: {
+      before: overrides.hooks?.before ? [{ matcher: () => true, handler: overrides.hooks.before }] : [],
+      after: overrides.hooks?.after ? [{ matcher: () => true, handler: overrides.hooks.after }] : [],
+    },
+  } satisfies BetterAuthPlugin
+
   return betterAuth({
     database: drizzleAdapter(db, {
       provider: "pg",
@@ -52,6 +279,8 @@ export function createAuth(overrides: AuthOverrides = {}) {
         account: accounts,
         session: sessions,
         verification: verifications,
+        twoFactor: twoFactors,
+        passkey: passkeys,
       },
     }),
 
@@ -70,13 +299,36 @@ export function createAuth(overrides: AuthOverrides = {}) {
     emailAndPassword: {
       enabled: emailAndPasswordEnabled,
       requireEmailVerification: false,
-      // Use bcrypt to maintain compatibility with existing user passwords
-      async hash(password: string) {
-        return await bcrypt.hash(password, 10);
+      // `url` is fully composed by better-auth (baseURL + verification token +
+      // callbackURL) — see app/(auth)/forgot-password and reset-password for
+      // the pages this points at.
+      async sendResetPassword({ user, url }) {
+        const { EmailTemplateResetPassword } = await import("@/components/email/email-template-reset-password")
+        await (await getResend()).emails.send({
+          from: EMAIL_FROM,
+          to: [user.email],
+          subject: "Reset your password",
+          react: EmailTemplateResetPassword({ firstName: user.name || "there", url }),
+        })
       },
-      async verify({ hash, password }: { hash: string, password: string }) {
-        return await bcrypt.compare(password, hash);
-      }
+    },
+
+    // Email verification. `requireEmailVerification` above stays false, so this
+    // is opt-in: users trigger it from the dashboard via
+    // authClient.sendVerificationEmail(). better-auth composes `url`
+    // (baseURL + token + callbackURL) and serves the /api/auth/verify-email
+    // callback that flips users.emailVerified on click.
+    emailVerification: {
+      autoSignInAfterVerification: true,
+      async sendVerificationEmail({ user, url }) {
+        const { EmailTemplateVerifyEmail } = await import("@/components/email/email-template-verify-email")
+        await (await getResend()).emails.send({
+          from: EMAIL_FROM,
+          to: [user.email],
+          subject: "Confirm your email",
+          react: EmailTemplateVerifyEmail({ firstName: user.name || "there", url }),
+        })
+      },
     },
 
     // Social Providers — google is included by default; toggle per-project via
@@ -93,94 +345,37 @@ export function createAuth(overrides: AuthOverrides = {}) {
           input: false, // Prevent users from setting their own role
         },
       },
+      // Self-service "Delete account" (dashboard Settings → Danger zone).
+      // Credential users confirm with their password; OAuth-only users have
+      // no password, so better-auth instead requires a session younger than
+      // `freshAge` (default 1 day). Every user-owned table cascades on delete.
+      // Impersonation and last-admin guards live in hooks.before below.
+      deleteUser: { enabled: overrides.deleteUser ?? true },
     },
 
     // Advanced options
     advanced: {
-      generateId: () => require('@paralleldrive/cuid2').createId(),
+      ...overrides.advanced,
+      database: {
+        generateId: () => createId(),
+      },
     },
 
-    // Every new session row corresponds to a sign-in (credential or OAuth) —
-    // use that as the "last logged in" signal rather than session updates,
-    // which also fire on cookie-cache refresh / expiry extension.
+    rateLimit: overrides.rateLimit,
+
     databaseHooks: {
+      user: {
+        create: {
+          async after(user, context) {
+            await overrides.databaseHooks?.user?.create?.after?.(user, context)
+          },
+        },
+      },
       session: {
         create: {
           async after(session, context) {
-            // Impersonation sessions (created by the admin plugin's
-            // impersonateUser endpoint) also go through session.create —
-            // don't let "an admin looked at this account" show up as the
-            // user's own last login, and log it as an audit event instead.
-            const impersonatedBy = (session as { impersonatedBy?: string | null }).impersonatedBy
-            if (impersonatedBy) {
-              const target = await db
-                .select({ email: users.email })
-                .from(users)
-                .where(eq(users.id, session.userId))
-                .limit(1)
-
-              await logActivity({
-                userId: impersonatedBy,
-                action: 'impersonation_started',
-                description: `Admin started impersonating ${target[0]?.email ?? session.userId}`,
-                metadata: { impersonatedUserId: session.userId },
-              })
-              return
-            }
-
-            try {
-              await db
-                .update(users)
-                .set({ lastLoginAt: new Date() })
-                .where(eq(users.id, session.userId))
-            } catch (error) {
-              console.error("Failed to update lastLoginAt", error)
-            }
-
-            try {
-              const headers = context?.headers
-              const ipAddress = getClientIp(headers)
-              const userAgent = headers?.get('user-agent') ?? null
-              // For OAuth, the live referer header on this request is the
-              // provider's own callback page (e.g. accounts.google.com), not
-              // the page the user actually came from — socialLogin.tsx stashes
-              // the real page in a cookie right before the redirect, which
-              // survives the round trip since it's set on our own origin.
-              // Falls back to the live header for email/password sign-in,
-              // where this request *is* the originating request.
-              const referrerUrl = context?.getCookie?.(LOGIN_REFERRER_COOKIE)
-                || headers?.get('referer')
-                || null
-              const device = parseUserAgent(userAgent)
-              const geo = lookupGeoLocation(ipAddress)
-
-              // Every session row for this user, including the one just
-              // created — count === 1 means signup just auto-signed them in
-              // (better-auth's default), anything higher is a returning login.
-              const [{ count }] = await db
-                .select({ count: sql<number>`count(*)` })
-                .from(sessions)
-                .where(eq(sessions.userId, session.userId))
-              const isFirstSession = Number(count) <= 1
-
-              await logActivity({
-                userId: session.userId,
-                action: 'login',
-                description: isFirstSession
-                  ? 'New account registered and signed in'
-                  : 'User logged in',
-                ipAddress,
-                userAgent,
-                referrerUrl,
-                os: device.os,
-                browser: device.browser,
-                deviceType: device.deviceType,
-                country: geo.country,
-                city: geo.city,
-              })
-            } catch (error) {
-              console.error("Failed to log login activity", error)
-            }
+            await packageSessionCreated(log, session, context)
+            await overrides.databaseHooks?.session?.create?.after?.(session, context)
           },
         },
       },
@@ -194,6 +389,27 @@ export function createAuth(overrides: AuthOverrides = {}) {
     // available together.
     hooks: {
       before: createAuthMiddleware(async (ctx) => {
+        // Per-device abuse throttle for the two credential entry points.
+        // Primarily keyed by the client's FingerprintJS visitorId
+        // (x-device-fingerprint header, set in emailPasswordLogin/Signup), but
+        // that header is client-supplied and unsigned — omitting it or
+        // randomizing it per request bypasses a fingerprint-only check
+        // entirely. IP is a lower-ceiling-tolerant backstop (shared behind
+        // NAT/CGNAT/VPN, so it uses MAX_IP, not MAX) that still applies when
+        // the header is missing or spoofed.
+        if (ctx.path === "/sign-in/email" || ctx.path === "/sign-up/email") {
+          const fingerprint = ctx.headers?.get(DEVICE_FINGERPRINT_HEADER)
+          const ip = getClientIp(ctx.headers)
+          const throttled =
+            (fingerprint && (await isDeviceThrottled(fingerprint))) ||
+            (ip && (await isDeviceThrottled(`ip:${ip}`, MAX_IP)))
+          if (throttled) {
+            throw new APIError("TOO_MANY_REQUESTS", {
+              message: "Too many attempts from this device. Try again in a few minutes.",
+            })
+          }
+        }
+
         // Live kill-switch for the two built-in sign-in methods, on top of
         // the (untouched) provider registration above — lets an admin
         // disable a method from the System Settings page and have it take
@@ -232,6 +448,32 @@ export function createAuth(overrides: AuthOverrides = {}) {
           return
         }
 
+        // The admin plugin stays registered either way (dropping it changes the
+        // inferred session type); with impersonation off, its endpoint is closed here.
+        if (ctx.path === "/admin/impersonate-user" && overrides.impersonation === false) {
+          throw new APIError("FORBIDDEN", { message: "Impersonation is turned off." })
+        }
+
+        if (ctx.path === "/delete-user") {
+          const current = await getSessionFromCtx(ctx, { disableCookieCache: true })
+          if (!current) return // better-auth's own session check rejects it
+          // An admin "viewing as" a user must not be able to destroy their account.
+          if (current.session.impersonatedBy) {
+            throw new APIError("FORBIDDEN", { message: "Stop impersonating before deleting an account." })
+          }
+          // Deleting the last admin would leave nobody able to reach the admin dashboard.
+          if ((current.user as { role?: string }).role === "admin") {
+            const [{ count }] = await db
+              .select({ count: sql<number>`count(*)` })
+              .from(users)
+              .where(eq(users.role, "admin"))
+            if (Number(count) <= 1) {
+              throw new APIError("FORBIDDEN", { message: "You're the only admin. Promote another user to admin first." })
+            }
+          }
+          return
+        }
+
         if (ctx.path !== "/admin/stop-impersonating") return
 
         const current = await getSessionFromCtx(ctx, { disableCookieCache: true })
@@ -242,7 +484,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
             .where(eq(users.id, current.session.userId))
             .limit(1)
 
-          await logActivity({
+          await log({
             userId: current.session.impersonatedBy,
             action: 'impersonation_stopped',
             description: `Admin stopped impersonating ${target[0]?.email ?? current.session.userId}`,
@@ -250,17 +492,77 @@ export function createAuth(overrides: AuthOverrides = {}) {
           })
         }
       }),
+      after: createAuthMiddleware(async (ctx) => {
+        // Passkey add/remove is a security-sensitive change to how the account
+        // can be signed into — email the user whenever one lands, the same way
+        // new-device sign-ins are surfaced. Best-effort: never disturb the
+        // endpoint's own response.
+        if (ctx.path === "/passkey/verify-registration" || ctx.path === "/passkey/delete-passkey") {
+          if (ctx.context.returned instanceof APIError) return
+          await notifyPasskeyChange(
+            ctx,
+            ctx.path === "/passkey/verify-registration" ? "added" : "removed",
+            log,
+          )
+          return
+        }
+
+        if (ctx.path !== "/sign-in/email" && ctx.path !== "/sign-up/email") return
+
+        const fingerprint = ctx.headers?.get(DEVICE_FINGERPRINT_HEADER)
+        const ip = getClientIp(ctx.headers)
+        const ipKey = ip ? `ip:${ip}` : null
+        if (!fingerprint && !ipKey) return
+
+        const failed = ctx.context.returned instanceof APIError
+        const rawEmail = (ctx.body as { email?: unknown } | undefined)?.email
+        const meta = {
+          ipAddress: ip,
+          userAgent: ctx.headers?.get("user-agent") ?? null,
+          email: typeof rawEmail === "string" ? rawEmail.toLowerCase() : null,
+        }
+        const keys = [fingerprint, ipKey].filter((k): k is string => !!k)
+
+        // Sign-up abuse is mass account creation — the *successful* ones are
+        // the problem — so every sign-up from this device counts.
+        if (ctx.path === "/sign-up/email") {
+          await Promise.all(keys.map((key) => recordDeviceAttempt(key, { ...meta, kind: "signup" })))
+          return
+        }
+
+        // /sign-in/email: count failures; a success clears the counter.
+        // ponytail: a successful sign-in wipes the device's failure budget, so
+        // a credential-stuffing hit resets itself — per-outcome counters if
+        // that ceiling ever bites.
+        if (failed) {
+          await Promise.all(keys.map((key) => recordDeviceAttempt(key, { ...meta, kind: "signin" })))
+          await logFailedLogin(ctx, log)
+        } else {
+          await Promise.all(keys.map((key) => clearDeviceThrottle(key)))
+        }
+      }),
     },
 
     // Base URL for callbacks
-    baseURL: process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000",
+    baseURL,
 
     // Secret for signing cookies and tokens
     secret: process.env.AUTH_SECRET!,
 
+    // The OAuth `state` is a one-time verification row: the callback consumes
+    // and deletes it. When the same callback URL gets hit twice (browser
+    // prefetch / bfcache / double nav — common on a repeat Google sign-in
+    // where Google auto-redirects with no consent screen), the first hit
+    // logs the user in and the second finds no `state` row and throws
+    // `please_restart_the_process`. Default sends that to better-auth's bare
+    // error page; point it at /login instead, which already bounces an
+    // authenticated user straight to their callbackUrl — so the losing race
+    // just lands them logged in. See better-auth#5658 / #6544.
+    onAPIError: {
+      errorURL: "/login",
+    },
+
     plugins: [
-      // checks to see if oneTap is enabled and if google provider is available, then add the oneTap plugin
-      ...(config.AUTH_ENABLE_ONE_TAP && Boolean(socialProviders.google) ? [oneTap()] : []),
       // Registered for impersonation (auth.api.impersonateUser / stopImpersonating)
       // only — role/ban/delete stay on our own custom routes above. adminRoles
       // matches our existing role column so the plugin's own permission checks
@@ -276,6 +578,24 @@ export function createAuth(overrides: AuthOverrides = {}) {
           },
         },
       }),
+      // TOTP second factor + encrypted backup codes (see lib/two-factor.ts).
+      // Listed individually, not spread: see the note on the spread below.
+      twoFactorPlugin,
+      twoFactorExtras,
+      // WebAuthn passkeys (Touch ID / Windows Hello / security keys) as a
+      // passwordless sign-in method. rpID must be the bare host and origin
+      // the full URL — both derived from baseURL above.
+      passkey({
+        rpID: new URL(baseURL).hostname,
+        rpName: config.APP_NAME,
+        origin: baseURL,
+      }),
+      // checks to see if oneTap is enabled and if google provider is available, then add the oneTap plugin.
+      // Keep this spread last: a leading spread turns `plugins` from a tuple into a plain
+      // array and better-auth 1.7 then drops plugin fields (e.g. session.impersonatedBy).
+      ...(config.AUTH_ENABLE_ONE_TAP && Boolean(socialProviders.google) ? [oneTap()] : []),
+      appHooks,
+      ...(overrides.plugins ?? []),
     ]
   })
 }

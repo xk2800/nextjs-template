@@ -6,6 +6,8 @@ import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
 import { eq, inArray } from "drizzle-orm"
 import { logActivity } from "@/lib/activity-logger"
+import { sendBanEmail } from "@/lib/ban-email"
+import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({
@@ -79,8 +81,11 @@ export async function POST(request: NextRequest) {
           banned: true,
           bannedAt: new Date(),
           bannedReason: reason || null,
+          bannedBy: session.user.email,
         })
         .where(inArray(users.id, userIds))
+
+      await Promise.all(targetUsers.map((u) => sendBanEmail(u, reason || null)))
 
       // Revoke all sessions for the banned users
       await db.delete(sessions).where(inArray(sessions.userId, userIds))
@@ -106,6 +111,7 @@ export async function POST(request: NextRequest) {
           banned: false,
           bannedAt: null,
           bannedReason: null,
+          bannedBy: null,
         })
         .where(inArray(users.id, userIds))
 
@@ -126,9 +132,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ success: true, count: targetUsers.length })
   } catch (error) {
-    console.error('Error bulk banning/unbanning users:', error)
     return NextResponse.json(
-      { error: "Failed to update ban status" },
+      { error: unexpectedErrorMessage(error, "Failed to update ban status") },
       { status: 500 }
     )
   }

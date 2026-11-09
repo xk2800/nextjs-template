@@ -71,6 +71,104 @@
       "when": 1786365740229,
       "tag": "0009_narrow_skullbuster",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788150107313,
+      "tag": "0010_workable_wolfsbane",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788281206916,
+      "tag": "0011_cultured_gorilla_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788283090840,
+      "tag": "0012_mean_raider",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788625952402,
+      "tag": "0013_mixed_redwing",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1788632008099,
+      "tag": "0014_natural_skin",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1790395015255,
+      "tag": "0015_omniscient_gargoyle",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790695850402,
+      "tag": "0016_spooky_vector",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792174751731,
+      "tag": "0017_add_tester_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792335493856,
+      "tag": "0018_feedback_attach_errors",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1792336752767,
+      "tag": "0019_error_refs",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1792503410557,
+      "tag": "0020_consent_mode_device_signals",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1792507902230,
+      "tag": "0021_consent_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1792508681257,
+      "tag": "0022_consent_log_chain",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793506439366,
+      "tag": "0023_user_banned_by",
+      "breakpoints": true
     }
   ]
 }

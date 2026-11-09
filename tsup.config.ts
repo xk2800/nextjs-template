@@ -16,6 +16,10 @@ export default defineConfig({
     "admin/queries": "lib/admin-queries.ts",
     "users/queries": "lib/user-queries.ts",
     "settings/queries": "lib/settings-queries.ts",
+    "api/feedback": "lib/feedback-route.ts",
+    "marketing/index": "lib/marketing.ts",
+    "api/marketing": "lib/marketing-route.ts",
+    "errors": "lib/errors.ts",
   },
   format: ["cjs", "esm"],
   dts: true,
@@ -23,6 +27,6 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   outDir: "dist",
-  external: ["react", "react-dom", "next", "next/headers", "next/navigation"],
+  external: ["react", "react-dom", "next", "next/headers", "next/navigation", "resend", "@react-email/components"],
   tsconfig: "tsconfig.build.json",
 })

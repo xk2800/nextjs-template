@@ -7,14 +7,7 @@ import { Input } from '../../ui/input'
 import { Label } from '../../ui/label'
 import { Badge } from '../../ui/badge'
 import { Skeleton } from '../../ui/skeleton'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '../../ui/table'
+import { DataTable, DataTablePagination, type Column } from '../../ui/data-table'
 import { toast } from 'sonner'
 import { formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
 import { Download } from 'lucide-react'
@@ -78,6 +71,50 @@ interface AdminActivityLogsTableProps {
   initialLogs: ActivityLog[]
   initialPagination: PaginationData
 }
+
+const columns: Column<ActivityLog>[] = [
+  {
+    name: 'action',
+    title: 'Action',
+    sticky: true,
+    renderer: (log) => (
+      <Badge variant={actionBadgeVariant[log.action] || 'outline'}>
+        {log.action.replace(/_/g, ' ')}
+      </Badge>
+    ),
+  },
+  {
+    name: 'user',
+    title: 'User',
+    renderer: (log) => (
+      <div className="text-sm">
+        <div className="font-medium">{log.userName || 'N/A'}</div>
+        <div className="text-xs text-gray-500">{log.userEmail}</div>
+      </div>
+    ),
+  },
+  {
+    name: 'description',
+    title: 'Description',
+    renderer: (log) => (
+      <span className="text-sm max-w-xs truncate block">{log.description}</span>
+    ),
+  },
+  {
+    name: 'ipAddress',
+    title: 'IP Address',
+    renderer: (log) => <span className="text-sm font-mono">{log.ipAddress || 'N/A'}</span>,
+  },
+  {
+    name: 'createdAt',
+    title: 'Time',
+    renderer: (log) => (
+      <span className="text-sm text-gray-600 dark:text-gray-400">
+        {formatDateTime(log.createdAt)}
+      </span>
+    ),
+  },
+]
 
 export default function AdminActivityLogsTable({ initialLogs, initialPagination }: AdminActivityLogsTableProps) {
   const [logs, setLogs] = useState<ActivityLog[]>(initialLogs)
@@ -261,75 +298,19 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
           ) : logs.length === 0 ? (
             <p className="text-center text-gray-500 py-8">No activity logs found</p>
           ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Action</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Description</TableHead>
-                    <TableHead>IP Address</TableHead>
-                    <TableHead>Time</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {logs.map((log) => (
-                    <TableRow key={log.id}>
-                      <TableCell>
-                        <Badge variant={actionBadgeVariant[log.action] || 'outline'}>
-                          {log.action.replace(/_/g, ' ')}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        <div className="font-medium">{log.userName || 'N/A'}</div>
-                        <div className="text-xs text-gray-500">{log.userEmail}</div>
-                      </TableCell>
-                      <TableCell className="text-sm max-w-xs truncate">
-                        {log.description}
-                      </TableCell>
-                      <TableCell className="text-sm font-mono">
-                        {log.ipAddress || 'N/A'}
-                      </TableCell>
-                      <TableCell className="text-sm text-gray-600 dark:text-gray-400">
-                        {formatDateTime(log.createdAt)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+            <DataTable columns={columns} data={logs} getRowId={(log) => log.id} pageSize={false} />
           )}
 
-          {pagination && pagination.pages > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-6 border-t">
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                Page {pagination.page} of {pagination.pages}
-              </p>
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(page - 1)
-                    fetchLogs(page - 1)
-                  }}
-                  disabled={page === 1}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPage(page + 1)
-                    fetchLogs(page + 1)
-                  }}
-                  disabled={page === pagination.pages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+          {pagination && (
+            <DataTablePagination
+              page={page}
+              pages={pagination.pages}
+              onPageChange={(p) => {
+                setPage(p)
+                fetchLogs(p)
+              }}
+              className="mt-6 pt-6"
+            />
           )}
         </CardContent>
       </Card>

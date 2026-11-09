@@ -24,7 +24,7 @@ let db: DrizzleNeon | DrizzlePg
 if (config.DB_DRIVER === 'pg') {
   const pool = new Pool({
     connectionString: config.DATABASE_URL!,
-    ssl: config.NODE_ENV === "production" ? { rejectUnauthorized: false } : undefined,
+    ssl: config.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
   });
   db = drizzlePg(pool, {
     schema,

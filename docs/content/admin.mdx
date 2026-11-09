@@ -1,0 +1,94 @@
+import { Callout } from 'nextra/components'
+
+# Admin & Maintenance
+
+The admin area is at `/dashboard/admin`. Its layout calls `requireRole('admin')`, and every `/api/admin/*` route checks the role itself and returns `403` otherwise. To create the first admin, see [Quick Start](/#make-yourself-an-admin).
+
+## Pages
+
+| Page | What's there |
+|---|---|
+| `/dashboard/admin` | Stats grid plus device-security cards: **New devices**, **Device throttle**, **Shared devices** |
+| `/dashboard/admin/users` | Search, paginate, change role, ban or unban, delete, bulk ban, bulk delete, CSV export, impersonate |
+| `/dashboard/admin/users/[userId]` | Login info, **Devices** (each device with its fingerprint signals), **Consent** (current cookie choice per purpose and its history, see [Proof of consent](/security#proof-of-consent)), sessions (revoke one or all), activity, status, impersonation log |
+| `/dashboard/admin/activity-logs` | System-wide audit log with search, action and date filters, and CSV export |
+| `/dashboard/admin/settings` | System Settings: maintenance mode, auth toggles, session revocation, consent mode |
+| `/dashboard/admin/marketing` | **Marketing email** (Beta): send an update to a Resend segment as a broadcast, or save it as a draft; recent broadcasts; subscribers per segment |
+
+## User management rules
+
+These are enforced in the API, not just the UI:
+
+- You can't change your own role, ban yourself or delete yourself, and you can't include yourself in a bulk action.
+- You can't demote the last admin, and a bulk ban or bulk delete can't remove every admin.
+- **Banning** sets `banned`, `bannedAt` and `bannedReason`, then **deletes all of the user's sessions** so they're signed out immediately. A banned user who still has a cookie is signed out by `requireAuth()` and sent to `/login?error=account_banned`.
+- Every action writes an activity row (`role_changed`, `user_banned`, `user_unbanned`, `user_deleted`, `settings_changed`).
+
+## Impersonation
+
+**Impersonate** in the users table's row menu calls `authClient.admin.impersonateUser()` from Better-Auth's admin plugin. While it's active:
+
+- A banner across the whole app shows who you're impersonating and has a button to stop (`authClient.admin.stopImpersonating()`).
+- The session has `impersonatedBy` set to your admin ID, and the target's `lastLoginAt` is not updated.
+- Account deletion is blocked, and maintenance mode is bypassed.
+- Start and stop are logged under the **admin's** activity as `impersonation_started` and `impersonation_stopped`.
+
+## System Settings
+
+Stored in the `system_settings` single-row table and cached in-process for **10 seconds**. Changes take effect at once on the instance that saved them and within 10 seconds everywhere else.
+
+| Setting | Effect |
+|---|---|
+| Maintenance mode + message | See below |
+| Exempt paths | Path prefixes that stay reachable during maintenance |
+| Google / Email-password / One Tap | Live kill-switch for each sign-in method, combined with the env flag (both must be on) |
+| Session revocation | Lets users revoke their own sessions |
+| Require consent (GDPR / ePrivacy) | On: cookie banner; fingerprinting and One Tap each run only after the visitor allows that purpose. Off: no banner, everything runs for every visitor, which **breaks GDPR/ePrivacy if any of your users are in the EU or UK**. Defaults to `NEXT_PUBLIC_COOKIE_BANNER` until an admin saves it. See [Cookie consent](/security#cookie-consent) |
+
+## Devices card
+
+The admin user page lists every device the account has signed in from (`device_fingerprint` rows): device, location, IP and first-seen time. Expanding a device shows its `visitorId` and the FingerprintJS signals behind it: platform, screen, fonts, languages, time zone, CPU cores, memory, WebGL and more.
+
+- **Accessibility signals are never collected.** `reducedMotion`, `reducedTransparency`, `contrast`, `forcedColors`, `invertedColors`, `monochrome` and `colorGamut` can hint at a disability, which GDPR treats as health data. They're dropped in the browser and again on the server (`EXCLUDED_SIGNALS` in `lib/cookie-names.ts`).
+- **Large values are stored as hashes.** Anything over 500 characters, such as canvas images and WebGL details, is stored as `{ hash }`. That's enough to compare devices.
+- **Signals are refreshed** each browser session, so they show the device's latest state. Devices recorded before signals existed say "No signals yet" until they next sign in.
+
+If the database can't be reached, settings **fail open**: maintenance is off and auth flags fall back to the env values. A database outage can't lock admins out.
+
+## Maintenance mode
+
+`proxy.ts` enforces maintenance mode for every page and API route:
+
+- **Blocked pages** redirect to `/maintenance`, which shows the admin's message.
+- **Blocked API routes** return `503 { "error": "Down for maintenance" }`.
+- **Admins**, including admins who are impersonating, aren't blocked.
+
+What stays reachable:
+
+| Always open (hardcoded in `lib/maintenance.ts`) | Default exempt list (editable) |
+|---|---|
+| `/maintenance`, `/login` (incl. `/login/2fa`), `/forgot-password`, `/reset-password`, `/api/auth`, `/api/settings/public` | `/`, `/features`, `/changelog`, `/changelog-template`, `/privacy`, `/terms` |
+
+A prefix matches the path and its sub-paths: `/docs` matches `/docs` and `/docs/a` but not `/docsfoo`. `/` matches only the home page.
+
+<Callout type="info">
+The always-open list exists so an admin can always sign in and turn maintenance off. It ships in the package. To keep a new page of your own reachable during maintenance, add it to the exempt list in System Settings.
+</Callout>
+
+## Marketing email (Beta)
+
+`/dashboard/admin/marketing` sends updates through [Resend Broadcasts](https://resend.com/docs/dashboard/broadcasts/introduction) (`POST /api/admin/marketing`). Broadcasts count against Resend's **marketing** plan, which is priced by contacts, not against the transactional daily limit. A newsletter can't use up the quota that password resets and verification emails need.
+
+- **Contacts and segments live in Resend.** Create a segment in the Resend dashboard under Audience. The page lists your segments to pick from. Only add people who agreed to receive marketing email.
+- **Users subscribe themselves.** Set `RESEND_MARKETING_SEGMENT_ID` to a segment ID and the user dashboard shows an **Email updates** card with a "Send me product updates" switch (`PUT /api/marketing/subscription`, `lib/marketing.ts`). Turning it on creates or re-subscribes the user's Resend contact and adds it to that segment. Turning it off marks the contact unsubscribed, the same as the Unsubscribe link in an email. Subscribing needs a verified email address, so nobody can sign up someone else's address; unsubscribing never does. The switch reads its state from Resend, so it also reflects people who unsubscribed from an email. Without the env var the card is hidden, and you add contacts in Resend yourself (one by one or by CSV).
+- **Finding the segment ID.** In the Resend dashboard, open **Audience → Segments** and click the segment. The ID is the UUID at the end of the page URL. Or list segments with the API, using a full access key: `curl -s https://api.resend.com/segments -H "Authorization: Bearer $RESEND_BROADCAST_API_KEY"` and copy the `id` field. Restart the dev server after setting the env var.
+- **Needs a full access API key.** It uses `RESEND_BROADCAST_API_KEY`, or `RESEND_API_KEY` if that's blank. A sending-only key can send transactional mail but can't list segments or create broadcasts, so set `RESEND_BROADCAST_API_KEY` to a full access key and keep `RESEND_API_KEY` sending-only. The page tells you if the key is missing or rejected.
+- **Plain-text body.** Blank lines start a new paragraph. The sender is `EMAIL_FROM`. Every broadcast gets an unsubscribe link (`{{{RESEND_UNSUBSCRIBE_URL}}}`), and Resend handles the opt-outs.
+- **Save as draft** creates the broadcast without sending it, so you can preview it or schedule it in Resend. **Send now** asks for confirmation in a dialog, then sends it to the whole segment.
+- **Recent broadcasts** lists the last 10. **Preview** shows the email as Resend stored it, in a sandboxed frame. Drafts also get a **Send** button (`POST /api/admin/marketing/[id]`), which is hidden once a broadcast is queued or sent, and the API refuses to send it again (`409`). While a broadcast is `queued`, its row shows "Sending…" and checks Resend every 3 seconds (for up to 5 minutes), then updates on its own when the status changes.
+- **Subscribers** lists the contacts in a segment (first 100) with email, name, date added and subscribed/unsubscribed, plus a count of each. With more than one segment, pick one above the list (`?segment=<id>`). People who clicked Unsubscribe show as unsubscribed. Add or import contacts in Resend.
+- Open, click and unsubscribe stats are in the Resend dashboard. Sends aren't written to the activity log.
+
+## Activity log
+
+The admin activity log shows rows from every user, while each user sees only their own on the dashboard. Login rows carry IP, OS, browser, device type, country, city and referrer. Both lists come from `lib/activity-queries.ts`. To add events, see [Logging activity](/architecture#logging-activity).
