@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.7.2-beta.1",
+    "date": "2026-11-10",
+    "type": "beta",
+    "title": "feat: integrate PushSync component into root layout and update documentation for subscription handling",
+    "changes": [
+      "feat: integrate PushSync component into root layout and update documentation for subscription handling",
+      "refactor: remove changelog template and associated data"
+    ]
+  },
+  {
     "version": "0.7.2-beta.0",
     "date": "2026-11-9",
     "type": "beta",
