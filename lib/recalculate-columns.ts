@@ -24,12 +24,6 @@ export type Column<TRow = Record<string, unknown>> = {
   align?: "left" | "center" | "right"
   /** Pinned column — only kept from auto-hiding while width >= the sticky breakpoint. */
   sticky?: boolean
-  /**
-   * Which columns survive on narrow screens: lower number = kept longer. Columns
-   * hide in descending `priority` order (ties: rightmost first). Defaults to the
-   * column's index, i.e. plain right-to-left. Once collapsed, the remaining columns are
-   * also shown in priority order (negative = ahead of column 0). Wide screens are untouched.
-   */
   priority?: number
   /** Set by `recalculateColumns` — the column did not fit and moved into the detail row. */
   autoHide?: boolean
@@ -72,9 +66,7 @@ export function recalculateColumns<TRow>(
   if (predicted <= width) return { columns: next, isCollapsed: false }
   predicted += EXPANDER_WIDTH // collapsing adds the row-toggle column
 
-  // Hide least-important first (highest priority number, then rightmost); the top-priority column is always kept.
   const priority = (i: number) => next[i].priority ?? i
-  // The best-priority column (ties: leftmost) is the anchor and is never hidden.
   const anchor = next.reduce((best, _, i) => (priority(i) < priority(best) ? i : best), 0)
   const order = next.map((_, i) => i).filter((i) => i !== anchor).sort((a, b) => priority(b) - priority(a) || b - a)
   for (const i of order) {

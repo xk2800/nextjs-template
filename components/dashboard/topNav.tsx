@@ -19,7 +19,6 @@ export default function TopNav({
 }: AppSidebarProps & { actions?: React.ReactNode }) {
   const pathname = usePathname()
   const links = isAdmin ? [...workspaceLinks, ...adminLinks] : workspaceLinks
-  // Mobile bottom bar: top-level tabs, or the admin sub-menu (plus an exit tab) while inside /dashboard/admin.
   const inAdmin = isAdmin && pathname.startsWith("/dashboard/admin")
   const tabs = inAdmin
     ? [...adminLinks, { href: "/dashboard", label: "Exit", icon: ArrowLeft, exit: true }]

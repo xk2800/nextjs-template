@@ -7,7 +7,6 @@ import { Button } from "../ui/button"
 
 export type NavStyle = "sidebar" | "topbar"
 
-// Cookie read by app/dashboard/layout.tsx. Per-browser preference, no DB.
 export default function NavStyleToggle({ current }: { current: NavStyle }) {
   const router = useRouter()
   const next: NavStyle = current === "sidebar" ? "topbar" : "sidebar"

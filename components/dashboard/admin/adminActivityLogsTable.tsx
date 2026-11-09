@@ -87,8 +87,8 @@ const columns: Column<ActivityLog>[] = [
   {
     name: 'user',
     title: 'User',
-    priority: -1, // mobile/tablet: shown first (before Action)
-    minWidth: 260, // long emails: reserve real width so Action drops into the row detail instead of side-scrolling
+    priority: -1,
+    minWidth: 260,
     renderer: (log) => (
       <div className="text-sm">
         <div className="font-medium">{log.userName || 'N/A'}</div>
@@ -111,7 +111,7 @@ const columns: Column<ActivityLog>[] = [
   {
     name: 'createdAt',
     title: 'Time',
-    priority: 0, // stays visible on mobile/tablet after Action
+    priority: 0,
     renderer: (log) => (
       <span className="text-sm text-gray-600 dark:text-gray-400">
         {formatDateTime(log.createdAt)}

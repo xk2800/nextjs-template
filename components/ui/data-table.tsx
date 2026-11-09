@@ -228,8 +228,6 @@ export function DataTable<TRow>({
 
   const hidden = collapseEnabled ? colState.filter((c) => c.autoHide) : []
   const isCollapsed = hidden.length > 0
-  // Narrow screens: also show columns in `priority` order (stable; default = index).
-  // Wide screens keep the declared order.
   const visible = !collapseEnabled
     ? colState
     : isCollapsed

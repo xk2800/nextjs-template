@@ -49,6 +49,13 @@ Add more with `bunx shadcn@latest add <name>`. The config is in `components.json
 
 - `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `/dashboard/data-table` is a working example.
 
+  Each column can set `priority` (a number, default = its index) to control what survives on narrow screens:
+  - Columns hide in descending `priority` order (ties: rightmost first). The best-priority column is never hidden, so a negative `priority` makes a column the anchor.
+  - Once the table is collapsed, the remaining columns are also shown in `priority` order, so a negative value puts a column first. Wide screens keep the declared order and show every column.
+  - `minWidth` is what the collapse math uses. Set it to the column's real width (for example long emails), or the column fits on paper and the table scrolls sideways.
+  - Hidden columns move into the expandable row (the arrow on the left).
+  - Example: the admin audit-log table sets `priority: -1` and `minWidth: 260` on User and `priority: 0` on Time, so phones show only User (name and email).
+
 ## Auth (`components/auth/`)
 
 | Component | Purpose |
@@ -71,6 +78,7 @@ These are presentational components. Fetch data with the query helpers in a serv
 | Component | Purpose |
 |---|---|
 | `dashboardHeader`, `appSidebar` | Navigation. `dashboardHeader` takes optional `brandName`, `brandHref` and `navLinks`. |
+| `topNav`, `navStyleToggle` | Second dashboard navigation style. A header with the links, avatar and log-out. Below `md` the links move to a fixed bottom tab bar, which turns into the admin sub-menu (Admin home, Users, Audit logs, System settings, plus an **Exit** tab to `/dashboard`) while the user is inside `/dashboard/admin`. `navStyleToggle` is the header button that switches between sidebar and top bar. The choice is a per-browser `nav-style` cookie (`sidebar` default, or `topbar`) that `app/dashboard/layout.tsx` reads. It is not stored in the DB. |
 | `profileCard`, `accountDetailsCard`, `verifyEmailButton` | Profile |
 | `sessionsCard` / `sessionsSection` | Active sessions with revoke |
 | `activityLogsCard` / `activityLogsSection` | Personal activity |
