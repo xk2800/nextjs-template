@@ -465,6 +465,27 @@ Not covered by `bun run test`.
    app on this device." instead of the steps.
 ---
 
+## Push notifications (example)
+
+`lib/push.ts`, `lib/push-client.ts`, `app/api/push/*`, `public/sw.js`,
+`components/site/push-notifications-card.tsx` (Settings), `components/site/push-sync.tsx`.
+Needs a production build (`bun run build && bun run start`) and VAPID keys
+(`bunx web-push generate-vapid-keys`) in `.env.development`.
+
+1. Keys blank: the Settings card is hidden.
+2. Keys set, `bun dev`: card says notifications need a production build.
+3. Production build: turn the switch on, allow the prompt, press **Send test
+   notification**: a notification appears. Clicking it opens Settings.
+4. Switch off, send a test via curl/`sendPushToUser`: nothing is sent
+   (`sent: 0`), and the `push_subscription` row is gone.
+5. Expiry: switch on, then in DevTools → Application → Service Workers →
+   Push, or by editing the row's `endpoint`, make the endpoint invalid. A test
+   send removes the row (`removed: 1`). Reopen the dashboard: the row returns.
+6. Block notifications in site settings and reload: the card says they're blocked.
+7. iPhone/iPad Safari tab: the card says to install to the Home Screen first.
+   Installed app: it works.
+---
+
 ## Delete account (self-serve)
 
 `components/dashboard/deleteAccountCard.tsx` (Settings → Danger zone) calls

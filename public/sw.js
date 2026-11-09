@@ -1,4 +1,4 @@
-// Offline mode. Registered from app/layout.tsx (production builds only).
+// Offline mode and push notifications. Registered from app/layout.tsx (production builds only).
 // - Pages in OFFLINE_PAGES are saved after each visit and shown when offline.
 // - Any other page load that fails offline gets the "You're offline" page below.
 
@@ -94,5 +94,53 @@ self.addEventListener("fetch", (event) => {
         return res;
       })
       .catch(async () => (saved && (await caches.match(url.pathname, { cacheName: PAGES }))) || offlinePage())
+  );
+});
+
+// --- Push notifications (see lib/push.ts) ---
+// Always show a notification for every push. Safari/iOS revokes the
+// subscription of sites that receive pushes without showing one.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {}
+  event.waitUntil(
+    self.registration.showNotification(data.title || "Notification", {
+      body: data.body,
+      icon: "/icons/icon-192.png",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  // Same-origin paths only.
+  const raw = event.notification.data?.url || "/";
+  const url = new URL(raw, location.origin);
+  const target = url.origin === location.origin ? url.href : location.origin + "/";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((wins) => {
+      const open = wins.find((w) => new URL(w.url).origin === location.origin);
+      return open ? open.navigate(target).then((c) => c && c.focus()) : self.clients.openWindow(target);
+    })
+  );
+});
+
+// The browser rotated or dropped the subscription: replace it. Not fired on
+// every browser (iOS doesn't), so the settings card also re-syncs on app open.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    self.registration.pushManager
+      .subscribe(event.oldSubscription?.options || { userVisibleOnly: true })
+      .then((sub) =>
+        fetch("/api/push", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(sub),
+        })
+      )
+      .catch(() => {})
   );
 });

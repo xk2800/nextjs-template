@@ -169,6 +169,13 @@
       "when": 1793506439366,
       "tag": "0023_user_banned_by",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1794234114178,
+      "tag": "0024_nappy_hellion",
+      "breakpoints": true
     }
   ]
 }

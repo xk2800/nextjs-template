@@ -65,6 +65,31 @@ To remove offline mode, delete `public/sw.js` and the `register-sw` script in `a
 
 If you extend it to cache pages, only cache public ones. Never cache `/dashboard` or `/api/*`, or a signed-out user on a shared device can see the previous user's pages.
 
+### Push notifications <Badge>Beta</Badge>
+
+An example of Web Push, built on the same `sw.js`. It's yours to keep or delete: none of it ships in the npm package.
+
+1. Generate a VAPID key pair, then set `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` and `VAPID_SUBJECT` (details in [Configuration](/configuration#push-notifications-beta)). Apply the `push_subscription` migration.
+
+   ```bash
+   bunx web-push generate-vapid-keys
+   ```
+2. **Settings → Push notifications** (`components/site/push-notifications-card.tsx`) turns notifications on for the current device and has a **Send test notification** button. The card is hidden while the keys are blank.
+3. To notify from your own code: `await sendPushToUser(userId, { title, body, url })` from `lib/push.ts`. It sends to every device the user enabled.
+
+**Why devices stop receiving pushes after days away.** Push services expire subscriptions on devices that go unused, and iOS can evict an unused installed app's data. The example handles it in three places:
+
+- `lib/push.ts` deletes a subscription when the push service answers `404` or `410`.
+- `components/site/push-sync.tsx` (in the dashboard layout) re-saves the device's subscription every time the dashboard opens, and recreates it if the browser dropped it while permission is still granted.
+- `sw.js` handles `pushsubscriptionchange` the same way, on browsers that fire it (iOS doesn't).
+
+Things to know:
+
+- **iPhone and iPad** only deliver push to an app installed to the Home Screen (iOS 16.4+), and the subscription must be created from inside the installed app.
+- `sw.js` always shows a notification for each push. Safari revokes a subscription that receives pushes without showing one, so keep `showNotification` in the `push` handler.
+- Notifications are queued by the push service for 24 hours (`TTL` in `lib/push.ts`) if the device is offline.
+- Like offline mode, the worker isn't registered under `bun dev`, so test with `bun run build && bun run start`. The card says so.
+
 ## Migrations
 
 Deploys **don't** run migrations; neither the Dockerfile nor `next build` touches the database. Apply them before rolling out a release that needs them:

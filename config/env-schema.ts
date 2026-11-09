@@ -27,6 +27,12 @@ export const envSchema = z.object({
   // a comma-separated list and sends through Resend (needs RESEND_API_KEY).
   FEEDBACK_DISCORD_WEBHOOK_URL: z.string().default(''),
   FEEDBACK_EMAIL: z.string().default(''),
+  // Web Push (example, see lib/push.ts). Generate keys with
+  // `bunx web-push generate-vapid-keys`. Blank = the notifications card is hidden.
+  // The public key is also read in the browser as NEXT_PUBLIC_VAPID_PUBLIC_KEY.
+  VAPID_PRIVATE_KEY: z.string().default(''),
+  // mailto: or https: URL push services can contact you at.
+  VAPID_SUBJECT: z.string().default(''),
   // Seed-only: the live value lives in the system_settings DB row (see
   // lib/settings-queries.ts) once it's been seeded on first read, and is
   // changed from the admin System Settings page, not by editing this var.

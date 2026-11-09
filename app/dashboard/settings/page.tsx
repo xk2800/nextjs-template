@@ -9,6 +9,7 @@ import TwoFactorCard from '@/components/dashboard/twoFactorCard'
 import PasskeysCard from '@/components/dashboard/passkeysCard'
 import DeleteAccountCard from '@/components/dashboard/deleteAccountCard'
 import InstallAppCard from '@/components/dashboard/installAppCard'
+import PushNotificationsCard from '@/components/site/push-notifications-card'
 
 export default function SettingsPage() {
   const { theme, setTheme, systemTheme } = useTheme()
@@ -92,6 +93,7 @@ export default function SettingsPage() {
           Install the app on your phone or computer
         </p>
       </div>
+      <PushNotificationsCard />
       <InstallAppCard />
 
       <div>

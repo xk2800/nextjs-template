@@ -271,3 +271,20 @@ export const errorRefs = pgTable("error_refs", {
 }, (table) => [
   index("error_refs_created_at_idx").on(table.createdAt),
 ]);
+
+// One row per browser/device a user turned push notifications on for. Rows are
+// deleted when the push service reports the endpoint gone (404/410), see
+// lib/push.ts, and re-upserted whenever the app opens (components/site/push-notifications-card.tsx).
+export const pushSubscriptions = pgTable("push_subscription", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  userId: text("userId")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("userAgent"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+}, (table) => [
+  index("push_subscription_user_idx").on(table.userId),
+]);

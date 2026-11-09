@@ -10,6 +10,7 @@ import { ErrorFeedbackHost } from "@/components/dashboard/errorFeedback"
 import { config } from "@/config/env"
 import { cookies } from "next/headers"
 import TopNav from "@/components/dashboard/topNav"
+import PushSync from "@/components/site/push-sync"
 import NavStyleToggle from "@/components/dashboard/navStyleToggle"
 
 // Every route under /dashboard is session-gated and reads live, per-user
@@ -47,6 +48,7 @@ export default async function DashboardLayout({
   const body = (
     <>
       <Heartbeat />
+      <PushSync />
       <ImpersonationBanner />
       {(config.FEEDBACK_DISCORD_WEBHOOK_URL || config.FEEDBACK_EMAIL) && <ErrorFeedbackHost />}
     </>
