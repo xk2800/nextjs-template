@@ -6,7 +6,6 @@ export const DEFAULT_MAINTENANCE_EXEMPT_PATHS = [
   "/",
   "/features",
   "/changelog",
-  "/changelog-template",
   "/privacy",
   "/terms",
 ]
