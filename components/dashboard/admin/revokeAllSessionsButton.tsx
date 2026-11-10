@@ -22,10 +22,12 @@ export default function RevokeAllSessionsButton({
   userId,
   label = "Revoke all sessions",
   size = "sm",
+  variant = "destructive",
 }: {
   userId: string
   label?: string
   size?: "sm" | "default"
+  variant?: "destructive" | "outline"
 }) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
@@ -48,7 +50,7 @@ export default function RevokeAllSessionsButton({
 
   return (
     <>
-      <Button variant="destructive" size={size} onClick={() => setOpen(true)}>
+      <Button variant={variant} size={size} onClick={() => setOpen(true)}>
         {label}
       </Button>
       <AlertDialog open={open} onOpenChange={setOpen}>

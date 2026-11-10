@@ -127,7 +127,7 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - Admins, and admins impersonating a user, bypass it. Changes apply within the 10s settings cache.
 
 ### Admin dashboard (`/dashboard/admin`)
-- Stats grid (aggregate user/session counts, etc.).
+- Stats grid (aggregate user/session counts, etc.), a header toolbar linking to users, audit log, system settings and marketing, an example **System health** widget (`components/admin/system-health.tsx`: DB ping latency and server uptime, your own file so add checks), a compact "all limits nominal" state on the Device throttle card, and outline (not solid red) revoke buttons on the New devices table.
 - User management table — list, search, view detail, edit role, ban/unban (with reason), delete, bulk-ban, bulk-delete, CSV export.
 - Per-user detail view — login info, sessions, activity log, status card, impersonation controls and impersonation-log card, plus a **Devices** card (Beta): each `device_fingerprint` row with its FingerprintJS signals (`components` jsonb) in a collapsible section. Accessibility signals are never collected (`EXCLUDED_SIGNALS`, filtered on client and server), and values over 500 chars are stored as hashes. Also a **Consent** card (Beta): the user's `consent_log` records, with the current choice as allowed/declined per purpose and the full history with version and time (`getUserConsentLog()`).
 - Impersonation banner shown app-wide while an admin is impersonating a user.

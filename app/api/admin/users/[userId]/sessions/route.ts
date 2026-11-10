@@ -13,7 +13,8 @@ export async function GET(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   if (!session?.user) {
@@ -47,7 +48,8 @@ export async function DELETE(
   { params }: { params: Promise<{ userId: string }> }
 ) {
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   if (!session?.user) {

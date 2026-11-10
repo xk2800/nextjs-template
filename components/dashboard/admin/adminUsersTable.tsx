@@ -25,6 +25,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
 import { Download } from 'lucide-react'
+import InviteUserDialog from './inviteUserDialog'
 import { authClient, useSession } from '@xk2800/nextjs-template/auth-client'
 
 export interface AdminUser {
@@ -42,6 +43,8 @@ export interface AdminUser {
   lastLoginAt: Date | null
   lastActiveAt: Date | null
   createdAt: Date
+  /** Expiry of the user's outstanding password/invite link, if any. */
+  inviteExpiresAt?: Date | string | null
 }
 
 export type AdminUserPlans<TUser extends AdminUser = AdminUser> = {
@@ -380,6 +383,8 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
               {pagination ? `Showing ${users.length} of ${pagination.total} users` : 'Loading...'}
             </CardDescription>
           </div>
+          <div className="flex items-center gap-2">
+          <InviteUserDialog onInvited={() => fetchUsers(page, search, true)} />
           <Button
             variant="outline"
             size="sm"
@@ -389,6 +394,7 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
             <Download />
             {isExporting ? 'Exporting...' : 'Export CSV'}
           </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {selectedIds.size > 0 && (
@@ -519,6 +525,20 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
                           <p className="text-xs italic text-muted-foreground">&ldquo;{user.bannedReason}&rdquo;</p>
                         )}
                       </div>
+                    ) : !user.lastLoginAt && user.inviteExpiresAt ? (
+                      new Date(user.inviteExpiresAt) > new Date() ? (
+                        <div className="space-y-1">
+                          <Badge variant="secondary">Invited</Badge>
+                          <p className="text-xs text-muted-foreground">
+                            Invite sent, awaiting acceptance (expires {formatDate(user.inviteExpiresAt)})
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <Badge variant="outline">Invite expired</Badge>
+                          <p className="text-xs text-muted-foreground">Not accepted before the link expired</p>
+                        </div>
+                      )
                     ) : (
                       <Badge variant="outline">Active</Badge>
                     ),

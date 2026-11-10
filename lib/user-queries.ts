@@ -1,7 +1,7 @@
 import "server-only"
 import { db } from "../server/db"
-import { users } from "../server/db/schema"
-import { like, desc, or, eq, sql, type SQL } from "drizzle-orm"
+import { users, activityLogs } from "../server/db/schema"
+import { like, desc, or, eq, and, min, sql, getTableColumns, type SQL } from "drizzle-orm"
 
 export async function getUserById(id: string) {
   const result = await db
@@ -21,6 +21,38 @@ export async function getAdminEmails(): Promise<string[]> {
     .where(eq(users.role, "admin"))
 
   return rows.map((r) => r.email)
+}
+
+// Latest unconsumed password-link expiry. Admin invites ride the reset flow, so
+// with lastLoginAt null this means "invited, not accepted yet". "user"."id" is
+// qualified on purpose: bare ${users.id} would bind to verification.id.
+const inviteExpiresAtSql = sql<Date | null>`(select max(v."expiresAt") from "verification" v where v."value" = "user"."id" and v."identifier" like 'reset-password:%')`
+  .mapWith((v) => (v == null ? null : new Date(v)))
+
+export async function getUserInviteExpiry(id: string) {
+  const [row] = await db.select({ at: inviteExpiresAtSql }).from(users).where(eq(users.id, id)).limit(1)
+  return row?.at ?? null
+}
+
+// When the admin invited this user and when they first signed in (= accepted).
+// The invite is read back from the activity log row the invite route writes
+// (metadata.invited); acceptance is the user's first 'login' event.
+export async function getUserInviteInfo(id: string, email: string) {
+  const [[invited], [accepted]] = await Promise.all([
+    db
+      .select({ at: min(activityLogs.createdAt) })
+      .from(activityLogs)
+      .where(and(
+        eq(activityLogs.action, "role_changed"),
+        sql`${activityLogs.metadata}::jsonb ->> 'invited' = 'true'`,
+        sql`lower(${activityLogs.metadata}::jsonb ->> 'targetUserEmail') = ${email.toLowerCase()}`,
+      )),
+    db
+      .select({ at: min(activityLogs.createdAt) })
+      .from(activityLogs)
+      .where(and(eq(activityLogs.userId, id), eq(activityLogs.action, "login"))),
+  ])
+  return { invitedAt: invited?.at ?? null, acceptedAt: accepted?.at ?? null }
 }
 
 export interface UserFilters {
@@ -45,7 +77,10 @@ export async function getUsersFiltered({ search = "", page = 1, limit = 10 }: Us
 
   const [usersList, countResult] = await Promise.all([
     db
-      .select()
+      .select({
+        ...getTableColumns(users),
+        inviteExpiresAt: inviteExpiresAtSql,
+      })
       .from(users)
       .where(where)
       .orderBy(desc(users.createdAt))

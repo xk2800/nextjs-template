@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { MonitorSmartphone } from "lucide-react"
 import { getRecentNewDevices } from "@xk2800/nextjs-template/admin/queries"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
@@ -17,6 +18,9 @@ export default async function NewDeviceCard() {
         <div className="flex flex-wrap items-center gap-2">
           <MonitorSmartphone className="size-4" />
           <CardTitle>New devices</CardTitle>
+          <Link href="/dashboard/admin/activity-logs" className="ml-auto text-sm font-medium hover:underline">
+            View full audit log →
+          </Link>
         </div>
         <CardDescription>
           First sign-in from a device for each account, newest first. Revoke the

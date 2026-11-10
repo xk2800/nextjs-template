@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-import { getUserById } from "@/lib/user-queries"
+import { getUserById, getUserInviteExpiry, getUserInviteInfo } from "@/lib/user-queries"
 import { getUserSessions } from "@/lib/session-queries"
 import { getUserActivityLogs, getUserLoginHistory } from "@/lib/activity-queries"
 import { hasRole } from "@/lib/auth-helpers"
@@ -30,13 +30,15 @@ export default async function AdminUserDetailPage({
     notFound()
   }
 
-  const [rawSessions, activityLogs, loginHistory, devices, consentRecords, settings] = await Promise.all([
+  const [rawSessions, activityLogs, loginHistory, devices, consentRecords, settings, inviteExpiresAt, inviteInfo] = await Promise.all([
     getUserSessions(userId),
     getUserActivityLogs(userId, 50),
     getUserLoginHistory(userId, 20),
     getUserDevices(userId),
     getUserConsentLog(userId),
     getSystemSettings(),
+    getUserInviteExpiry(userId),
+    getUserInviteInfo(userId, user.email),
   ])
 
   // Client component can't parse user-agent/IP itself (geoip-lite needs
@@ -62,7 +64,7 @@ export default async function AdminUserDetailPage({
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ProfileCard user={user} isAdmin={hasRole(user.role, 'admin')} />
-        <AdminUserStatusCard user={user} />
+        <AdminUserStatusCard user={{ ...user, inviteExpiresAt, ...inviteInfo }} />
       </div>
 
       <AccountDetailsCard user={user} />

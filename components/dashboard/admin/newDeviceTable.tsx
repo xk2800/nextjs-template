@@ -60,7 +60,7 @@ const columns: Column<RecentNewDeviceRow>[] = [
     title: 'Action',
     renderer: (row) => (
       <span className="block text-right">
-        <RevokeAllSessionsButton userId={row.userId} label="Revoke sessions" />
+        <RevokeAllSessionsButton userId={row.userId} label="Revoke sessions" variant="outline" />
       </span>
     ),
   },

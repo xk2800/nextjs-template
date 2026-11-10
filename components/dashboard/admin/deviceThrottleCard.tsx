@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { ShieldAlert } from "lucide-react"
+import { ShieldAlert, ShieldCheck } from "lucide-react"
 import { getDeviceThrottleActivity } from "@xk2800/nextjs-template/admin/queries"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../../ui/card"
 import { Badge } from "../../ui/badge"
@@ -39,7 +39,10 @@ export default async function DeviceThrottleCard({ showHistoryLink = true }: Dev
       </CardHeader>
       <CardContent>
         {rows.length === 0 ? (
-          <p className="text-sm text-gray-500 py-4">No abuse activity detected</p>
+          <p className="flex items-center gap-2 py-2 text-sm text-emerald-700 dark:text-emerald-400">
+            <ShieldCheck className="size-4" />
+            All security limits nominal. No abuse activity detected.
+          </p>
         ) : (
           <DeviceThrottleTable rows={rows} />
         )}

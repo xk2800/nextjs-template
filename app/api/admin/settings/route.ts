@@ -25,7 +25,8 @@ const patchSchema = z.object({
 
 export async function PATCH(request: NextRequest) {
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   if (!session?.user) {

@@ -10,7 +10,8 @@ import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function DELETE(request: NextRequest) {
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   if (!session?.user) {
