@@ -111,12 +111,11 @@ Migrations are generated with `drizzle-kit generate` and applied per-environment
 - OAuth callback double-hit recovery (`components/auth/loginErrorRecovery.tsx`) — silently retries a stale `please_restart_the_process` redirect instead of stranding the user.
 
 ### User dashboard (`/dashboard`)
-- Profile card, account details card.
-- Active sessions list with per-session revoke (device/IP/location shown via parsed user-agent + geoip).
-- Personal activity log feed (with skeleton loading states and error boundaries per section).
+- **Overview** (`/dashboard`, Beta): a placeholder starter blueprint: dismissable welcome banner, 4 KPI cards, a usage chart (shadcn chart / Recharts) and quick actions + recent activity. Data is sample data from `lib/mock-dashboard-data.ts`. The widgets live in `components/overview/`, which is not in the package `files`, so scaffolded projects keep them as their own editable code.
+- **Settings** (`/dashboard/settings?tab=`, Beta): link-based tabs, only the active tab renders. **Profile** (profile and account details cards, admin section, activity log, danger zone), **Security & sessions** (two-factor, passkeys, active sessions with per-session revoke showing device/IP/location via parsed user-agent + geoip), **Appearance** (theme), **Notifications** (email updates, push, install app). Sections live in `app/dashboard/settings/_components/`, so scaffolded projects own them.
 - Client-side heartbeat to keep `lastActiveAt` fresh.
 - **Email updates** card (Beta, shown when `RESEND_MARKETING_SEGMENT_ID` is set): a switch to opt in or out of marketing broadcasts. On = Resend contact created or re-subscribed and added to the segment (verified email required); off = contact marked unsubscribed. State is read from Resend.
-- Settings page — theme, plus a **Security** section: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys, plus a **Danger zone** with self-serve account deletion (Better-Auth `deleteUser`: password confirm for credential users, fresh session (<24h) for OAuth-only; blocked while impersonating and for the last admin; all user rows cascade).
+- Settings detail — theme, plus Security: enable/disable TOTP two-factor (QR + backup codes, regenerate), and register/remove passkeys, plus a **Danger zone** with self-serve account deletion (Better-Auth `deleteUser`: password confirm for credential users, fresh session (<24h) for OAuth-only; blocked while impersonating and for the last admin; all user rows cascade).
 
 - File upload component (Beta, `components/ui/file-upload.tsx`): camera, gallery and drag-and-drop sources, each off by default and enabled by its own prop (`camera`, `gallery`, `dragDrop`). Image previews, `accept` (default `image/*`, also enforced on drops), `multiple`, `maxFiles`, `maxSizeMB`, `onFilesChange`. Client-side only; the app does the actual upload.
 
