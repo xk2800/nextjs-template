@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.2-beta.3",
+    "date": "2026-11-10",
+    "type": "beta",
+    "title": "feat: add role property to promoteFirstAdmin function for first admin promotion",
+    "changes": [
+      "feat: add role property to promoteFirstAdmin function for first admin promotion"
+    ]
+  },
+  {
     "version": "0.7.2-beta.2",
     "date": "2026-11-10",
     "type": "beta",
