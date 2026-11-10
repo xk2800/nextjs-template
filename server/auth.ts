@@ -227,12 +227,15 @@ async function packageSessionCreated(log: ActivityLogger, ...[session, context]:
 // (the user actually clicked the link) — never on generic user updates, so a stale
 // emailVerified flag can't trigger it. No-op once any admin exists, so a demoted
 // account stays demoted and a later owner of the address gets nothing.
-async function promoteFirstAdmin(user: { id: string; email: string; emailVerified?: boolean | null }) {
+async function promoteFirstAdmin(user: { id: string; email: string; emailVerified?: boolean | null; role?: unknown }) {
   const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
   if (!adminEmail || !user.emailVerified || user.email.toLowerCase() !== adminEmail) return
   const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1)
   if (existing) return
   await db.update(users).set({ role: "admin" }).where(eq(users.id, user.id))
+  // better-auth builds the first session (and its cookie cache) from this same object,
+  // so without this the first dashboard load shows "user" until the next sign-in.
+  user.role = "admin"
 }
 
 export function createAuth(overrides: AuthOverrides = {}) {
