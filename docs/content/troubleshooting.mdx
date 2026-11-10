@@ -70,10 +70,11 @@ Its env flag is `false`. The admin toggle can only turn off methods the env has 
 The session cookie is cached for 5 minutes. This is expected.
 
 **I'm not an admin / can't reach `/dashboard/admin`**
-Promote yourself in SQL, then sign out and back in:
+Set `ADMIN_EMAIL` before your first sign-in (see [Configuration](/configuration)), or promote yourself in SQL:
 ```sql
 UPDATE "user" SET roles = 'admin' WHERE email = 'you@example.com';
 ```
+Dashboard pages pick the new role up on the next request. API routes read the cached session cookie, so they can lag up to 5 minutes; sign out and back in to skip the wait.
 
 ## Email
 

@@ -61,7 +61,7 @@ export const auth = createAuth({
 | Refreshed in DB | every 24 h of activity |
 | Cookie cache | 5 minutes |
 
-Sessions live in the `session` table, so they can be listed and revoked. Because of the 5-minute cookie cache, a revoked session can stay valid for up to 5 minutes in places that read the cached cookie.
+Sessions live in the `session` table, so they can be listed and revoked. Because of the 5-minute cookie cache, a revoked session can stay valid for up to 5 minutes in places that read the cached cookie. `requireAuth()` (every dashboard page) re-reads the user row each request, so a ban or a role change shows up there immediately; API routes that read the session themselves see the cached role until the cookie refreshes.
 
 Each new session (sign-in) updates `user.lastLoginAt` and writes a `login` activity row with IP, device and geo data. A client heartbeat keeps `user.lastActiveAt` current.
 

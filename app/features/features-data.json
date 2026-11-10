@@ -90,7 +90,7 @@
       "items": [
         "Responsive DataTable — overflowing columns collapse into an expandable per-row detail panel instead of forcing horizontal scroll",
         "Per-column sticky and minimum-width control, with a configurable collapse breakpoint",
-        "Fully generic over your own row type — see it live at /dashboard/data-table"
+        "Fully generic over your own row type — used by the sessions, passkeys and activity-log cards"
       ]
     },
     {

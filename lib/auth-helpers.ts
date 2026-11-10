@@ -51,7 +51,10 @@ export const requireAuth = cache(async () => {
     redirect('/login?error=account_banned')
   }
 
-  return session
+  // The session cookie caches the user for 5 minutes, so a role changed after
+  // sign-in (first-admin promotion, admin demotion) lags behind. We already have
+  // the fresh row here, so take the role from it.
+  return { ...session, user: { ...session.user, role: user[0]?.role ?? session.user.role } }
 })
 
 /**

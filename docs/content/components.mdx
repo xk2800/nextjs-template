@@ -47,7 +47,7 @@ Add more with `bunx shadcn@latest add <name>`. The config is in `components.json
   | `descriptionClassName` | — | Extra classes for the description text. |
   | `onFilesChange` | | Called with the full current list after every add or remove. |
 
-- `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `/dashboard/data-table` is a working example.
+- `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `components/dashboard/sessionsCard.tsx` is a working example.
 
   Each column can set `priority` (a number, default = its index) to control what survives on narrow screens:
   - Columns hide in descending `priority` order (ties: rightmost first). The best-priority column is never hidden, so a negative `priority` makes a column the anchor.
