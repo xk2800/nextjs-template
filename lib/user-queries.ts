@@ -1,6 +1,6 @@
 import "server-only"
 import { db } from "../server/db"
-import { users, activityLogs } from "../server/db/schema"
+import { users, activityLogs, accounts, passkeys, RoleEnum } from "../server/db/schema"
 import { like, desc, or, eq, and, min, sql, getTableColumns, type SQL } from "drizzle-orm"
 
 export async function getUserById(id: string) {
@@ -55,25 +55,47 @@ export async function getUserInviteInfo(id: string, email: string) {
   return { invitedAt: invited?.at ?? null, acceptedAt: accepted?.at ?? null }
 }
 
+// 2FA flag, passkey count and linked sign-in providers for the admin detail page.
+export async function getUserSecurity(id: string, twoFactorEnabled: boolean) {
+  const [[pk], providerRows] = await Promise.all([
+    db.select({ n: sql<number>`count(*)` }).from(passkeys).where(eq(passkeys.userId, id)),
+    db.select({ p: accounts.providerId }).from(accounts).where(eq(accounts.userId, id)),
+  ])
+  return {
+    twoFactorEnabled,
+    passkeyCount: Number(pk?.n ?? 0),
+    providers: [...new Set(providerRows.map((r) => r.p))],
+  }
+}
+
 export interface UserFilters {
   search?: string
+  role?: string
+  status?: string
   page?: number
   limit?: number
 }
 
-function buildUsersWhere(search: string): SQL | undefined {
-  return search.trim()
-    ? (or(
-        like(users.name, `%${search}%`),
-        like(users.email, `%${search}%`)
-      ) as SQL)
-    : undefined
+const hasInviteSql = sql`exists (select 1 from "verification" v where v."value" = "user"."id" and v."identifier" like 'reset-password:%')`
+const isInvitedSql = sql`("user"."lastLoginAt" is null and ${hasInviteSql})`
+
+type UsersFilter = { search?: string; role?: string; status?: string }
+
+function buildUsersWhere({ search = "", role, status }: UsersFilter): SQL | undefined {
+  const conds: (SQL | undefined)[] = [
+    search.trim() ? or(like(users.name, `%${search}%`), like(users.email, `%${search}%`)) : undefined,
+    role && (RoleEnum.enumValues as readonly string[]).includes(role) ? eq(users.role, role as (typeof RoleEnum.enumValues)[number]) : undefined,
+    status === "banned" ? eq(users.banned, true) : undefined,
+    status === "invited" ? and(eq(users.banned, false), isInvitedSql) : undefined,
+    status === "active" ? and(eq(users.banned, false), sql`not ${isInvitedSql}`) : undefined,
+  ]
+  return and(...conds)
 }
 
-export async function getUsersFiltered({ search = "", page = 1, limit = 10 }: UserFilters) {
+export async function getUsersFiltered({ search = "", role, status, page = 1, limit = 10 }: UserFilters) {
   const offset = (page - 1) * limit
 
-  const where = buildUsersWhere(search)
+  const where = buildUsersWhere({ search, role, status })
 
   const [usersList, countResult] = await Promise.all([
     db
@@ -105,13 +127,15 @@ export async function getUsersFiltered({ search = "", page = 1, limit = 10 }: Us
 
 export interface UserExportFilters {
   search?: string
+  role?: string
+  status?: string
 }
 
 // Caps export size to keep the CSV response bounded on very large tables.
 const EXPORT_ROW_LIMIT = 10_000
 
-export async function getUsersForExport({ search = "" }: UserExportFilters) {
-  const where = buildUsersWhere(search)
+export async function getUsersForExport({ search = "", role, status }: UserExportFilters) {
+  const where = buildUsersWhere({ search, role, status })
 
   return db
     .select()

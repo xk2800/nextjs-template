@@ -130,10 +130,61 @@ export function isConsentRequired(settings: Pick<SystemSettings, 'consentRequire
   return settings.consentRequired ?? process.env.NEXT_PUBLIC_COOKIE_BANNER !== "false"
 }
 
-// The env-only half of the AND above. The System Settings page needs this
-// to explain *why* a toggle it controls isn't taking effect — flipping the
-// DB flag on can't do anything if the env var for that method is off, so
-// the UI should say so instead of looking like a silent no-op.
+// What each admin-settings control needs from the environment before its
+// toggle can do anything. Add an entry here when you add a control that depends
+// on env vars; the System Settings page then shows it disabled, with a badge and
+// the reason, until the deployment provides them. Controls with no entry
+// are always usable.
+//   flag: an AUTH_ENABLE_*-style switch that must be on
+//   keys: every group must be satisfied; within a group any one variable is enough
+//         (aliases, or "this or that"). The first name in a group is the one shown.
+// Read lazily so NEXT_PUBLIC_* / env values are looked at when the page renders.
+type Requirement = { flag?: [name: string, on: boolean]; keys?: string[][] }
+
+const CONTROL_REQUIREMENTS: Record<string, () => Requirement> = {
+  authEnableGoogle: () => ({
+    flag: ["AUTH_ENABLE_GOOGLE", config.AUTH_ENABLE_GOOGLE],
+    keys: [["AUTH_GOOGLE_ID", "GOOGLE_CLIENT_ID"], ["AUTH_GOOGLE_SECRET", "GOOGLE_CLIENT_SECRET"]],
+  }),
+  authEnableEmailPassword: () => ({
+    flag: ["AUTH_ENABLE_EMAIL_PASSWORD", config.AUTH_ENABLE_EMAIL_PASSWORD],
+  }),
+  authEnableOneTap: () => ({
+    flag: ["AUTH_ENABLE_ONE_TAP", config.AUTH_ENABLE_ONE_TAP],
+    keys: [["NEXT_PUBLIC_GOOGLE_CLIENT_ID"], ["NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP=true"]],
+  }),
+  // The toggle only matters once feedback has somewhere to go.
+  feedbackAttachErrors: () => ({
+    keys: [["FEEDBACK_DISCORD_WEBHOOK_URL", "FEEDBACK_EMAIL"]],
+  }),
+}
+
+export type ControlStatus =
+  | { ok: true }
+  | { ok: false; kind: "flag" | "keys"; reason: string }
+
+export function getControlStatuses(): Record<string, ControlStatus> {
+  const isSet = (name: string) =>
+    name.includes("=") ? process.env[name.split("=")[0]] === name.split("=")[1] : Boolean(process.env[name])
+  const out: Record<string, ControlStatus> = {}
+  for (const [key, build] of Object.entries(CONTROL_REQUIREMENTS)) {
+    const req = build()
+    if (req.flag && !req.flag[1]) {
+      out[key] = { ok: false, kind: "flag", reason: `Not configured for this deployment. Set ${req.flag[0]}=true to unlock this toggle.` }
+      continue
+    }
+    const missing = (req.keys ?? []).filter((group) => !group.some(isSet)).map((group) => group.join(" or "))
+    out[key] = missing.length
+      ? {
+          ok: false,
+          kind: "keys",
+          reason: `Missing environment variable${missing.length > 1 ? "s" : ""}: ${missing.join(", ")}. Add ${missing.length > 1 ? "them" : "it"} and redeploy to unlock this toggle (NEXT_PUBLIC_ values need a rebuild).`,
+        }
+      : { ok: true }
+  }
+  return out
+}
+
 export function getConfiguredAuthFlags() {
   return {
     google: config.AUTH_ENABLE_GOOGLE,

@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
   try {
     const search = request.nextUrl.searchParams.get('search') || ''
 
-    const usersList = await getUsersForExport({ search })
+    const usersList = await getUsersForExport({ search, role: request.nextUrl.searchParams.get('role') || undefined, status: request.nextUrl.searchParams.get('status') || undefined })
 
     const csv = toCsv(
       ['Name', 'Email', 'Role', 'Status', 'Banned Reason', 'Last Login', 'Last Active', 'Joined'],

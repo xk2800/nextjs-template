@@ -3,8 +3,7 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
 import ActivityLogsSection from "@/components/dashboard/admin/activityLogsSection"
 import AdminActivityLogsSkeleton from "@/components/dashboard/admin/adminActivityLogsSkeleton"
-import ImpersonationLogCard from "@/components/dashboard/admin/impersonationLogCard"
-import DeviceThrottleCard from "@/components/dashboard/admin/deviceThrottleCard"
+import SecurityHighlights from "./securityHighlights"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function AdminActivityLogsPage() {
@@ -17,15 +16,9 @@ export default function AdminActivityLogsPage() {
         </p>
       </div>
 
-      <ErrorBoundary fallback={<SectionErrorFallback title="Impersonation log" />}>
-        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-          <ImpersonationLogCard showViewAllLink={false} />
-        </Suspense>
-      </ErrorBoundary>
-
-      <ErrorBoundary fallback={<SectionErrorFallback title="Device throttle" />}>
-        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-          <DeviceThrottleCard showHistoryLink={false} />
+      <ErrorBoundary fallback={<SectionErrorFallback title="Security highlights" />}>
+        <Suspense fallback={<Skeleton className="h-14 w-full" />}>
+          <SecurityHighlights />
         </Suspense>
       </ErrorBoundary>
 

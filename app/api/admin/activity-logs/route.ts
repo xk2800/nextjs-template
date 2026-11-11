@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth-helpers"
 import { getActivityLogsFiltered, type ActivityActionFilter } from "@/lib/activity-queries"
 import { ActivityActionEnum } from "@/server/db/schema"
+import { actionsFor } from "@/lib/activity-severity"
 import { unexpectedErrorMessage } from "@/lib/errors"
 
 export async function GET(request: NextRequest) {
@@ -33,6 +34,12 @@ export async function GET(request: NextRequest) {
       ? (actionParam as ActivityActionFilter)
       : undefined
 
+    const actions = actionsFor(
+      ActivityActionEnum.enumValues,
+      searchParams.get('category'),
+      searchParams.get('severity'),
+    ) as ActivityActionFilter[] | undefined
+
     const dateFrom = dateFromParam ? new Date(dateFromParam) : undefined
     // Treat dateTo as inclusive of the whole day
     const dateTo = dateToParam ? new Date(`${dateToParam}T23:59:59.999`) : undefined
@@ -40,6 +47,7 @@ export async function GET(request: NextRequest) {
     const { logs, total, pages } = await getActivityLogsFiltered({
       search,
       action,
+      actions,
       dateFrom,
       dateTo,
       page,

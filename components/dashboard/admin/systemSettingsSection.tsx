@@ -1,4 +1,4 @@
-import { getSystemSettings, getConfiguredAuthFlags, isConsentRequired } from "@xk2800/nextjs-template/settings/queries"
+import { getSystemSettings, getConfiguredAuthFlags, getControlStatuses, isConsentRequired } from "@xk2800/nextjs-template/settings/queries"
 import SystemSettingsForm from "./systemSettingsForm"
 
 export default async function SystemSettingsSection() {
@@ -10,6 +10,7 @@ export default async function SystemSettingsSection() {
     <SystemSettingsForm
       initialSettings={{ ...settings, consentRequired: isConsentRequired(settings) }}
       configuredFlags={configuredFlags}
+      controlStatus={getControlStatuses()}
     />
   )
 }

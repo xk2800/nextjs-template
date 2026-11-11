@@ -10,7 +10,7 @@ export default function AdminSettingsPage() {
       <div>
         <h1 className="text-3xl font-bold">System Settings</h1>
         <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Feature flags and maintenance mode — changes take effect immediately
+          Feature flags and runtime configuration — switches save as you flip them and take effect immediately
         </p>
       </div>
 

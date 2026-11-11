@@ -57,6 +57,10 @@ export async function getRecentImpersonationEvents(limit = 10) {
       adminId: activityLogs.userId,
       adminName: users.name,
       adminEmail: users.email,
+      // Resolved from metadata.impersonatedUserId so the UI can show who was
+      // impersonated instead of a raw id (null if that account is gone).
+      targetName: sql<string | null>`(select t."name" from "user" t where t."id" = ${activityLogs.metadata}::jsonb ->> 'impersonatedUserId')`,
+      targetEmail: sql<string | null>`(select t."email" from "user" t where t."id" = ${activityLogs.metadata}::jsonb ->> 'impersonatedUserId')`,
     })
     .from(activityLogs)
     .leftJoin(users, eq(activityLogs.userId, users.id))
@@ -70,6 +74,8 @@ export type ActivityActionFilter = (typeof ActivityActionEnum.enumValues)[number
 export interface ActivityLogFilters {
   search?: string
   action?: ActivityActionFilter
+  /** Any of these actions (empty array = match nothing). Used for category/severity filters. */
+  actions?: ActivityActionFilter[]
   dateFrom?: Date
   dateTo?: Date
   page?: number
@@ -79,17 +85,22 @@ export interface ActivityLogFilters {
 function buildActivityLogsWhere({
   search = "",
   action,
+  actions,
   dateFrom,
   dateTo,
-}: Pick<ActivityLogFilters, "search" | "action" | "dateFrom" | "dateTo">): SQL | undefined {
+}: Pick<ActivityLogFilters, "search" | "action" | "actions" | "dateFrom" | "dateTo">): SQL | undefined {
   const conditions: SQL[] = []
   if (search.trim()) {
     conditions.push(
       or(
         like(users.name, `%${search}%`),
-        like(users.email, `%${search}%`)
+        like(users.email, `%${search}%`),
+        like(activityLogs.ipAddress, `%${search}%`)
       ) as SQL
     )
+  }
+  if (actions) {
+    conditions.push(actions.length ? inArray(activityLogs.action, actions) : sql`false`)
   }
   if (action) {
     conditions.push(eq(activityLogs.action, action))
@@ -107,6 +118,7 @@ function buildActivityLogsWhere({
 export async function getActivityLogsFiltered({
   search = "",
   action,
+  actions,
   dateFrom,
   dateTo,
   page = 1,
@@ -114,7 +126,7 @@ export async function getActivityLogsFiltered({
 }: ActivityLogFilters) {
   const offset = (page - 1) * limit
 
-  const where = buildActivityLogsWhere({ search, action, dateFrom, dateTo })
+  const where = buildActivityLogsWhere({ search, action, actions, dateFrom, dateTo })
 
   const [logs, countResult] = await Promise.all([
     db
@@ -154,7 +166,7 @@ export async function getActivityLogsFiltered({
   }
 }
 
-export type ActivityLogExportFilters = Pick<ActivityLogFilters, "search" | "action" | "dateFrom" | "dateTo">
+export type ActivityLogExportFilters = Pick<ActivityLogFilters, "search" | "action" | "actions" | "dateFrom" | "dateTo">
 
 // Caps export size to keep the CSV response bounded on very large tables.
 const EXPORT_ROW_LIMIT = 10_000
@@ -162,10 +174,11 @@ const EXPORT_ROW_LIMIT = 10_000
 export async function getActivityLogsForExport({
   search = "",
   action,
+  actions,
   dateFrom,
   dateTo,
 }: ActivityLogExportFilters) {
-  const where = buildActivityLogsWhere({ search, action, dateFrom, dateTo })
+  const where = buildActivityLogsWhere({ search, action, actions, dateFrom, dateTo })
 
   return await db
     .select({

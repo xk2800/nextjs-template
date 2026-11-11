@@ -24,7 +24,8 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
-import { Download } from 'lucide-react'
+import { Download, MoreHorizontal } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../ui/dropdown-menu'
 import InviteUserDialog from './inviteUserDialog'
 import { authClient, useSession } from '@xk2800/nextjs-template/auth-client'
 
@@ -104,6 +105,8 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
   const [updatingPlanFor, setUpdatingPlanFor] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
   const [page, setPage] = useState(1)
   const [pagination, setPagination] = useState<PaginationData | null>(initialPagination)
   const [actionUserId, setActionUserId] = useState<string | null>(null)
@@ -142,6 +145,8 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
         page: pageNum.toString(),
         limit: '10',
         search: searchQuery,
+        ...(roleFilter !== 'all' && { role: roleFilter }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
       })
       const response = await fetch(`/api/admin/users?${params}`)
       if (!response.ok) throw new Error('Failed to fetch users')
@@ -170,7 +175,7 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
     }, 300)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search])
+  }, [search, roleFilter, statusFilter])
 
   // Keep online status fresh without a full-page reload.
   useEffect(() => {
@@ -178,12 +183,16 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
       fetchUsers(page, search, true)
     }, 30_000)
     return () => clearInterval(interval)
-  }, [page, search])
+  }, [page, search, roleFilter, statusFilter])
 
   const handleExport = async () => {
     setIsExporting(true)
     try {
-      const params = new URLSearchParams({ search })
+      const params = new URLSearchParams({
+        search,
+        ...(roleFilter !== 'all' && { role: roleFilter }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+      })
       const response = await fetch(`/api/admin/users/export?${params}`)
       if (!response.ok) throw new Error('Failed to export users')
       const blob = await response.blob()
@@ -361,39 +370,52 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle>Search Users</CardTitle>
-          <CardDescription>Search by name or email</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Input
-            placeholder="Search users..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="max-w-sm"
-          />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>Users List</CardTitle>
-            <CardDescription>
-              {pagination ? `Showing ${users.length} of ${pagination.total} users` : 'Loading...'}
-            </CardDescription>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>Users List</CardTitle>
+              <CardDescription>
+                {pagination ? `Showing ${users.length} of ${pagination.total} users` : 'Loading...'}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <InviteUserDialog onInvited={() => fetchUsers(page, search, true)} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={isExporting || users.length === 0}
+              >
+                <Download />
+                {isExporting ? 'Exporting...' : 'Export CSV'}
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-          <InviteUserDialog onInvited={() => fetchUsers(page, search, true)} />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting || users.length === 0}
-          >
-            <Download />
-            {isExporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm"
+            />
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Role: All</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="tester">Tester</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Status: All</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="invited">Invited</SelectItem>
+                <SelectItem value="banned">Banned</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardHeader>
         <CardContent>
@@ -559,94 +581,49 @@ export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
                 },
                 {
                   name: 'actions',
-                  title: 'Actions',
-                  minWidth: 340,
-                  renderer: (user) => (
-                    <div className="flex flex-wrap justify-end gap-2">
-                      {impersonation && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={user.id === currentUserId || user.banned}
-                          title={user.banned ? 'Cannot impersonate a banned user' : undefined}
-                          onClick={() => {
-                            setActionUserId(user.id)
-                            setActionType('impersonate')
-                          }}
-                        >
-                          Impersonate
-                        </Button>
-                      )}
-                      {user.role === 'admin' ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setActionUserId(user.id)
-                            setActionType('demote')
-                          }}
-                        >
-                          Remove Admin
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setActionUserId(user.id)
-                            setActionType('promote')
-                          }}
-                        >
-                          Make Admin
-                        </Button>
-                      )}
-                      {user.role !== 'admin' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setActionUserId(user.id)
-                            setActionType(user.role === 'tester' ? 'untester' : 'tester')
-                          }}
-                        >
-                          {user.role === 'tester' ? 'Remove Tester' : 'Make Tester'}
-                        </Button>
-                      )}
-                      {user.banned ? (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setActionUserId(user.id)
-                            setActionType('unban')
-                          }}
-                        >
-                          Unban
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            setActionUserId(user.id)
-                            setActionType('ban')
-                          }}
-                        >
-                          Ban
-                        </Button>
-                      )}
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => {
-                          setActionUserId(user.id)
-                          setActionType('delete')
-                        }}
-                      >
-                        Delete
-                      </Button>
-                    </div>
-                  ),
+                  title: '',
+                  minWidth: 56,
+                  renderer: (user) => {
+                    const act = (type: NonNullable<typeof actionType>) => () => {
+                      setActionUserId(user.id)
+                      setActionType(type)
+                    }
+                    return (
+                      <div className="flex justify-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" aria-label={`Actions for ${user.email}`}>
+                              <MoreHorizontal />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {impersonation && (
+                              <DropdownMenuItem disabled={user.id === currentUserId || user.banned} onSelect={act('impersonate')}>
+                                Impersonate
+                              </DropdownMenuItem>
+                            )}
+                            {user.role === 'admin' ? (
+                              <DropdownMenuItem onSelect={act('demote')}>Remove Admin</DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onSelect={act('promote')}>Make Admin</DropdownMenuItem>
+                            )}
+                            {user.role !== 'admin' && (
+                              <DropdownMenuItem onSelect={act(user.role === 'tester' ? 'untester' : 'tester')}>
+                                {user.role === 'tester' ? 'Remove Tester' : 'Make Tester'}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onSelect={act(user.banned ? 'unban' : 'ban')}>
+                              {user.banned ? 'Unban' : 'Ban'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={act('delete')}>
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )
+                  },
                 },
               ] satisfies Column<TUser>[]}
               data={users}

@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
 
-    const { users: usersList, total, pages } = await getUsersFiltered({ search, page, limit })
+    const { users: usersList, total, pages } = await getUsersFiltered({ search, role: searchParams.get('role') || undefined, status: searchParams.get('status') || undefined, page, limit })
 
     return NextResponse.json({
       users: usersList,

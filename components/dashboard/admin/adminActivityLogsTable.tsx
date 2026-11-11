@@ -4,8 +4,15 @@ import { useEffect, useRef, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../ui/card'
 import { Button } from '../../ui/button'
 import { Input } from '../../ui/input'
-import { Label } from '../../ui/label'
 import { Badge } from '../../ui/badge'
+import { Switch } from '../../ui/switch'
+import { Label } from '../../ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../ui/select'
+import { DatePickerWithPresets } from '../../ui/date-picker-with-presets'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '../../ui/sheet'
+import AuditSeverityBadge, { SeverityLegend } from './auditSeverityBadge'
+import { CATEGORY_LABELS, SEVERITY_LABELS, categoryOf } from '../../../lib/activity-severity'
+import { format, subDays } from 'date-fns'
 import { Skeleton } from '../../ui/skeleton'
 import { DataTable, DataTablePagination, type Column } from '../../ui/data-table'
 import { toast } from 'sonner'
@@ -32,39 +39,23 @@ interface PaginationData {
   pages: number
 }
 
-const actionOptions = [
-  { value: '', label: 'All actions' },
-  { value: 'login', label: 'Login' },
-  { value: 'logout', label: 'Logout' },
-  { value: 'login_failed', label: 'Login failed' },
-  { value: 'password_changed', label: 'Password changed' },
-  { value: 'email_changed', label: 'Email changed' },
-  { value: 'profile_updated', label: 'Profile updated' },
-  { value: 'session_revoked', label: 'Session revoked' },
-  { value: 'user_deleted', label: 'User deleted' },
-  { value: 'user_banned', label: 'User banned' },
-  { value: 'user_unbanned', label: 'User unbanned' },
-  { value: 'role_changed', label: 'Role changed' },
-  { value: 'impersonation_started', label: 'Impersonation started' },
-  { value: 'impersonation_stopped', label: 'Impersonation stopped' },
-  { value: 'settings_changed', label: 'Settings changed' },
+const toYmd = (d: Date) => format(d, 'yyyy-MM-dd')
+
+const RANGE_PRESETS = [
+  { value: 'any', label: 'Any time' },
+  { value: 'today', label: 'Today' },
+  { value: '7d', label: 'Last 7 days' },
+  { value: '30d', label: 'Last 30 days' },
+  { value: 'custom', label: 'Custom range' },
 ]
 
-const actionBadgeVariant: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  login: 'default',
-  logout: 'secondary',
-  login_failed: 'destructive',
-  password_changed: 'default',
-  email_changed: 'default',
-  profile_updated: 'secondary',
-  session_revoked: 'destructive',
-  user_deleted: 'destructive',
-  user_banned: 'destructive',
-  user_unbanned: 'default',
-  role_changed: 'default',
-  impersonation_started: 'destructive',
-  impersonation_stopped: 'secondary',
-  settings_changed: 'default',
+function parseMetadata(raw: string | null) {
+  if (!raw) return null
+  try {
+    return JSON.stringify(JSON.parse(raw), null, 2)
+  } catch {
+    return raw
+  }
 }
 
 interface AdminActivityLogsTableProps {
@@ -72,23 +63,27 @@ interface AdminActivityLogsTableProps {
   initialPagination: PaginationData
 }
 
-const columns: Column<ActivityLog>[] = [
+const makeColumns = (onView: (log: ActivityLog) => void): Column<ActivityLog>[] => [
   {
-    name: 'action',
-    title: 'Action',
+    name: 'severity',
+    title: 'Severity',
     sticky: true,
-    minWidth: 110,
+    minWidth: 100,
+    renderer: (log) => <AuditSeverityBadge action={log.action} />,
+  },
+  {
+    name: 'createdAt',
+    title: 'Time',
+    priority: 0,
     renderer: (log) => (
-      <Badge variant={actionBadgeVariant[log.action] || 'outline'}>
-        {log.action.replace(/_/g, ' ')}
-      </Badge>
+      <span className="text-sm text-gray-600 dark:text-gray-400">{formatDateTime(log.createdAt)}</span>
     ),
   },
   {
     name: 'user',
-    title: 'User',
+    title: 'Actor',
     priority: -1,
-    minWidth: 260,
+    minWidth: 240,
     renderer: (log) => (
       <div className="text-sm">
         <div className="font-medium">{log.userName || 'N/A'}</div>
@@ -97,10 +92,14 @@ const columns: Column<ActivityLog>[] = [
     ),
   },
   {
-    name: 'description',
-    title: 'Description',
+    name: 'action',
+    title: 'Event',
+    minWidth: 160,
     renderer: (log) => (
-      <span className="text-sm max-w-xs truncate block">{log.description}</span>
+      <div className="text-sm">
+        <div className="font-medium capitalize">{log.action.replace(/_/g, ' ')}</div>
+        <div className="max-w-xs truncate text-xs text-gray-500">{log.description}</div>
+      </div>
     ),
   },
   {
@@ -109,13 +108,11 @@ const columns: Column<ActivityLog>[] = [
     renderer: (log) => <span className="text-sm font-mono">{log.ipAddress || 'N/A'}</span>,
   },
   {
-    name: 'createdAt',
-    title: 'Time',
-    priority: 0,
+    name: 'details',
+    title: '',
+    minWidth: 80,
     renderer: (log) => (
-      <span className="text-sm text-gray-600 dark:text-gray-400">
-        {formatDateTime(log.createdAt)}
-      </span>
+      <Button variant="ghost" size="sm" onClick={() => onView(log)}>View</Button>
     ),
   },
 ]
@@ -124,7 +121,11 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
   const [logs, setLogs] = useState<ActivityLog[]>(initialLogs)
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
-  const [action, setAction] = useState('')
+  const [category, setCategory] = useState('all')
+  const [severity, setSeverity] = useState('all')
+  const [range, setRange] = useState('any')
+  const [live, setLive] = useState(false)
+  const [selected, setSelected] = useState<ActivityLog | null>(null)
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [page, setPage] = useState(1)
@@ -133,17 +134,31 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
 
   const requestId = useRef(0)
 
-  const fetchLogs = async (pageNum: number) => {
+  const filterParams = () => ({
+    search,
+    ...(category !== 'all' && { category }),
+    ...(severity !== 'all' && { severity }),
+    ...(dateFrom && { dateFrom }),
+    ...(dateTo && { dateTo }),
+  })
+
+  const applyRange = (value: string) => {
+    setRange(value)
+    const today = new Date()
+    if (value === 'today') { setDateFrom(toYmd(today)); setDateTo(toYmd(today)) }
+    else if (value === '7d') { setDateFrom(toYmd(subDays(today, 6))); setDateTo(toYmd(today)) }
+    else if (value === '30d') { setDateFrom(toYmd(subDays(today, 29))); setDateTo(toYmd(today)) }
+    else if (value === 'any') { setDateFrom(''); setDateTo('') }
+  }
+
+  const fetchLogs = async (pageNum: number, silent = false) => {
     const currentRequest = ++requestId.current
-    setLoading(true)
+    if (!silent) setLoading(true)
     try {
       const params = new URLSearchParams({
         page: pageNum.toString(),
         limit: '20',
-        search,
-        action,
-        ...(dateFrom && { dateFrom }),
-        ...(dateTo && { dateTo }),
+        ...filterParams(),
       })
       const response = await fetch(`/api/admin/activity-logs?${params}`)
       if (!response.ok) throw new Error('Failed to fetch activity logs')
@@ -153,7 +168,7 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
       setPagination(data.pagination)
     } catch (error) {
       if (currentRequest !== requestId.current) return
-      toast.error('Failed to load activity logs')
+      if (!silent) toast.error('Failed to load activity logs')
       console.error(error)
     } finally {
       if (currentRequest === requestId.current) setLoading(false)
@@ -173,11 +188,21 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
     }, 300)
     return () => clearTimeout(timer)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, action, dateFrom, dateTo])
+  }, [search, category, severity, dateFrom, dateTo])
+
+  // Live feed: quiet refetch of the current page every 10s.
+  useEffect(() => {
+    if (!live) return
+    const t = setInterval(() => fetchLogs(page, true), 10_000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [live, page, search, category, severity, dateFrom, dateTo])
 
   const resetFilters = () => {
     setSearch('')
-    setAction('')
+    setCategory('all')
+    setSeverity('all')
+    setRange('any')
     setDateFrom('')
     setDateTo('')
   }
@@ -185,12 +210,7 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
   const handleExport = async () => {
     setIsExporting(true)
     try {
-      const params = new URLSearchParams({
-        search,
-        action,
-        ...(dateFrom && { dateFrom }),
-        ...(dateTo && { dateTo }),
-      })
+      const params = new URLSearchParams(filterParams())
       const response = await fetch(`/api/admin/activity-logs/export?${params}`)
       if (!response.ok) throw new Error('Failed to export activity logs')
       const blob = await response.blob()
@@ -210,87 +230,80 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
     }
   }
 
+  const hasFilters = !!(search || category !== 'all' || severity !== 'all' || dateFrom || dateTo)
+  const columns = makeColumns(setSelected)
+  const metadata = selected ? parseMetadata(selected.metadata) : null
+
   return (
     <>
       <Card>
-        <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>Search and narrow down activity events</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
-            <div className="space-y-2 lg:col-span-2">
-              <Label htmlFor="search">User</Label>
-              <Input
-                id="search"
-                placeholder="Search by name or email..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
+        <CardHeader className="space-y-4">
+          <div className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>Activity Events</CardTitle>
+              <CardDescription>
+                {pagination ? `Showing ${logs.length} of ${pagination.total} events` : 'Loading...'}
+              </CardDescription>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="action">Action</Label>
-              <select
-                id="action"
-                value={action}
-                onChange={(e) => setAction(e.target.value)}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] dark:bg-input/30"
-              >
-                {actionOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dateFrom">From</Label>
-              <Input
-                id="dateFrom"
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dateTo">To</Label>
-              <Input
-                id="dateTo"
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Switch id="live-feed" checked={live} onCheckedChange={setLive} />
+                <Label htmlFor="live-feed" className="text-sm">Live feed</Label>
+              </div>
+              <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting || logs.length === 0}>
+                <Download />
+                {isExporting ? 'Exporting...' : 'Export CSV'}
+              </Button>
             </div>
           </div>
-
-          {(search || action || dateFrom || dateTo) && (
-            <Button variant="ghost" size="sm" className="mt-4" onClick={resetFilters}>
-              Clear filters
-            </Button>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex flex-row items-start justify-between gap-4">
-          <div>
-            <CardTitle>Events</CardTitle>
-            <CardDescription>
-              {pagination ? `Showing ${logs.length} of ${pagination.total} events` : 'Loading...'}
-            </CardDescription>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="Search user or IP..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-xs"
+            />
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="w-[170px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Category: All</SelectItem>
+                {Object.entries(CATEGORY_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <Select value={severity} onValueChange={setSeverity}>
+              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Severity: All</SelectItem>
+                {Object.entries(SEVERITY_LABELS).map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            <SeverityLegend />
+            <Select value={range} onValueChange={applyRange}>
+              <SelectTrigger className="w-[150px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {RANGE_PRESETS.map((p) => <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
+            {range === 'custom' && (
+              <>
+                <DatePickerWithPresets
+                  placeholder="From"
+                  date={dateFrom ? new Date(`${dateFrom}T00:00:00`) : undefined}
+                  onDateChange={(d) => setDateFrom(d ? toYmd(d) : '')}
+                  disableFutureDates
+                />
+                <DatePickerWithPresets
+                  placeholder="To"
+                  date={dateTo ? new Date(`${dateTo}T00:00:00`) : undefined}
+                  onDateChange={(d) => setDateTo(d ? toYmd(d) : '')}
+                  disableFutureDates
+                />
+              </>
+            )}
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={resetFilters}>Clear</Button>
+            )}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleExport}
-            disabled={isExporting || logs.length === 0}
-          >
-            <Download />
-            {isExporting ? 'Exporting...' : 'Export CSV'}
-          </Button>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -318,6 +331,45 @@ export default function AdminActivityLogsTable({ initialLogs, initialPagination 
           )}
         </CardContent>
       </Card>
+
+      <Sheet open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          {selected && (
+            <>
+              <SheetHeader>
+                <SheetTitle className="capitalize">{selected.action.replace(/_/g, ' ')}</SheetTitle>
+                <SheetDescription>{selected.description}</SheetDescription>
+              </SheetHeader>
+              <dl className="space-y-4 px-4 pb-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <AuditSeverityBadge action={selected.action} />
+                  <Badge variant="outline">{CATEGORY_LABELS[categoryOf(selected.action)]}</Badge>
+                </div>
+                {([
+                  ['Time', formatDateTime(selected.createdAt)],
+                  ['Actor', `${selected.userName || 'N/A'} (${selected.userEmail || selected.userId})`],
+                  ['IP address', selected.ipAddress || 'N/A'],
+                  ['User agent', selected.userAgent || 'N/A'],
+                  ['Event ID', selected.id],
+                ] as const).map(([k, v]) => (
+                  <div key={k}>
+                    <dt className="font-medium text-gray-600">{k}</dt>
+                    <dd className="break-all">{v}</dd>
+                  </div>
+                ))}
+                {metadata && (
+                  <div>
+                    <dt className="font-medium text-gray-600">Metadata</dt>
+                    <dd>
+                      <pre className="mt-1 overflow-x-auto rounded-md bg-muted p-3 text-xs">{metadata}</pre>
+                    </dd>
+                  </div>
+                )}
+              </dl>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </>
   )
 }

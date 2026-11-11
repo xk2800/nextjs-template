@@ -44,9 +44,14 @@ export default async function ImpersonationLogCard({ showViewAllLink = true }: I
                     {event.action === 'impersonation_started' ? 'Started' : 'Stopped'}
                   </Badge>
                   <div>
-                    <p className="text-sm">{event.description}</p>
+                    <p className="text-sm">
+                      {event.adminName || event.adminEmail || 'Unknown admin'}
+                      {' → '}
+                      {event.targetName || event.targetEmail || 'a deleted account'}
+                    </p>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      by {event.adminName || event.adminEmail || event.adminId}
+                      {event.action === 'impersonation_started' ? 'Started' : 'Stopped'} impersonating
+                      {event.targetEmail ? ` ${event.targetEmail}` : ''}
                     </p>
                   </div>
                 </div>

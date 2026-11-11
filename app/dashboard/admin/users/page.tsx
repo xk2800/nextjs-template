@@ -3,10 +3,15 @@ import { ErrorBoundary } from "@/components/error-boundary"
 import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
 import UsersSection from "@/components/dashboard/admin/usersSection"
 import AdminUsersSkeleton from "@/components/dashboard/admin/adminUsersSkeleton"
-import ImpersonationLogCard from "@/components/dashboard/admin/impersonationLogCard"
-import { Skeleton } from "@/components/ui/skeleton"
+import ImpersonationTab from "@/components/dashboard/admin/impersonationTab"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-export default function AdminUsersPage() {
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tab?: string }>
+}) {
+  const { tab } = await searchParams
   return (
     <div className="space-y-6">
       <div>
@@ -16,17 +21,26 @@ export default function AdminUsersPage() {
         </p>
       </div>
 
-      <ErrorBoundary fallback={<SectionErrorFallback title="Impersonation log" />}>
-        <Suspense fallback={<Skeleton className="h-48 w-full" />}>
-          <ImpersonationLogCard />
-        </Suspense>
-      </ErrorBoundary>
+      <Tabs defaultValue={tab === "impersonation" ? "impersonation" : "directory"}>
+        <TabsList>
+          <TabsTrigger value="directory">All Users</TabsTrigger>
+          <TabsTrigger value="impersonation">Impersonation Logs</TabsTrigger>
+        </TabsList>
 
-      <ErrorBoundary fallback={<SectionErrorFallback title="Users List" />}>
-        <Suspense fallback={<AdminUsersSkeleton />}>
-          <UsersSection />
-        </Suspense>
-      </ErrorBoundary>
+        <TabsContent value="directory">
+          <ErrorBoundary fallback={<SectionErrorFallback title="Users List" />}>
+            <Suspense fallback={<AdminUsersSkeleton />}>
+              <UsersSection />
+            </Suspense>
+          </ErrorBoundary>
+        </TabsContent>
+
+        <TabsContent value="impersonation">
+          <ErrorBoundary fallback={<SectionErrorFallback title="Impersonation log" />}>
+            <ImpersonationTab />
+          </ErrorBoundary>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
