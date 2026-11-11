@@ -198,6 +198,15 @@ export const getUsersFiltered = async ({ limit = 10 } = {}) => ({ users: mockUse
 export const getUserSessions = async () => mockSessions
 export const getSystemSettings = async () => mockSettings
 export const getConfiguredAuthFlags = () => ({ google: true, emailPassword: true, oneTap: false })
+export const getControlStatuses = () => ({
+  authEnableGoogle: { ok: true as const },
+  authEnableEmailPassword: { ok: true as const },
+  authEnableOneTap: {
+    ok: false as const,
+    kind: 'keys' as const,
+    reason: 'Missing environment variable: NEXT_PUBLIC_GOOGLE_CLIENT_ID. Add it and redeploy to unlock this toggle (NEXT_PUBLIC_ values need a rebuild).',
+  },
+})
 export const getAdminDashboardStats = async () => ({ totalUsers: 1284, newSignupsThisWeek: 37, activeSessions: 212, bannedCount: 4 })
 export const getDeviceThrottleActivity = async () => mockThrottleRows
 export const getRecentNewDevices = async () => mockNewDevices
