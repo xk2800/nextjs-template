@@ -1,10 +1,10 @@
-import AuthCard from '@/components/auth/authCard'
-import { AuthShell } from '@/components/auth/authShell'
-import LoginErrorRecovery from '@/components/auth/loginErrorRecovery'
+import AuthCard from '@/components/auth/layout/auth-card'
+import { AuthShell } from '@/components/auth/layout/auth-shell'
+import LoginErrorRecovery from '@/components/auth/forms/login-error-recovery'
 import React from 'react'
 import { auth } from "@/server/auth"
-import { getEffectiveAuthFlags } from "@/lib/settings-queries"
-import { normalizeCallbackUrl } from "@/lib/auth-helpers"
+import { getEffectiveAuthFlags } from "@/lib/db/queries/settings"
+import { normalizeCallbackUrl } from "@/lib/auth/helpers"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
 

@@ -1,1 +1,1 @@
-export { POST } from "@/lib/feedback-route"
+export { POST } from "@/lib/feedback/route"

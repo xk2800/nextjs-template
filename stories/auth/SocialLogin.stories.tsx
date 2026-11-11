@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { narrow } from "../_shared"
-import SocialLogin from "../../components/auth/socialLogin"
+import SocialLogin from "../../components/auth/methods/social-login"
 
 const meta = {
   title: "Auth/SocialLogin",

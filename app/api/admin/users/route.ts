@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth-helpers"
-import { getUsersFiltered } from "@/lib/user-queries"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { hasRole } from "@/lib/auth/helpers"
+import { getUsersFiltered } from "@/lib/db/queries/user"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({

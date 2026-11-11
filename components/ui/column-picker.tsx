@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./dropdown-menu"
-import type { Column } from "../../lib/recalculate-columns"
+import type { Column } from "../../lib/utils/recalculate-columns"
 
 // Lets an app switch every table's "Columns" menu on/off in one place (e.g. from a feature flag).
 const ColumnPickerContext = React.createContext(true)

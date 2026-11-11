@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import DashboardHeader from "../../components/dashboard/dashboardHeader"
+import DashboardHeader from "../../components/dashboard/layout/dashboard-header"
 import { ThemeToggle } from "../../components/theme/theme-toggle"
 
 const meta = {

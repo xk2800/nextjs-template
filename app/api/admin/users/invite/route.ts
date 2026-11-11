@@ -4,13 +4,13 @@ import { randomBytes } from "node:crypto"
 import { eq } from "drizzle-orm"
 import { z } from "zod"
 import { auth } from "@/server/auth"
-import { hasRole } from "@/lib/auth-helpers"
+import { hasRole } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"
-import { getResend, EMAIL_FROM } from "@/lib/resend"
-import { EmailTemplateInvite } from "@/components/email/email-template-invite"
-import { logActivity } from "@/lib/activity-logger"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { getResend, EMAIL_FROM } from "@/lib/email/resend"
+import { EmailTemplateInvite } from "@/components/email/team/workspace-invite"
+import { logActivity } from "@/lib/security/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 const INVITE_TTL_MS = 7 * 24 * 3600 * 1000
 

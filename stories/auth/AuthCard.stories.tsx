@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { narrow } from "../_shared"
-import AuthCard from "../../components/auth/authCard"
+import AuthCard from "../../components/auth/layout/auth-card"
 
 const meta = {
   title: "Auth/AuthCard",

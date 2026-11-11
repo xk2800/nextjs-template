@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { eq } from "drizzle-orm"
 import { auth } from "@/server/auth"
-import { hasRole } from "@/lib/auth-helpers"
-import { endImpersonation } from "@/lib/impersonation-queries"
+import { hasRole } from "@/lib/auth/helpers"
+import { endImpersonation } from "@/lib/db/queries/impersonation"
 import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
-import { logActivity } from "@/lib/activity-logger"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { logActivity } from "@/lib/security/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 // Force-ends an active impersonation by deleting its session(s). The stop
 // event is logged with metadata.forced so the table can show it as Revoked.

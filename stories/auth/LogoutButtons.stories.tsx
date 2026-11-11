@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import LogoutButtons from "../../components/auth/logoutButtons"
+import LogoutButtons from "../../components/auth/session/logout-buttons"
 
 const meta = {
   title: "Auth/LogoutButtons",

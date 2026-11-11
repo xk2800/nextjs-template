@@ -8,14 +8,14 @@ How to exercise features that aren't covered by `bun run test` alone.
 
 Throttles credential attempts by FingerprintJS `visitorId` (sent as the
 `x-device-fingerprint` header), not by IP. Policy lives in
-`lib/auth-throttle-limits.ts` (`MAX = 10` attempts / `WINDOW_MS = 15min`),
+`lib/auth/throttle-limits.ts` (`MAX = 10` attempts / `WINDOW_MS = 15min`),
 storage in `auth_throttle`, wiring in `server/auth.ts` (`hooks.before` /
 `hooks.after`).
 
 ### 1. Unit test (window / limit decision)
 
 ```bash
-bun lib/auth-throttle-limits.test.ts   # or: bun run test
+bun lib/auth/__tests__/auth-throttle-limits.test.ts   # or: bun run test
 ```
 
 ### 2. Load test (end-to-end, hits the real endpoint)
@@ -38,7 +38,7 @@ Args: `[total=30] [concurrency=1] [fingerprint]`. Target defaults to
 - `401`s are slow (~50–100ms — bcrypt runs); `429`s are fast (one indexed
   `SELECT`, no bcrypt). Latency drops off a cliff after attempt #10.
 - A concurrent burst leaks a few extra `401`s past 10 — the tumbling-window
-  race noted in the `ponytail:` comment in `lib/auth-throttle.ts`. A large
+  race noted in the `ponytail:` comment in `lib/auth/throttle.ts`. A large
   leak means switch to a sliding window.
 - A different fingerprint gets its own fresh budget of 10.
 - No real user needed — a nonexistent email still counts as a failed attempt.
@@ -62,7 +62,7 @@ DELETE FROM auth_throttle WHERE fingerprint LIKE 'loadtest-%';
 ### 5. Retention sweep
 
 Rows untouched for 30 days (`RETENTION_MS`) are deleted by
-`pruneStaleRows()` in `lib/auth-throttle.ts`, at most hourly per server
+`pruneStaleRows()` in `lib/auth/throttle.ts`, at most hourly per server
 instance, triggered by any throttle write. To check: restart the dev server,
 then plant a stale row:
 
@@ -85,7 +85,7 @@ First time an account is seen on a given FingerprintJS `visitorId`, the user
 **and every admin** get an email and the sign-in shows on the admin panel's
 **New devices** card. Detection is fingerprint-only (not IP/UA). Route:
 `app/api/device-check/route.ts`, client trigger:
-`components/auth/deviceCheck.tsx`, storage: `device_fingerprint`.
+`components/auth/session/device-check.tsx`, storage: `device_fingerprint`.
 
 ### 1. End-to-end test (hits the real endpoint)
 
@@ -134,13 +134,13 @@ DELETE FROM device_fingerprint WHERE "visitorId" LIKE 'testdev-%';
 
 The admin panel's **Shared devices** card flags any FingerprintJS `visitorId`
 in `device_fingerprint` that 3+ distinct accounts have signed in from
-(threshold: `MIN_SHARED_ACCOUNTS` in `lib/admin-queries.ts`). Grouping / sort /
-threshold logic is pure and lives in `lib/shared-devices.ts`.
+(threshold: `MIN_SHARED_ACCOUNTS` in `lib/db/queries/admin.ts`). Grouping / sort /
+threshold logic is pure and lives in `lib/security/shared-devices.ts`.
 
 ### 1. Unit test (grouping / sort / limit / threshold)
 
 ```bash
-bun lib/shared-devices.test.ts   # or: bun run test
+bun lib/security/__tests__/shared-devices.test.ts   # or: bun run test
 ```
 
 ### 2. Admin dashboard view
@@ -168,10 +168,10 @@ DELETE FROM device_fingerprint WHERE "visitorId" LIKE 'sharedtest-%';
 ## Two-factor auth (TOTP) & passkeys
 
 Better-Auth's `twoFactor` + `passkey` plugins, wired in `server/auth.ts` /
-`lib/auth-client.ts`. UI: `components/dashboard/twoFactorCard.tsx`,
-`components/dashboard/passkeysCard.tsx` (dashboard **Settings** → Security),
-`components/auth/twoFactorVerifyForm.tsx` (`/login/2fa`),
-`components/auth/passkeyLogin.tsx` (login page). Tables: `twoFactor`,
+`lib/auth/client.ts`. UI: `components/dashboard/settings/two-factor-card.tsx`,
+`components/dashboard/settings/passkeys-card.tsx` (dashboard **Settings** → Security),
+`components/auth/mfa/two-factor-verify-form.tsx` (`/login/2fa`),
+`components/auth/methods/passkey-login.tsx` (login page). Tables: `twoFactor`,
 `passkey`, `user.twoFactorEnabled` (migration `0013`).
 
 Not covered by `bun run test` — WebAuthn needs a real authenticator, TOTP
@@ -238,10 +238,10 @@ DELETE FROM "user" WHERE email LIKE '2fa-test-%';   -- cascades to twoFactor / p
 ## Email verification
 
 Better-Auth's core `emailVerification` config in `server/auth.ts` (Resend +
-`components/email/email-template-verify-email.tsx`). Opt-in:
+`components/email/auth/verify-email.tsx`). Opt-in:
 `requireEmailVerification: false`. UI: **Verify email** button on the
 dashboard **Account Details** card
-(`components/dashboard/verifyEmailButton.tsx`), shown only while
+(`components/dashboard/common/verify-email-button.tsx`), shown only while
 `user.emailVerified` is false. No new table — reuses `verification`.
 
 Not covered by `bun run test` — needs a real inbox (Resend) to click the link.
@@ -277,7 +277,7 @@ DELETE FROM "verification" WHERE identifier LIKE 'email-verification%';
 
 An auth `after` hook in `server/auth.ts` (`notifyPasskeyChange`) fires on a
 successful `/passkey/verify-registration` or `/passkey/delete-passkey`: it
-emails the account owner via `components/email/email-template-passkey-change.tsx`
+emails the account owner via `components/email/security/passkey-changed.tsx`
 (Resend) and writes a `passkey_added` / `passkey_removed` row to the activity
 log. Best-effort — never fails the endpoint; self-disables without
 `RESEND_API_KEY`. Needs migration `0014` (new `activity_actions` enum values).
@@ -314,7 +314,7 @@ deletes on use. A second hit of `/api/auth/callback/google` (browser Back
 after Google's no-consent redirect, bfcache replay, prefetch, double-nav —
 better-auth#5658 / #6544) finds no row and redirects to
 `/login?error=please_restart_the_process` (via `onAPIError.errorURL` in
-`server/auth.ts`). `components/auth/loginErrorRecovery.tsx`, rendered by
+`server/auth.ts`). `components/auth/forms/login-error-recovery.tsx`, rendered by
 `app/(auth)/login/page.tsx` whenever `?error=` is present, recovers from it.
 
 Not covered by `bun run test` — needs a real Google round trip.
@@ -337,9 +337,9 @@ Not covered by `bun run test` — needs a real Google round trip.
 
 ## Cookie-consent banner
 
-`components/site/cookie-banner.tsx` (UI, mounted in `app/layout.tsx`) +
-`lib/cookie-consent.ts` (state in the `cookie_consent` cookie). Gates
-`getVisitorId()` (`lib/device-fingerprint.ts`) and `<OneTap />`.
+`components/site/compliance/cookie-banner.tsx` (UI, mounted in `app/layout.tsx`) +
+`lib/security/cookie-consent.ts` (state in the `cookie_consent` cookie). Gates
+`getVisitorId()` (`lib/security/device-fingerprint.ts`) and `<OneTap />`.
 
 Not covered by `bun run test`. Needs a browser.
 
@@ -362,7 +362,7 @@ Not covered by `bun run test`. Needs a browser.
    prompt. Redo with only One Tap ticked → `cookie_consent=onetap`: the
    prompt shows, but no header and no device check. Ticking both stores
    `all`; ticking neither stores `necessary`. Unit test:
-   `bun lib/cookie-names.test.ts`.
+   `bun lib/security/__tests__/cookie-names.test.ts`.
 4c. Proof of consent. Signed in, make a choice: `POST /api/consent` is sent
    once and a `consent_log` row appears with that `choice` and `version`.
    Reloading sends nothing (the `localStorage['consent-recorded']` marker),
@@ -398,10 +398,10 @@ Not covered by `bun run test`. Needs a browser.
 
 ## Device signals (admin user page)
 
-`lib/device-fingerprint.ts` (`getDeviceSignals()`) →
-`components/auth/deviceCheck.tsx` → `app/api/device-check/route.ts`
+`lib/security/device-fingerprint.ts` (`getDeviceSignals()`) →
+`components/auth/session/device-check.tsx` → `app/api/device-check/route.ts`
 (`device_fingerprint.components`) → `getUserDevices()` in
-`lib/admin-queries.ts` → `components/dashboard/admin/adminUserDevicesCard.tsx`.
+`lib/db/queries/admin.ts` → `components/dashboard/admin/users/detail/admin-user-devices-card.tsx`.
 
 1. Allow the security fingerprint (or Accept all) and sign in. Open
    `/dashboard/admin/users/<your id>` as an admin → **Devices** card →
@@ -425,7 +425,7 @@ Not covered by `bun run test`. Needs a browser.
 
 `app/manifest.ts` + `app/icons/[file]/route.tsx` (icons generated from
 `app/favicon.ico`) + `public/sw.js` (offline page) +
-`components/dashboard/installAppCard.tsx` (Settings → This device).
+`components/dashboard/overview/install-app-card.tsx` (Settings → This device).
 
 Not covered by `bun run test`.
 
@@ -454,7 +454,7 @@ Not covered by `bun run test`.
 5. Turn on maintenance mode: `/manifest.webmanifest` and the icons still load
    (the `proxy.ts` matcher skips paths with a file extension).
 
-6. Install card: Settings → **This device**. `bun lib/install-target.test.ts`
+6. Install card: Settings → **This device**. `bun lib/utils/__tests__/install-target.test.ts`
    covers detection. In the browser, DevTools device mode (or a different UA)
    changes what it shows: "Safari on iPhone / iPad" with 3 Share steps;
    "Samsung Internet on Android" with the ☰ menu; "Chrome on this computer"
@@ -467,8 +467,8 @@ Not covered by `bun run test`.
 
 ## Push notifications (example)
 
-`lib/push.ts`, `lib/push-client.ts`, `app/api/push/*`, `public/sw.js`,
-`components/site/push-notifications-card.tsx` (Settings), `components/site/push-sync.tsx`.
+`lib/push/push.ts`, `lib/push/client.ts`, `app/api/push/*`, `public/sw.js`,
+`components/site/push/push-notifications-card.tsx` (Settings), `components/site/push/push-sync.tsx`.
 Needs a production build (`bun run build && bun run start`) and VAPID keys
 (`bunx web-push generate-vapid-keys`) in `.env.development`.
 
@@ -488,7 +488,7 @@ Needs a production build (`bun run build && bun run start`) and VAPID keys
 
 ## Delete account (self-serve)
 
-`components/dashboard/deleteAccountCard.tsx` (Settings → Danger zone) calls
+`components/dashboard/settings/delete-account-card.tsx` (Settings → Danger zone) calls
 Better-Auth's `deleteUser` (`user.deleteUser.enabled` in `server/auth.ts`).
 Guards live in the `hooks.before` branch for `/delete-user`.
 
@@ -510,12 +510,12 @@ Not covered by `bun run test`. Needs a browser or curl.
 Enforced in `proxy.ts`. Everything is blocked for non-admins except the paths
 in **Admin → System Settings → Paths that stay open during maintenance**
 (`system_settings.maintenanceExemptPaths`, default = public pages) plus the
-always-open auth paths in `lib/maintenance.ts`.
+always-open auth paths in `lib/config/maintenance.ts`.
 
 ### 1. Unit test (path matching)
 
 ```bash
-bun lib/maintenance.test.ts   # or: bun run test
+bun lib/config/__tests__/maintenance.test.ts   # or: bun run test
 ```
 
 ### 2. Manual
@@ -534,7 +534,7 @@ browser:
 
 ## Feedback form (Discord webhook / email)
 
-Route: `app/api/feedback/route.ts`. UI: `components/dashboard/feedbackDialog.tsx`
+Route: `app/api/feedback/route.ts`. UI: `components/dashboard/common/feedback-dialog.tsx`
 in the dashboard header.
 
 ### Setup
@@ -569,7 +569,7 @@ FEEDBACK_EMAIL=you@example.com   # needs RESEND_API_KEY + a verified EMAIL_FROM
 `components/ui/file-upload.tsx`. Accept-type matching is unit-tested:
 
 ```bash
-bun lib/file-upload-accept.test.ts   # or: bun run test
+bun lib/utils/__tests__/file-upload-accept.test.ts   # or: bun run test
 ```
 
 Manual, in Storybook (`bun run storybook` → UI/FileUpload):
@@ -590,7 +590,7 @@ Manual, in Storybook (`bun run storybook` → UI/FileUpload):
 Text → HTML conversion (escaping, paragraphs, unsubscribe link) is unit-tested:
 
 ```bash
-bun lib/marketing-email.test.ts   # or: bun run test
+bun lib/email/__tests__/marketing-email.test.ts   # or: bun run test
 ```
 
 Needs a **full access** `RESEND_BROADCAST_API_KEY` (or `RESEND_API_KEY` if that is blank) and an `EMAIL_FROM` on a verified domain.

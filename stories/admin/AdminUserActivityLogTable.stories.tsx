@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import AdminUserActivityLogTable from "../../components/dashboard/admin/adminUserActivityLogTable"
+import AdminUserActivityLogTable from "../../components/dashboard/admin/users/detail/admin-user-activity-log-table"
 import { mockActivityLogs } from "../../.storybook/mocks"
 
 const rows = mockActivityLogs.map((l) => ({ ...l, referrerUrl: "https://google.com/", device: l.deviceLabel, location: l.location }))

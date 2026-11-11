@@ -20,11 +20,14 @@ const config: StorybookConfig = {
       // DB / server-only modules → fixtures, so stories need no database.
       { find: /^@xk2800\/nextjs-template\/(activity|admin|users|sessions|settings)\/queries$/, replacement: mocks },
       { find: /^@\/server\/auth$/, replacement: mocks },
-      { find: /^(\.\.\/)+lib\/request-info$/, replacement: mocks },
+      { find: /^(\.\.\/)+lib\/utils\/request-info$/, replacement: mocks },
       // Auth client → fake session + no-op API calls.
-      { find: /^(@\/|(\.\.\/)+)lib\/auth-client$/, replacement: mocks },
+      { find: /^(@\/|(\.\.\/)+)lib\/auth\/client$/, replacement: mocks },
       { find: /^@xk2800\/nextjs-template\/auth-client$/, replacement: mocks },
       // Package self-imports → local source.
+      { find: /^@xk2800\/nextjs-template\/lib\/(formatters|recalculate-columns|request-info)$/, replacement: r("../lib/utils/$1.ts") },
+      { find: /^@xk2800\/nextjs-template\/lib\/maintenance$/, replacement: r("../lib/config/maintenance.ts") },
+      { find: /^@xk2800\/nextjs-template\/lib\/(cookie-consent|cookie-names|device-fingerprint)$/, replacement: r("../lib/security/$1.ts") },
       { find: /^@xk2800\/nextjs-template\/lib\/(.*)$/, replacement: r("../lib/$1.ts") },
       ...(Array.isArray(existing) ? existing : Object.entries(existing).map(([find, replacement]) => ({ find, replacement }))),
     ]

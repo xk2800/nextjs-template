@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { EmailPreview } from "../_shared"
-import { EmailTemplatePasskeyChange } from "../../components/email/email-template-passkey-change"
+import { EmailTemplatePasskeyChange } from "../../components/email/security/passkey-changed"
 
 const meta = {
   title: "Email/PasskeyChange",

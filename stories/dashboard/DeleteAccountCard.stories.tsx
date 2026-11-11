@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import DeleteAccountCard from "../../components/dashboard/deleteAccountCard"
+import DeleteAccountCard from "../../components/dashboard/settings/delete-account-card"
 
 const meta = {
   title: "Dashboard/DeleteAccountCard",

@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth-helpers"
-import { getActivityLogsFiltered, type ActivityActionFilter } from "@/lib/activity-queries"
+import { hasRole } from "@/lib/auth/helpers"
+import { getActivityLogsFiltered, type ActivityActionFilter } from "@/lib/db/queries/activity"
 import { ActivityActionEnum } from "@/server/db/schema"
-import { actionsFor } from "@/lib/activity-severity"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { actionsFor } from "@/lib/security/activity-severity"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function GET(request: NextRequest) {
   const session = await auth.api.getSession({

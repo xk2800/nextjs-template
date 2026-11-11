@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import TwoFactorCard from "../../components/dashboard/twoFactorCard"
+import TwoFactorCard from "../../components/dashboard/settings/two-factor-card"
 import { mockSessions, mockUser } from "../../.storybook/mocks"
 
 const meta = {

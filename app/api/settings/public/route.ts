@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { getEffectiveAuthFlags } from "@/lib/settings-queries"
+import { getEffectiveAuthFlags } from "@/lib/db/queries/settings"
 
 // Public, unauthenticated — only exposes the subset of settings a
 // not-yet-signed-in client needs to decide what to render (e.g. whether to

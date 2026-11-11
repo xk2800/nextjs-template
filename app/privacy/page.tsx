@@ -1,6 +1,6 @@
-import { SiteHeader } from "@/components/site/site-header"
-import { SiteFooter } from "@/components/site/site-footer"
-import { getSystemSettings, isConsentRequired } from "@/lib/settings-queries"
+import { SiteHeader } from "@/components/site/layout/header"
+import { SiteFooter } from "@/components/site/layout/footer"
+import { getSystemSettings, isConsentRequired } from "@/lib/db/queries/settings"
 
 export const metadata = {
   title: "Privacy Policy — nextjs-template",

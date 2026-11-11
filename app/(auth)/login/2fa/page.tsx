@@ -1,7 +1,7 @@
 import React from 'react'
-import { AuthShell } from '@/components/auth/authShell'
-import TwoFactorVerifyForm from '@/components/auth/twoFactorVerifyForm'
-import { normalizeCallbackUrl } from '@/lib/auth-helpers'
+import { AuthShell } from '@/components/auth/layout/auth-shell'
+import TwoFactorVerifyForm from '@/components/auth/mfa/two-factor-verify-form'
+import { normalizeCallbackUrl } from '@/lib/auth/helpers'
 
 const TwoFactorPage = async ({
   searchParams,

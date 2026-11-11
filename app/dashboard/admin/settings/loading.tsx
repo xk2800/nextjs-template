@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import SystemSettingsSkeleton from "@/components/dashboard/admin/systemSettingsSkeleton"
+import SystemSettingsSkeleton from "@/components/dashboard/admin/system-settings/skeletons/system-settings-skeleton"
 
 export default function AdminSettingsLoading() {
   return (

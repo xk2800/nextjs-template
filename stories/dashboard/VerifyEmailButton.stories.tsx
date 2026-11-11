@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import VerifyEmailButton from "../../components/dashboard/verifyEmailButton"
+import VerifyEmailButton from "../../components/dashboard/common/verify-email-button"
 
 const meta = {
   title: "Dashboard/VerifyEmailButton",

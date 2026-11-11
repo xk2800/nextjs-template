@@ -2,7 +2,7 @@ import Link from "next/link"
 import { KeyRound, Plus, UserPlus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { recentActivity } from "@/lib/mock-dashboard-data"
+import { recentActivity } from "@/lib/mock/dashboard-data"
 
 // Wire these buttons to your own routes/actions.
 export function RecentActivity() {

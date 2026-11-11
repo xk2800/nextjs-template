@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import SystemSettingsSection from "../../components/dashboard/admin/systemSettingsSection"
+import SystemSettingsSection from "../../components/dashboard/admin/system-settings/system-settings-section"
 
 const meta = {
   title: "Admin/SystemSettingsSection",

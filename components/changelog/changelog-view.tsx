@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge"
-import { SiteHeader } from "@/components/site/site-header"
-import { SiteFooter } from "@/components/site/site-footer"
+import { SiteHeader } from "@/components/site/layout/header"
+import { SiteFooter } from "@/components/site/layout/footer"
 
 export interface ChangelogEntry {
   version: string

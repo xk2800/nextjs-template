@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { narrow } from "../_shared"
-import ResetPasswordForm from "../../components/auth/resetPasswordForm"
+import ResetPasswordForm from "../../components/auth/recovery/reset-password-form"
 
 const meta = {
   title: "Auth/ResetPasswordForm",

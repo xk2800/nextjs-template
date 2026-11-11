@@ -1,6 +1,6 @@
-import { getImpersonationSessions } from "@/lib/impersonation-queries"
-import { getDeviceThrottleActivity } from "@/lib/admin-queries"
-import SecurityHighlightsCollapsible from "@/components/dashboard/admin/securityHighlightsCollapsible"
+import { getImpersonationSessions } from "@/lib/db/queries/impersonation"
+import { getDeviceThrottleActivity } from "@/lib/db/queries/admin"
+import SecurityHighlightsCollapsible from "@/components/dashboard/admin/activity-logs/security-highlights-collapsible"
 
 // Fetches the numbers for the collapsed header and the two panels.
 export default async function SecurityHighlights() {

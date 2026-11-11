@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { EmailPreview } from "../_shared"
-import { EmailTemplateResetPassword } from "../../components/email/email-template-reset-password"
+import { EmailTemplateResetPassword } from "../../components/email/auth/reset-password"
 
 const meta = {
   title: "Email/ResetPassword",

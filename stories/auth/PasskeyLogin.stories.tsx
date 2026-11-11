@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { narrow } from "../_shared"
-import PasskeyLogin from "../../components/auth/passkeyLogin"
+import PasskeyLogin from "../../components/auth/methods/passkey-login"
 
 const meta = {
   title: "Auth/PasskeyLogin",

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { Badge } from "../../components/ui/badge"
-import AdminUsersTable, { type AdminUser } from "../../components/dashboard/admin/adminUsersTable"
+import AdminUsersTable, { type AdminUser } from "../../components/dashboard/admin/users/admin-users-table"
 import { mockUsers } from "../../.storybook/mocks"
 
 const meta = {

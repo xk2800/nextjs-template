@@ -53,12 +53,12 @@ Pages read the database directly through these `server-only` helpers instead of 
 
 | Module | Key exports |
 |---|---|
-| `lib/admin-queries.ts` | `getAdminStats`, new-device, throttle and shared-device lists |
-| `lib/user-queries.ts` | Admin user list and detail queries |
-| `lib/session-queries.ts` | `getUserSessions` |
-| `lib/activity-queries.ts` | `getUserActivityLogs`, `getAllActivityLogs` |
-| `lib/settings-queries.ts` | `getSystemSettings`, `updateSystemSettings`, `getEffectiveAuthFlags` |
-| `lib/activity-logger.ts` | `logActivity` |
+| `lib/db/queries/admin.ts` | `getAdminStats`, new-device, throttle and shared-device lists |
+| `lib/db/queries/user.ts` | Admin user list and detail queries |
+| `lib/db/queries/session.ts` | `getUserSessions` |
+| `lib/db/queries/activity.ts` | `getUserActivityLogs`, `getAllActivityLogs` |
+| `lib/db/queries/settings.ts` | `getSystemSettings`, `updateSystemSettings`, `getEffectiveAuthFlags` |
+| `lib/security/activity-logger.ts` | `logActivity` |
 
 ## Error refs
 

@@ -5,18 +5,18 @@ import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { deviceFingerprints } from "@/server/db/schema"
 import { config } from "@/config/env"
-import { getResend, EMAIL_FROM } from "@/lib/resend"
-import { getAdminEmails } from "@/lib/user-queries"
+import { getResend, EMAIL_FROM } from "@/lib/email/resend"
+import { getAdminEmails } from "@/lib/db/queries/user"
 import {
   getClientIp,
   parseUserAgent,
   lookupGeoLocation,
   formatDeviceInfo,
   formatLocation,
-} from "@/lib/request-info"
-import { EmailTemplateNewDevice } from "@/components/email/email-template-new-device"
-import { getSystemSettings, isConsentRequired } from "@/lib/settings-queries"
-import { COOKIE_CONSENT_COOKIE, EXCLUDED_SIGNALS, consentAllows } from "@/lib/cookie-names"
+} from "@/lib/utils/request-info"
+import { EmailTemplateNewDevice } from "@/components/email/security/new-device-alert"
+import { getSystemSettings, isConsentRequired } from "@/lib/db/queries/settings"
+import { COOKIE_CONSENT_COOKIE, EXCLUDED_SIGNALS, consentAllows } from "@/lib/security/cookie-names"
 
 // Client-sent signals: a plain object under 32 KB (the client hashes large
 // values, so real payloads are a few KB), minus the accessibility signals.

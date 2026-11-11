@@ -1,7 +1,7 @@
 import { boolean, check, index, integer, jsonb, pgEnum, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createId } from '@paralleldrive/cuid2'
-import { DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "../../lib/maintenance";
+import { DEFAULT_MAINTENANCE_EXEMPT_PATHS } from "../../lib/config/maintenance";
 
 // 'tester' is a regular user account flagged for testing; apps can use it to
 // keep test accounts apart from real users. It has no admin access.

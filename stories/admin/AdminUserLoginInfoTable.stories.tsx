@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import AdminUserLoginInfoTable from "../../components/dashboard/admin/adminUserLoginInfoTable"
+import AdminUserLoginInfoTable from "../../components/dashboard/admin/users/detail/admin-user-login-info-table"
 import { mockLoginHistory } from "../../.storybook/mocks"
 
 const rows = mockLoginHistory.map((l) => ({

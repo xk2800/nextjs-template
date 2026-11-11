@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth-helpers"
-import { getUserActivityLogs, getAllActivityLogs } from "@/lib/activity-queries"
-import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { hasRole } from "@/lib/auth/helpers"
+import { getUserActivityLogs, getAllActivityLogs } from "@/lib/db/queries/activity"
+import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/utils/request-info"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 function withDeviceInfo<T extends { ipAddress: string | null; userAgent: string | null }>(logs: T[]) {
   return logs.map((log) => ({

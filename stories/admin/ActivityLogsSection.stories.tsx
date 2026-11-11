@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import ActivityLogsSection from "../../components/dashboard/admin/activityLogsSection"
+import ActivityLogsSection from "../../components/dashboard/admin/activity-logs/activity-logs-section"
 
 const meta = {
   title: "Admin/ActivityLogsSection",

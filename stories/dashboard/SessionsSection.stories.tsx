@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import SessionsSection from "../../components/dashboard/sessionsSection"
+import SessionsSection from "../../components/dashboard/settings/sessions/sessions-section"
 import { mockUser } from "../../.storybook/mocks"
 
 const meta = {

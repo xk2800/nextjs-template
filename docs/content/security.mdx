@@ -50,9 +50,9 @@ The check only runs after the visitor allows the security fingerprint (when cons
 - **Sign-in:** failures count toward the limit, and a successful sign-in resets it.
 - **Sign-up:** every attempt counts, because mass sign-ups are the abuse being limited.
 - Over the limit, the endpoint returns `429` with "Too many attempts from this device".
-- **Retention:** each row stores the last IP, user agent and email typed, often for people without an account. Rows untouched for 30 days are deleted. The sweep runs on the sign-in path, at most hourly per server instance, so no cron is needed. On a site with no sign-in attempts, old rows stay until the next attempt; if you need a hard guarantee, call `pruneStaleRows()` from `lib/auth-throttle.ts` on a schedule.
+- **Retention:** each row stores the last IP, user agent and email typed, often for people without an account. Rows untouched for 30 days are deleted. The sweep runs on the sign-in path, at most hourly per server instance, so no cron is needed. On a site with no sign-in attempts, old rows stay until the next attempt; if you need a hard guarantee, call `pruneStaleRows()` from `lib/auth/throttle.ts` on a schedule.
 
-The limits (`WINDOW_MS`, `MAX`, `RETENTION_MS`) are fixed inside the package's auth. Editing your local `lib/auth-throttle-limits.ts` has no effect unless you also use your own `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)). Throttled devices appear on the admin **Device throttle** card.
+The limits (`WINDOW_MS`, `MAX`, `RETENTION_MS`) are fixed inside the package's auth. Editing your local `lib/auth/throttle-limits.ts` has no effect unless you also use your own `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)). Throttled devices appear on the admin **Device throttle** card.
 
 <Callout type="info">
 The client IP comes from `x-forwarded-for` (first entry), falling back to `x-real-ip`. Behind your own reverse proxy, make sure it sets one of these. Otherwise every request shares one IP, and the IP cap throttles everyone at once.
@@ -87,14 +87,14 @@ Consent is given **per purpose**, as regulators such as the CNIL expect, because
 
 **Require consent (GDPR / ePrivacy)** in System Settings decides whether any of this applies:
 
-- **On:** the banner shows, and fingerprinting and One Tap each wait for consent to their purpose. `/api/device-check` also checks the `cookie_consent` cookie itself and returns `403` unless it allows `fingerprint` (`consentAllows()` in `lib/cookie-names.ts`), so a stale or modified client can't record a device without consent.
+- **On:** the banner shows, and fingerprinting and One Tap each wait for consent to their purpose. `/api/device-check` also checks the `cookie_consent` cookie itself and returns `403` unless it allows `fingerprint` (`consentAllows()` in `lib/security/cookie-names.ts`), so a stale or modified client can't record a device without consent.
 - **Off:** no banner and no "Cookie settings" link. Everything runs for every visitor as if they had accepted.
 
 <Callout type="error">
 **Turning consent off is illegal for EU and UK visitors.** Turning off **Require consent**, or setting `NEXT_PUBLIC_COOKIE_BANNER=false`, means every visitor is fingerprinted and shown Google One Tap without being asked. Under the ePrivacy Directive (Art. 5(3)) and GDPR, that breaks the law for anyone in the EU, the EEA or the UK, whatever your legitimate-interest reasoning. Regulators have confirmed that fingerprinting counts as storing or reading information on the device (EDPB Guidelines 2/2023). Turn it off only if none of your users are in those regions or in any other region with similar consent rules. If you're not sure, leave it on.
 </Callout>
 
-Until an admin saves the setting, it follows `NEXT_PUBLIC_COOKIE_BANNER`, so migrating never flips a deployed banner. `proxy.ts` copies the effective value into a `consent_required` cookie (`1`/`0`) that `lib/cookie-consent.ts` reads, so the root layout stays static. Changes reach every instance within the 10-second settings cache.
+Until an admin saves the setting, it follows `NEXT_PUBLIC_COOKIE_BANNER`, so migrating never flips a deployed banner. `proxy.ts` copies the effective value into a `consent_required` cookie (`1`/`0`) that `lib/security/cookie-consent.ts` reads, so the root layout stays static. Changes reach every instance within the 10-second settings cache.
 
 The placeholder `/privacy` page follows the setting too. It's rendered per request and describes the consent flow when consent is on, or says fingerprinting runs for every visitor when it's off. It also covers the legal basis, retention, third parties (Resend, Google) and user rights. `/terms` has a short security and abuse-prevention clause that links to it. Both are templates: rewrite them for your deployment.
 
@@ -115,7 +115,7 @@ GDPR Art. 7(1) says you must be able to *demonstrate* consent, and the browser c
 - **Only on change.** A row is added only when the choice or version differs from the user's latest record. A `localStorage` marker (`consent-recorded`) saves the request in between. If several tabs post at once, each new row names the record it follows (`previousId`, unique per user), so only one insert lands.
 - **Minimal.** No IP or user agent. Rows are deleted with the account.
 - **Signed-in users only.** A record tied to an account is what proves consent, and it keeps the endpoint closed to anonymous spam. An anonymous visitor's choice is recorded once they sign in.
-- **Bump `CONSENT_VERSION`** in `lib/cookie-names.ts` when the banner or privacy-page purposes change materially, so records show which wording each user agreed to. Bumping it doesn't re-ask visitors.
+- **Bump `CONSENT_VERSION`** in `lib/security/cookie-names.ts` when the banner or privacy-page purposes change materially, so records show which wording each user agreed to. Bumping it doesn't re-ask visitors.
 
 Admins see it on the user's admin page in the **Consent** card. It shows the current choice per purpose (allowed or declined), then every recorded change with its version and time. To query it directly:
 
@@ -126,7 +126,7 @@ SELECT choice, version, "createdAt" FROM consent_log WHERE "userId" = '<id>' ORD
 Gate your own analytics the same way:
 
 ```tsx
-import { useCookieConsent, useConsentFor } from "@/lib/cookie-consent"
+import { useCookieConsent, useConsentFor } from "@/lib/security/cookie-consent"
 
 const consent = useCookieConsent() // "all" | "necessary" | "custom" | null
 if (consent === "all") loadAnalytics()
@@ -134,14 +134,14 @@ if (consent === "all") loadAnalytics()
 const fingerprintAllowed = useConsentFor("fingerprint") // per purpose
 ```
 
-To give your own feature a separate choice, add a purpose to `ConsentPurpose` / `CONSENT_PURPOSES` in `lib/cookie-names.ts` and to `PURPOSES` in the banner. Both ship in the package, so that needs your own copies (see [Customizing package code](/architecture#customizing-package-code)).
+To give your own feature a separate choice, add a purpose to `ConsentPurpose` / `CONSENT_PURPOSES` in `lib/security/cookie-names.ts` and to `PURPOSES` in the banner. Both ship in the package, so that needs your own copies (see [Customizing package code](/architecture#customizing-package-code)).
 
 If none of your users are in the EU, the UK or another consent-rules region, you can drop the banner: turn **Require consent** off in System Settings, or set `NEXT_PUBLIC_COOKIE_BANNER=false` to make that the default. Consent is then treated as granted for everyone. For an EU or UK audience that's a violation; see the warning under [Consent mode](#consent-mode).
 
 <Callout type="warning">
 Upgrading from an earlier version: run `bun run generate` and migrate. That adds `system_settings."consentRequired"`, `device_fingerprint.components` and the `consent_log` table. Until you migrate, settings reads fail open to env defaults. `app/api/consent/route.ts` is new and local, so copy it too; until you do, the banner's proof-of-consent request gets a 404 and nothing is recorded. These existing files are also local to your project and don't update with the package: `proxy.ts` (sets the `consent_required` cookie; without it the client falls back to `NEXT_PUBLIC_COOKIE_BANNER`), `app/api/device-check/route.ts` (the consent check and signal storage; an older route that checks `cookie_consent === "all"` refuses visitors who allowed only `fingerprint` under **Customize**) and `app/dashboard/admin/users/[userId]/page.tsx` (renders `<AdminUserDevicesCard />` and `<AdminUserConsentCard />`). Copy the changes from the template.
 
-Projects scaffolded before `lib/cookie-names.ts`, `lib/device-fingerprint.ts`, `lib/request-info.ts` and `hooks/use-{mobile,dimensions}.ts` were exported still have full local copies of them. Replace each with a one-line re-export, for example `export * from "@xk2800/nextjs-template/lib/cookie-names"`. Otherwise your local routes keep the old consent rules (`CONSENT_VERSION`, purposes, `EXCLUDED_SIGNALS`) while the package's banner uses the new ones.
+Projects scaffolded before `lib/security/cookie-names.ts`, `lib/security/device-fingerprint.ts`, `lib/utils/request-info.ts` and `hooks/use-{mobile,dimensions}.ts` were exported still have full local copies of them. Replace each with a one-line re-export, for example `export * from "@xk2800/nextjs-template/lib/cookie-names"`. Otherwise your local routes keep the old consent rules (`CONSENT_VERSION`, purposes, `EXCLUDED_SIGNALS`) while the package's banner uses the new ones.
 </Callout>
 
 ## Open-redirect protection

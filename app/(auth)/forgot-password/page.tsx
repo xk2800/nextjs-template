@@ -1,8 +1,8 @@
 import Link from 'next/link'
-import { AuthShell } from '@/components/auth/authShell'
-import ForgotPasswordForm from '@/components/auth/forgotPasswordForm'
+import { AuthShell } from '@/components/auth/layout/auth-shell'
+import ForgotPasswordForm from '@/components/auth/recovery/forgot-password-form'
 import { auth } from '@/server/auth'
-import { getEffectiveAuthFlags } from '@/lib/settings-queries'
+import { getEffectiveAuthFlags } from '@/lib/db/queries/settings'
 import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 

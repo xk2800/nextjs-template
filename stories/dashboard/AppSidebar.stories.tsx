@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import AppSidebar from "../../components/dashboard/appSidebar"
+import AppSidebar from "../../components/dashboard/layout/app-sidebar"
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "../../components/ui/sidebar"
 import { ownFrame } from "../_shared"
 import { mockUser } from "../../.storybook/mocks"

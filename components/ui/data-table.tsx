@@ -12,7 +12,7 @@ import {
   STICKY_BREAKPOINT,
   recalculateColumns,
   type Column,
-} from "../../lib/recalculate-columns"
+} from "../../lib/utils/recalculate-columns"
 import {
   TableBody,
   TableCell,

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth-helpers"
+import { hasRole } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
 import { eq, inArray } from "drizzle-orm"
-import { logActivity } from "@/lib/activity-logger"
-import { sendBanEmail } from "@/lib/ban-email"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { logActivity } from "@/lib/security/activity-logger"
+import { sendBanEmail } from "@/lib/email/ban-email"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function POST(request: NextRequest) {
   const session = await auth.api.getSession({

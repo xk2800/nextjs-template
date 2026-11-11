@@ -123,7 +123,7 @@ export const mockPasskeys = [
   { id: "pk_2", name: "iPhone", deviceType: "multiDevice", createdAt: ago(60 * 24 * 2) },
 ]
 
-// ---------- session (lib/auth-client + server/auth) ----------
+// ---------- session (lib/auth/client + server/auth) ----------
 
 export type MockSession = { user: typeof mockUser; session: (typeof mockSessions)[number] } | null
 
@@ -167,7 +167,7 @@ export const { signIn, signOut, signUp } = authClient
 
 export const auth = { api: { getSession: async () => currentSession } }
 
-// ---------- lib/request-info (real one is server-only + geoip) ----------
+// ---------- lib/utils/request-info (real one is server-only + geoip) ----------
 
 export const parseUserAgent = (ua: string | null | undefined) =>
   ua?.includes("iPhone")

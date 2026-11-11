@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { fn } from "storybook/test"
 import changelog from "../../data/changelog.json"
-import { UpdateModal } from "../../components/Updates/UpdateModal"
+import { UpdateModal } from "../../components/updates/update-modal"
 import { ownFrame } from "../_shared"
 
 const meta = {

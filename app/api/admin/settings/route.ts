@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth-helpers"
+import { hasRole } from "@/lib/auth/helpers"
 import { config } from "@/config/env"
-import { getSystemSettings, updateSystemSettings } from "@/lib/settings-queries"
-import { logActivity } from "@/lib/activity-logger"
+import { getSystemSettings, updateSystemSettings } from "@/lib/db/queries/settings"
+import { logActivity } from "@/lib/security/activity-logger"
 import { z } from "zod"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 const patchSchema = z.object({
   maintenanceMode: z.boolean().optional(),

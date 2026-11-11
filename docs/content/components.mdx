@@ -47,7 +47,7 @@ Add more with `bunx shadcn@latest add <name>`. The config is in `components.json
   | `descriptionClassName` | — | Extra classes for the description text. |
   | `onFilesChange` | | Called with the full current list after every add or remove. |
 
-- `data-table` is a paginated table that hides columns as the container narrows (`lib/recalculate-columns.ts`). `components/dashboard/sessionsCard.tsx` is a working example.
+- `data-table` is a paginated table that hides columns as the container narrows (`lib/utils/recalculate-columns.ts`). `components/dashboard/settings/sessions/sessions-card.tsx` is a working example.
 
   Each column can set `priority` (a number, default = its index) to control what survives on narrow screens:
   - Columns hide in descending `priority` order (ties: rightmost first). The best-priority column is never hidden, so a negative `priority` makes a column the anchor.
@@ -93,7 +93,7 @@ These are presentational components. Fetch data with the query helpers in a serv
 
 ## Site (`components/site/`)
 
-`site-header`, `site-footer`, `logo`, `window-chrome` and `cookie-banner` (exports `CookieBanner` and `CookieSettingsButton`). The repo and docs links come from `lib/site.ts`.
+`site-header`, `site-footer`, `logo`, `window-chrome` and `cookie-banner` (exports `CookieBanner` and `CookieSettingsButton`). The repo and docs links come from `lib/config/site.ts`.
 
 ## Email (`components/email/`)
 
@@ -101,11 +101,11 @@ These are presentational components. Fetch data with the query helpers in a serv
 
 | Template | Sent when |
 |---|---|
-| `email-template-reset-password` | Password reset requested |
-| `email-template-verify-email` | User asks to verify their email |
-| `email-template-new-device` | First sign-in from a device (to the user and admins) |
-| `email-template-passkey-change` | Passkey added or removed |
-| `email-template-welcome`, `email-template`, `email-template-2` | Demo templates for `/api/send` |
+| `auth/reset-password` | Password reset requested |
+| `auth/verify-email` | User asks to verify their email |
+| `security/new-device-alert` | First sign-in from a device (to the user and admins) |
+| `security/passkey-changed` | Passkey added or removed |
+| `auth/welcome`, `layout/base-layout`, `marketing/general-announcement` | Demo templates for `/api/send` |
 
 **Before sending real email:**
 
@@ -118,8 +118,8 @@ The auth emails (reset, verification, new device, passkey change) are sent by th
 Sending your own email:
 
 ```ts
-import { getResend, EMAIL_FROM } from "@/lib/resend"
-import { EmailTemplateWelcome } from "@/components/email/email-template-welcome"
+import { getResend, EMAIL_FROM } from "@/lib/email/resend"
+import { EmailTemplateWelcome } from "@/components/email/auth/welcome"
 
 await (await getResend()).emails.send({
   from: EMAIL_FROM,
@@ -137,4 +137,4 @@ await (await getResend()).emails.send({
 
 ## Changelog and update modal
 
-`data/changelog.json` drives `/changelog` and the "what's new" modal (`components/Updates/`). Add an entry there for each release.
+`data/changelog.json` drives `/changelog` and the "what's new" modal (`components/updates/`). Add an entry there for each release.

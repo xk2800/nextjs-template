@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import DeviceThrottleCard from "../../components/dashboard/admin/deviceThrottleCard"
+import DeviceThrottleCard from "../../components/dashboard/admin/home/device-throttle-card"
 
 const meta = {
   title: "Admin/DeviceThrottleCard",

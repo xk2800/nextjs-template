@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import AdminStatsGrid from "../../components/dashboard/admin/adminStatsGrid"
+import AdminStatsGrid from "../../components/dashboard/admin/home/admin-stats-grid"
 
 const meta = {
   title: "Admin/AdminStatsGrid",

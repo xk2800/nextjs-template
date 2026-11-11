@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { EmailPreview } from "../_shared"
-import { EmailTemplateBanned } from "../../components/email/email-template-banned"
+import { EmailTemplateBanned } from "../../components/email/security/account-banned"
 
 /** Sent to the user when an admin bans them (single or bulk), if RESEND_API_KEY is set. */
 const meta = {

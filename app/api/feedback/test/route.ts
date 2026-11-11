@@ -1,1 +1,1 @@
-export { testErrorPOST as POST } from "@/lib/feedback-route"
+export { testErrorPOST as POST } from "@/lib/feedback/route"

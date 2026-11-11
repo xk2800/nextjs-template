@@ -206,14 +206,15 @@ import { useIsMobile } from "@xk2800/nextjs-template/hooks/use-mobile"
 
 // components (raw .tsx; any file under ui/, auth/, dashboard/, email/, theme/, providers/)
 import { Button } from "@xk2800/nextjs-template/components/ui/button"
-import EmailPasswordLogin from "@xk2800/nextjs-template/components/auth/emailPasswordLogin"
-import OneTap from "@xk2800/nextjs-template/components/auth/oneTap"
-import SessionsCard from "@xk2800/nextjs-template/components/dashboard/sessionsCard"
-import DeleteAccountCard from "@xk2800/nextjs-template/components/dashboard/deleteAccountCard"
+import EmailPasswordLogin from "@xk2800/nextjs-template/components/auth/forms/login-form"
+import OneTap from "@xk2800/nextjs-template/components/auth/methods/one-tap"
+import SessionsCard from "@xk2800/nextjs-template/components/dashboard/settings/sessions/sessions-card"
+import DeleteAccountCard from "@xk2800/nextjs-template/components/dashboard/settings/delete-account-card"
 import { ThemeProvider } from "@xk2800/nextjs-template/components/providers/theme-provider"
 import { CookieBanner, CookieSettingsButton } from "@xk2800/nextjs-template/components/site/cookie-banner"
-import MarketingSection from "@xk2800/nextjs-template/components/dashboard/admin/marketingSection"     // admin compose + broadcasts + subscribers
-import MarketingUpdatesSection from "@xk2800/nextjs-template/components/dashboard/marketingUpdatesSection" // user opt-in switch
+import MarketingSection from "@xk2800/nextjs-template/components/dashboard/admin/marketing/marketing-section"     // admin compose + broadcasts + subscribers
+import MarketingUpdatesSection from "@xk2800/nextjs-template/components/dashboard/settings/marketing-updates-section" // user opt-in switch
+import { SettingsNav, SETTINGS_TABS } from "@xk2800/nextjs-template/components/settings"  // /dashboard/settings tabs; also ProfileSection, SecuritySection, NotificationsSection, AppearanceSection
 ```
 
 ### Marketing email
@@ -277,9 +278,9 @@ Your providers are merged with Google. Session policy, hashing and schema stay f
 
 ## Admin users table
 
-`components/dashboard/admin/adminUsersTable` is the admin page's user list: search, CSV export, ban / unban (with a reason), make admin / tester, impersonate, delete, and bulk ban / delete. It calls the template's `/api/admin/users` routes, so an app using it needs routes with the same shapes.
+`components/dashboard/admin/users/admin-users-table` is the admin page's user list: search, CSV export, ban / unban (with a reason), make admin / tester, impersonate, delete, and bulk ban / delete. It calls the template's `/api/admin/users` routes, so an app using it needs routes with the same shapes.
 
-Banning records which admin did it (`user.bannedBy`, migration `0023_user_banned_by`) and emails the user (`email-template-banned`) when `RESEND_API_KEY` is set. The table shows "Banned by …" and the reason.
+Banning records which admin did it (`user.bannedBy`, migration `0023_user_banned_by`) and emails the user (`security/account-banned`) when `RESEND_API_KEY` is set. The table shows "Banned by …" and the reason.
 
 Optional props for app-specific needs:
 

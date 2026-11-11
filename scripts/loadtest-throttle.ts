@@ -58,6 +58,6 @@ console.log(
   "expect: 401 x MAX (10), then 429 for the rest.\n" +
   "        bcrypt makes the 401s slow (~50-100ms); 429s are a single indexed SELECT and fast.\n" +
   "        high concurrency leaks a few extra 401s past 10 — tumbling-window race, see the\n" +
-  "        `ponytail:` note in lib/auth-throttle.ts.\n" +
+  "        `ponytail:` note in lib/auth/throttle.ts.\n" +
   "cleanup: DELETE FROM auth_throttle WHERE fingerprint LIKE 'loadtest-%';",
 )

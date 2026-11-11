@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth-helpers"
+import { hasRole } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
-import { logActivity } from "@/lib/activity-logger"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { logActivity } from "@/lib/security/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function DELETE(
   request: NextRequest,

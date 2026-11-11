@@ -1,8 +1,12 @@
-import { SettingsNav, SETTINGS_TABS, type SettingsTab } from "./_components/settings-nav"
-import { ProfileSection } from "./_components/profile-section"
-import { SecuritySection } from "./_components/security-section"
-import { AppearanceSection } from "./_components/appearance-section"
-import { NotificationsSection } from "./_components/notifications-section"
+import {
+  SettingsNav,
+  SETTINGS_TABS,
+  type SettingsTab,
+  ProfileSection,
+  SecuritySection,
+  AppearanceSection,
+  NotificationsSection,
+} from "@/components/settings"
 
 export default async function SettingsPage({
   searchParams,

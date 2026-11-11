@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import InstallAppCard from "../../components/dashboard/installAppCard"
+import InstallAppCard from "../../components/dashboard/overview/install-app-card"
 
 const meta = {
   title: "Dashboard/InstallAppCard",

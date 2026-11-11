@@ -1,0 +1,747 @@
+'use client'
+
+import { useState, useEffect, useRef, type ReactNode } from 'react'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../ui/card'
+import { Button } from '../../../ui/button'
+import { Input } from '../../../ui/input'
+import { Badge } from '../../../ui/badge'
+import { Skeleton } from '../../../ui/skeleton'
+import { Checkbox } from '../../../ui/checkbox'
+import { Label } from '../../../ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../ui/select'
+import { DataTable, DataTablePagination, type Column } from '../../../ui/data-table'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '../../../ui/alert-dialog'
+import { toast } from 'sonner'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { formatDate, formatDateTime } from '@xk2800/nextjs-template/lib/formatters'
+import { Download, MoreHorizontal } from 'lucide-react'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../../../ui/dropdown-menu'
+import InviteUserDialog from './invite-user-dialog'
+import { authClient, useSession } from '@xk2800/nextjs-template/auth-client'
+
+export interface AdminUser {
+  id: string
+  name: string | null
+  email: string
+  role: string
+  banned: boolean
+  bannedAt: Date | null
+  bannedReason: string | null
+  /** Email of the admin who issued the ban. */
+  bannedBy?: string | null
+  /** Only read when the `plans` prop is passed. */
+  plan?: string | null
+  lastLoginAt: Date | null
+  lastActiveAt: Date | null
+  createdAt: Date
+  /** Expiry of the user's outstanding password/invite link, if any. */
+  inviteExpiresAt?: Date | string | null
+}
+
+export type AdminUserPlans<TUser extends AdminUser = AdminUser> = {
+  options: { value: string; label: string }[]
+  /** Small text under the picker, e.g. a trial end date. */
+  note?: (user: TUser) => ReactNode
+}
+
+// A user counts as "online" if their heartbeat (sent every 30s while a
+// dashboard tab is open, see components/dashboard/heartbeat.tsx) landed
+// within this window.
+const ONLINE_THRESHOLD_MS = 2 * 60 * 1000
+
+function isOnline(lastActiveAt: Date | null): boolean {
+  if (!lastActiveAt) return false
+  return Date.now() - new Date(lastActiveAt).getTime() < ONLINE_THRESHOLD_MS
+}
+
+interface PaginationData {
+  page: number
+  limit: number
+  total: number
+  pages: number
+}
+
+export interface AdminUsersTableProps<TUser extends AdminUser = AdminUser> {
+  initialUsers: TUser[]
+  initialPagination: PaginationData
+  /**
+   * For apps with plans / subscriptions: adds a Plan column with a change-plan picker,
+   * which sends `PATCH /api/admin/users/:id` with `{ plan }`. Rows need a `plan` field.
+   */
+  plans?: AdminUserPlans<TUser>
+  /** App-specific columns (e.g. storage), shown before Status. Rows can carry extra fields. */
+  extraColumns?: Column<TUser>[]
+  /** Show the Impersonate action. Default true; pass false if impersonation is turned off. */
+  impersonation?: boolean
+  /**
+   * Where a user's name links. Default `/dashboard/admin/users/:id` (the template's user
+   * detail page); return null to show the name as plain text (an app without that page).
+   */
+  userHref?: (user: TUser) => string | null
+}
+
+export default function AdminUsersTable<TUser extends AdminUser = AdminUser>({
+  initialUsers,
+  initialPagination,
+  plans,
+  extraColumns = [],
+  impersonation = true,
+  userHref = (user) => `/dashboard/admin/users/${user.id}`,
+}: AdminUsersTableProps<TUser>) {
+  const router = useRouter()
+  const { data: currentSession } = useSession()
+  const [users, setUsers] = useState<TUser[]>(initialUsers)
+  const [banReason, setBanReason] = useState('')
+  const [updatingPlanFor, setUpdatingPlanFor] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState('')
+  const [roleFilter, setRoleFilter] = useState('all')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [page, setPage] = useState(1)
+  const [pagination, setPagination] = useState<PaginationData | null>(initialPagination)
+  const [actionUserId, setActionUserId] = useState<string | null>(null)
+  const [actionType, setActionType] = useState<'delete' | 'ban' | 'unban' | 'promote' | 'demote' | 'tester' | 'untester' | 'impersonate' | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkActionType, setBulkActionType] = useState<'ban' | 'delete' | null>(null)
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false)
+
+  const currentUserId = currentSession?.user?.id
+  const selectableIds = users.filter((u) => u.id !== currentUserId).map((u) => u.id)
+  const allSelected = selectableIds.length > 0 && selectableIds.every((id) => selectedIds.has(id))
+  const someSelected = selectedIds.size > 0 && !allSelected
+
+  const toggleSelectAll = () => {
+    setSelectedIds(allSelected ? new Set() : new Set(selectableIds))
+  }
+
+  const toggleSelectOne = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  const fetchUsers = async (pageNum: number, searchQuery: string, silent = false) => {
+    if (!silent) setLoading(true)
+    try {
+      const params = new URLSearchParams({
+        page: pageNum.toString(),
+        limit: '10',
+        search: searchQuery,
+        ...(roleFilter !== 'all' && { role: roleFilter }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+      })
+      const response = await fetch(`/api/admin/users?${params}`)
+      if (!response.ok) throw new Error('Failed to fetch users')
+      const data = await response.json()
+      setUsers(data.users)
+      setPagination(data.pagination)
+      if (!silent) setSelectedIds(new Set())
+    } catch (error) {
+      if (!silent) toast.error('Failed to load users')
+      console.error(error)
+    } finally {
+      if (!silent) setLoading(false)
+    }
+  }
+
+  const isFirstRender = useRef(true)
+
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
+    }
+    const timer = setTimeout(() => {
+      fetchUsers(1, search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(timer)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, roleFilter, statusFilter])
+
+  // Keep online status fresh without a full-page reload.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchUsers(page, search, true)
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [page, search, roleFilter, statusFilter])
+
+  const handleExport = async () => {
+    setIsExporting(true)
+    try {
+      const params = new URLSearchParams({
+        search,
+        ...(roleFilter !== 'all' && { role: roleFilter }),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+      })
+      const response = await fetch(`/api/admin/users/export?${params}`)
+      if (!response.ok) throw new Error('Failed to export users')
+      const blob = await response.blob()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `users-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      toast.error('Failed to export users')
+      console.error(error)
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleAction = async () => {
+    if (!actionUserId || !actionType) return
+
+    if (actionType === 'impersonate') {
+      setIsProcessing(true)
+      try {
+        const { error } = await authClient.admin.impersonateUser({ userId: actionUserId })
+        if (error) throw new Error(error.message)
+        setActionUserId(null)
+        setActionType(null)
+        router.push('/dashboard')
+      } catch (error) {
+        toast.error('Failed to impersonate user')
+        console.error(error)
+      } finally {
+        setIsProcessing(false)
+      }
+      return
+    }
+
+    setIsProcessing(true)
+    try {
+      let response
+      let successMessage = ''
+
+      switch (actionType) {
+        case 'delete':
+          response = await fetch(`/api/admin/users/${actionUserId}`, {
+            method: 'DELETE',
+          })
+          successMessage = 'User deleted successfully'
+          break
+        case 'ban':
+          response = await fetch(`/api/admin/users/${actionUserId}/ban`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ban: true, reason: banReason.trim() || 'Banned by admin' }),
+          })
+          successMessage = 'User banned successfully'
+          break
+        case 'unban':
+          response = await fetch(`/api/admin/users/${actionUserId}/ban`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ ban: false }),
+          })
+          successMessage = 'User unbanned successfully'
+          break
+        case 'promote':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'admin' }),
+          })
+          successMessage = 'User promoted to admin'
+          break
+        case 'demote':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'user' }),
+          })
+          successMessage = 'Admin access removed'
+          break
+        case 'tester':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'tester' }),
+          })
+          successMessage = 'User marked as tester'
+          break
+        case 'untester':
+          response = await fetch(`/api/admin/users/${actionUserId}/role`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: 'user' }),
+          })
+          successMessage = 'Tester role removed'
+          break
+      }
+
+      if (!response?.ok) throw new Error('Action failed')
+      toast.success(successMessage)
+      setActionUserId(null)
+      setActionType(null)
+      setBanReason('')
+      await fetchUsers(page, search)
+    } catch (error) {
+      toast.error(`Failed to ${actionType} user`)
+      console.error(error)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handlePlanChange = async (userId: string, plan: string) => {
+    setUpdatingPlanFor(userId)
+    try {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan }),
+      })
+      if (!response.ok) throw new Error('Failed to update plan')
+      setUsers((prev) => prev.map((u) => (u.id === userId ? { ...u, plan } : u)))
+      toast.success('Plan updated')
+    } catch (error) {
+      toast.error('Failed to update plan')
+      console.error(error)
+    } finally {
+      setUpdatingPlanFor(null)
+    }
+  }
+
+  const handleBulkAction = async () => {
+    if (!bulkActionType || selectedIds.size === 0) return
+
+    setIsBulkProcessing(true)
+    try {
+      const userIds = Array.from(selectedIds)
+      const response =
+        bulkActionType === 'delete'
+          ? await fetch('/api/admin/users/bulk-delete', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds }),
+            })
+          : await fetch('/api/admin/users/bulk-ban', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ userIds, ban: true, reason: 'Banned by admin (bulk action)' }),
+            })
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => null)
+        throw new Error(data?.error || 'Bulk action failed')
+      }
+
+      toast.success(
+        bulkActionType === 'delete'
+          ? `${userIds.length} user(s) deleted`
+          : `${userIds.length} user(s) banned`
+      )
+      setBulkActionType(null)
+      setSelectedIds(new Set())
+      await fetchUsers(page, search)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : `Failed to bulk ${bulkActionType} users`)
+      console.error(error)
+    } finally {
+      setIsBulkProcessing(false)
+    }
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader className="space-y-4">
+          <div className="flex flex-row items-start justify-between gap-4">
+            <div>
+              <CardTitle>Users List</CardTitle>
+              <CardDescription>
+                {pagination ? `Showing ${users.length} of ${pagination.total} users` : 'Loading...'}
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <InviteUserDialog onInvited={() => fetchUsers(page, search, true)} />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                disabled={isExporting || users.length === 0}
+              >
+                <Download />
+                {isExporting ? 'Exporting...' : 'Export CSV'}
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Input
+              placeholder="Search by name or email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="max-w-sm"
+            />
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Role: All</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="tester">Tester</SelectItem>
+                <SelectItem value="user">User</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[140px]"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Status: All</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="invited">Invited</SelectItem>
+                <SelectItem value="banned">Banned</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {selectedIds.size > 0 && (
+            <div className="flex items-center justify-between gap-4 mb-4 rounded-md border bg-muted/50 px-4 py-2">
+              <p className="text-sm font-medium">{selectedIds.size} selected</p>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => setSelectedIds(new Set())}>
+                  Clear
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setBulkActionType('ban')}>
+                  Ban Selected
+                </Button>
+                <Button variant="destructive" size="sm" onClick={() => setBulkActionType('delete')}>
+                  Delete Selected
+                </Button>
+              </div>
+            </div>
+          )}
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          ) : users.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">No users found</p>
+          ) : (
+            <DataTable
+              columns={[
+                {
+                  name: 'select',
+                  title: (
+                    <Checkbox
+                      checked={allSelected ? true : someSelected ? 'indeterminate' : false}
+                      onCheckedChange={toggleSelectAll}
+                      aria-label="Select all users on this page"
+                    />
+                  ),
+                  minWidth: 40,
+                  renderer: (user) => (
+                    <Checkbox
+                      checked={selectedIds.has(user.id)}
+                      onCheckedChange={() => toggleSelectOne(user.id)}
+                      disabled={user.id === currentUserId}
+                      aria-label={`Select ${user.name || user.email}`}
+                    />
+                  ),
+                },
+                {
+                  name: 'name',
+                  title: 'Name',
+                  sticky: true,
+                  renderer: (user) => {
+                    const label = (
+                      <>
+                        <span
+                          className={`h-2 w-2 rounded-full ${isOnline(user.lastActiveAt) ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                          title={isOnline(user.lastActiveAt) ? 'Online' : 'Offline'}
+                        />
+                        {user.name || 'N/A'}
+                      </>
+                    )
+                    const href = userHref(user)
+                    return href ? (
+                      <Link href={href} className="inline-flex items-center gap-2 font-medium hover:underline">
+                        {label}
+                      </Link>
+                    ) : (
+                      <span className="inline-flex items-center gap-2 font-medium">{label}</span>
+                    )
+                  },
+                },
+                {
+                  name: 'email',
+                  title: 'Email',
+                  renderer: (user) => <span className="text-sm">{user.email}</span>,
+                },
+                {
+                  name: 'role',
+                  title: 'Role',
+                  renderer: (user) => (
+                    <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
+                      {user.role}
+                    </Badge>
+                  ),
+                },
+                ...(plans
+                  ? [{
+                      name: 'plan',
+                      title: 'Plan',
+                      minWidth: 170,
+                      renderer: (user: TUser) => (
+                        <>
+                          <Select
+                            value={user.plan ?? undefined}
+                            onValueChange={(value) => handlePlanChange(user.id, value)}
+                            disabled={updatingPlanFor === user.id}
+                          >
+                            <SelectTrigger size="sm" className="w-32 text-xs" aria-label={`Plan for ${user.name || user.email}`}>
+                              <SelectValue placeholder="—" />
+                            </SelectTrigger>
+                            <SelectContent position="popper">
+                              {plans.options.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="text-xs">
+                                  {option.label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          {plans.note?.(user) && (
+                            <p className="mt-1 text-xs text-muted-foreground">{plans.note(user)}</p>
+                          )}
+                        </>
+                      ),
+                    } satisfies Column<TUser>]
+                  : []),
+                ...extraColumns,
+                {
+                  name: 'status',
+                  title: 'Status',
+                  minWidth: 160,
+                  renderer: (user) =>
+                    user.banned ? (
+                      <div className="space-y-1">
+                        <Badge variant="destructive">Banned</Badge>
+                        {user.bannedBy && <p className="text-xs text-muted-foreground">by {user.bannedBy}</p>}
+                        {user.bannedReason && (
+                          <p className="text-xs italic text-muted-foreground">&ldquo;{user.bannedReason}&rdquo;</p>
+                        )}
+                      </div>
+                    ) : !user.lastLoginAt && user.inviteExpiresAt ? (
+                      new Date(user.inviteExpiresAt) > new Date() ? (
+                        <div className="space-y-1">
+                          <Badge variant="secondary">Invited</Badge>
+                          <p className="text-xs text-muted-foreground">
+                            Invite sent, awaiting acceptance (expires {formatDate(user.inviteExpiresAt)})
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <Badge variant="outline">Invite expired</Badge>
+                          <p className="text-xs text-muted-foreground">Not accepted before the link expired</p>
+                        </div>
+                      )
+                    ) : (
+                      <Badge variant="outline">Active</Badge>
+                    ),
+                },
+                {
+                  name: 'lastLoginAt',
+                  title: 'Last Login',
+                  renderer: (user) => (
+                    <span className="text-sm">
+                      {user.lastLoginAt ? formatDateTime(user.lastLoginAt) : 'Never'}
+                    </span>
+                  ),
+                },
+                {
+                  name: 'createdAt',
+                  title: 'Joined',
+                  renderer: (user) => <span className="text-sm">{formatDate(user.createdAt)}</span>,
+                },
+                {
+                  name: 'actions',
+                  title: '',
+                  minWidth: 56,
+                  renderer: (user) => {
+                    const act = (type: NonNullable<typeof actionType>) => () => {
+                      setActionUserId(user.id)
+                      setActionType(type)
+                    }
+                    return (
+                      <div className="flex justify-end">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" aria-label={`Actions for ${user.email}`}>
+                              <MoreHorizontal />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            {impersonation && (
+                              <DropdownMenuItem disabled={user.id === currentUserId || user.banned} onSelect={act('impersonate')}>
+                                Impersonate
+                              </DropdownMenuItem>
+                            )}
+                            {user.role === 'admin' ? (
+                              <DropdownMenuItem onSelect={act('demote')}>Remove Admin</DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem onSelect={act('promote')}>Make Admin</DropdownMenuItem>
+                            )}
+                            {user.role !== 'admin' && (
+                              <DropdownMenuItem onSelect={act(user.role === 'tester' ? 'untester' : 'tester')}>
+                                {user.role === 'tester' ? 'Remove Tester' : 'Make Tester'}
+                              </DropdownMenuItem>
+                            )}
+                            <DropdownMenuItem onSelect={act(user.banned ? 'unban' : 'ban')}>
+                              {user.banned ? 'Unban' : 'Ban'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={act('delete')}>
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    )
+                  },
+                },
+              ] satisfies Column<TUser>[]}
+              data={users}
+              getRowId={(user) => user.id}
+              pageSize={false}
+            />
+          )}
+
+          {/* Pagination */}
+          {pagination && (
+            <DataTablePagination
+              page={page}
+              pages={pagination.pages}
+              onPageChange={(p) => {
+                setPage(p)
+                fetchUsers(p, search)
+              }}
+              className="mt-6 pt-6"
+            />
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Action Confirmation Dialog */}
+      <AlertDialog
+        open={!!actionUserId}
+        onOpenChange={() => {
+          setActionUserId(null)
+          setBanReason('')
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {actionType === 'delete' && 'Delete User?'}
+              {actionType === 'ban' && 'Ban User?'}
+              {actionType === 'unban' && 'Unban User?'}
+              {actionType === 'promote' && 'Promote to Admin?'}
+              {actionType === 'demote' && 'Remove Admin Access?'}
+              {actionType === 'tester' && 'Make Tester?'}
+              {actionType === 'untester' && 'Remove Tester Role?'}
+              {actionType === 'impersonate' && 'Impersonate User?'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {actionType === 'delete' &&
+                'This action will permanently delete the user and all their data.'}
+              {actionType === 'ban' &&
+                'This will revoke all sessions and prevent the user from logging in.'}
+              {actionType === 'unban' && 'This will restore the user access.'}
+              {actionType === 'promote' &&
+                'This will grant the user full admin dashboard access.'}
+              {actionType === 'tester' &&
+                'Marks this account as a test account. It gets no admin access.'}
+              {actionType === 'untester' &&
+                'Turns this test account back into a regular user.'}
+              {actionType === 'demote' &&
+                "This will revoke the user's admin dashboard access."}
+              {actionType === 'impersonate' &&
+                "You'll be signed in as this user until you stop impersonating. This is logged."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {actionType === 'ban' && (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="ban-reason">Reason (optional, shown to the user)</Label>
+              <Input
+                id="ban-reason"
+                placeholder="e.g. Spam"
+                value={banReason}
+                onChange={(e) => setBanReason(e.target.value)}
+                maxLength={500}
+              />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleAction}
+              disabled={isProcessing}
+              className={actionType === 'delete' ? 'bg-destructive hover:bg-destructive/90' : ''}
+            >
+              {isProcessing ? 'Processing...' : 'Confirm'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Action Confirmation Dialog */}
+      <AlertDialog
+        open={!!bulkActionType}
+        onOpenChange={(open) => {
+          if (!open) setBulkActionType(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {bulkActionType === 'delete'
+                ? `Delete ${selectedIds.size} Users?`
+                : `Ban ${selectedIds.size} Users?`}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {bulkActionType === 'delete'
+                ? 'This will permanently delete the selected users and all their data. This action cannot be undone.'
+                : 'This will revoke all sessions for the selected users and prevent them from logging in.'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isBulkProcessing}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkAction}
+              disabled={isBulkProcessing}
+              className={bulkActionType === 'delete' ? 'bg-destructive hover:bg-destructive/90' : ''}
+            >
+              {isBulkProcessing ? 'Processing...' : 'Confirm'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  )
+}

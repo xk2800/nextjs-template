@@ -1,15 +1,15 @@
 import Link from "next/link"
 import { CheckCircle2 } from "lucide-react"
 
-import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
-import { formatDateTime } from "@/lib/formatters"
+import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/utils/request-info"
+import { formatDateTime } from "@/lib/utils/formatters"
 import { headers } from "next/headers"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { SiteHeader } from "@/components/site/site-header"
-import { SiteFooter } from "@/components/site/site-footer"
-import { WindowChrome } from "@/components/site/window-chrome"
-import { DOCS_URL, INSTALL_COMMAND, REPO_URL } from "@/lib/site"
+import { SiteHeader } from "@/components/site/layout/header"
+import { SiteFooter } from "@/components/site/layout/footer"
+import { WindowChrome } from "@/components/site/ui/window-chrome"
+import { DOCS_URL, INSTALL_COMMAND, REPO_URL } from "@/lib/config/site"
 import packageJson from "../../package.json"
 import { RECORDS } from "./features-data.json"
 import CopyInstallButton from "./_components/CopyInstallButton"
@@ -40,7 +40,7 @@ const STACK = [
 ]
 
 export default async function FeaturesPage() {
-  // This isn't mock data — it's the same lib/request-info.ts parsing used by
+  // This isn't mock data — it's the same lib/utils/request-info.ts parsing used by
   // the real login-activity tracker (see server/auth.ts), run live against
   // *your* request, right now. Nothing here is stored or sent anywhere; it's
   // rendered once, into this response, for you.

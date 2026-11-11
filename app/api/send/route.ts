@@ -1,10 +1,10 @@
-import { EmailTemplate } from '@/components/email/email-template';
-import { EmailTemplate2 } from '@/components/email/email-template-2';
-import { EmailTemplateWelcome } from '@/components/email/email-template-welcome';
-import { getResend, EMAIL_FROM } from '@/lib/resend';
+import { EmailTemplate } from '@/components/email/layout/base-layout';
+import { EmailTemplate2 } from '@/components/email/marketing/general-announcement';
+import { EmailTemplateWelcome } from '@/components/email/auth/welcome';
+import { getResend, EMAIL_FROM } from '@/lib/email/resend';
 import { auth } from '@/server/auth';
 import { headers } from 'next/headers';
-import { unexpectedErrorMessage } from '@/lib/errors';
+import { unexpectedErrorMessage } from '@/lib/utils/errors';
 
 export async function POST(request: Request) {
   const session = await auth.api.getSession({

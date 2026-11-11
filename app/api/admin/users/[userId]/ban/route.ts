@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth-helpers"
+import { hasRole } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
-import { logActivity } from "@/lib/activity-logger"
-import { unexpectedErrorMessage } from "@/lib/errors"
-import { sendBanEmail } from "@/lib/ban-email"
+import { logActivity } from "@/lib/security/activity-logger"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
+import { sendBanEmail } from "@/lib/email/ban-email"
 
 export async function POST(
   request: NextRequest,

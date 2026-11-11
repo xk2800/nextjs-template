@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import NewDeviceTable from "../../components/dashboard/admin/newDeviceTable"
+import NewDeviceTable from "../../components/dashboard/admin/home/new-device-table"
 import { mockNewDevices } from "../../.storybook/mocks"
 
 const meta = {

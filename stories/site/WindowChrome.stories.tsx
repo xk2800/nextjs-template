@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import { WindowChrome } from "../../components/site/window-chrome"
+import { WindowChrome } from "../../components/site/ui/window-chrome"
 
 const meta = {
   title: "Site/WindowChrome",

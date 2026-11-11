@@ -1,8 +1,5 @@
-import { requireAuth } from "@/lib/auth-helpers"
-import { WelcomeBanner } from "@/components/overview/welcome-banner"
-import { OverviewStats } from "@/components/overview/overview-stats"
-import { OverviewChart } from "@/components/overview/overview-chart"
-import { RecentActivity } from "@/components/overview/recent-activity"
+import { requireAuth } from "@/lib/auth/helpers"
+import { WelcomeBanner, OverviewStats, OverviewChart, RecentActivity } from "@/components/overview"
 
 export default async function DashboardPage() {
   const session = await requireAuth()

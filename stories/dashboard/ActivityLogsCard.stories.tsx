@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import ActivityLogsCard from "../../components/dashboard/activityLogsCard"
+import ActivityLogsCard from "../../components/dashboard/settings/activity-logs-card"
 import { mockActivityLogs } from "../../.storybook/mocks"
 
 const meta = {

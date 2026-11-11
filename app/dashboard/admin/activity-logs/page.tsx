@@ -1,8 +1,8 @@
 import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
-import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
-import ActivityLogsSection from "@/components/dashboard/admin/activityLogsSection"
-import AdminActivityLogsSkeleton from "@/components/dashboard/admin/adminActivityLogsSkeleton"
+import SectionErrorFallback from "@/components/dashboard/common/section-error-fallback"
+import ActivityLogsSection from "@/components/dashboard/admin/activity-logs/activity-logs-section"
+import AdminActivityLogsSkeleton from "@/components/dashboard/admin/activity-logs/skeletons/activity-logs-skeleton"
 import SecurityHighlights from "./securityHighlights"
 import { Skeleton } from "@/components/ui/skeleton"
 

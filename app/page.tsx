@@ -14,9 +14,9 @@ import {
 
 import { auth } from "@/server/auth"
 import { Button } from "@/components/ui/button"
-import { SiteHeader } from "@/components/site/site-header"
-import { SiteFooter } from "@/components/site/site-footer"
-import { WindowChrome } from "@/components/site/window-chrome"
+import { SiteHeader } from "@/components/site/layout/header"
+import { SiteFooter } from "@/components/site/layout/footer"
+import { WindowChrome } from "@/components/site/ui/window-chrome"
 import { FEATURES, SCREENS } from "./page-data.json"
 import packageJson from "../package.json"
 

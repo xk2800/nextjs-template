@@ -1,8 +1,8 @@
 import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
-import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
-import SystemSettingsSection from "@/components/dashboard/admin/systemSettingsSection"
-import SystemSettingsSkeleton from "@/components/dashboard/admin/systemSettingsSkeleton"
+import SectionErrorFallback from "@/components/dashboard/common/section-error-fallback"
+import SystemSettingsSection from "@/components/dashboard/admin/system-settings/system-settings-section"
+import SystemSettingsSkeleton from "@/components/dashboard/admin/system-settings/skeletons/system-settings-skeleton"
 
 export default function AdminSettingsPage() {
   return (

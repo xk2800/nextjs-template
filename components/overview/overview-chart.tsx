@@ -3,7 +3,7 @@
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
-import { usageSeries } from "@/lib/mock-dashboard-data"
+import { usageSeries } from "@/lib/mock/dashboard-data"
 
 const config = { requests: { label: "Requests", color: "var(--chart-1)" } } satisfies ChartConfig
 

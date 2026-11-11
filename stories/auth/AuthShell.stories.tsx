@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import AuthCard from "../../components/auth/authCard"
-import { AuthShell } from "../../components/auth/authShell"
+import AuthCard from "../../components/auth/layout/auth-card"
+import { AuthShell } from "../../components/auth/layout/auth-shell"
 import { ownFrame } from "../_shared"
 
 const meta = {

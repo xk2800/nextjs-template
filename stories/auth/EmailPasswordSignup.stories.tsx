@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { narrow } from "../_shared"
-import EmailPasswordSignup from "../../components/auth/emailPasswordSignup"
+import EmailPasswordSignup from "../../components/auth/forms/signup-form"
 
 const meta = {
   title: "Auth/EmailPasswordSignup",

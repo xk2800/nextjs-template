@@ -1,1 +1,1 @@
-export { updateSubscriptionPUT as PUT } from "@/lib/marketing-route"
+export { updateSubscriptionPUT as PUT } from "@/lib/marketing/route"

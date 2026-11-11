@@ -137,7 +137,7 @@ import { Button } from "@xk2800/nextjs-template/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@xk2800/nextjs-template/components/ui/card";
 
 // Auth UI + client
-import AuthCard from "@xk2800/nextjs-template/components/auth/authCard";
+import AuthCard from "@xk2800/nextjs-template/components/auth/layout/auth-card";
 import { authClient, useSession } from "@xk2800/nextjs-template/auth-client";
 
 // Schema validation
@@ -164,7 +164,7 @@ if (!result.success) {
 }
 ```
 
-> Server modules (`/auth`, `/db`, …) read the same env vars as this template (`DATABASE_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID/SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`) — set them in the consumer app's `.env` files if you use those imports. For components-only usage, no env vars are needed — except `components/auth/oneTap`, which reads `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` directly (see README's "Enabling Google One Tap") since it has no server counterpart to source config from.
+> Server modules (`/auth`, `/db`, …) read the same env vars as this template (`DATABASE_URL`, `AUTH_SECRET`, `AUTH_GOOGLE_ID/SECRET`, `BETTER_AUTH_URL`, `NEXT_PUBLIC_APP_URL`) — set them in the consumer app's `.env` files if you use those imports. For components-only usage, no env vars are needed — except `components/auth/methods/one-tap`, which reads `NEXT_PUBLIC_AUTH_ENABLE_ONE_TAP` and `NEXT_PUBLIC_GOOGLE_CLIENT_ID` directly (see README's "Enabling Google One Tap") since it has no server counterpart to source config from.
 
 ### Testing a change locally without publishing
 

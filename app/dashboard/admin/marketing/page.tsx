@@ -1,7 +1,7 @@
 import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
-import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
-import MarketingSection from "@/components/dashboard/admin/marketingSection"
+import SectionErrorFallback from "@/components/dashboard/common/section-error-fallback"
+import MarketingSection from "@/components/dashboard/admin/marketing/marketing-section"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default async function AdminMarketingPage({

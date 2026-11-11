@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import DeviceThrottleTable from "../../components/dashboard/admin/deviceThrottleTable"
+import DeviceThrottleTable from "../../components/dashboard/admin/home/device-throttle-table"
 import { mockThrottleRows } from "../../.storybook/mocks"
 
 const meta = {

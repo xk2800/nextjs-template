@@ -4,9 +4,9 @@ import { headers } from "next/headers"
 import { db } from "@/server/db"
 import { sessions } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
-import { logActivity } from "@/lib/activity-logger"
-import { getSystemSettings } from "@/lib/settings-queries"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { logActivity } from "@/lib/security/activity-logger"
+import { getSystemSettings } from "@/lib/db/queries/settings"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function POST(request: NextRequest) {
   // Check if session revocation is enabled

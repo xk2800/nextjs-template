@@ -28,7 +28,7 @@ Both `AUTH_ENABLE_GOOGLE` and `AUTH_ENABLE_EMAIL_PASSWORD` are `false`, and no p
 `config/env.ts`, `server/db` and the `*-queries` modules are `server-only`. They throw outside Next.js: in drizzle-kit, in `bun scripts/…`, and in client components. In scripts, read `process.env` directly. In client code, call an API route instead.
 
 **I edited a file in `lib/` or `components/` and nothing changed**
-That file is probably a re-export of the package, or the package uses its own bundled copy of it (for example `lib/resend.ts` or `lib/auth-throttle-limits.ts`). See [Your project and the package](/architecture#your-project-and-the-package).
+That file is probably a re-export of the package, or the package uses its own bundled copy of it (for example `lib/email/resend.ts` or `lib/auth/throttle-limits.ts`). See [Your project and the package](/architecture#your-project-and-the-package).
 
 **`column "…" does not exist` / `relation "…" does not exist`**
 Migrations haven't been applied to this database. Run `bun run migrate:dev` (or `:prod`).

@@ -1,4 +1,4 @@
-import { EmailTemplate } from '@/components/email/email-template';
+import { EmailTemplate } from '@/components/email/layout/base-layout';
 import { config } from '@/config/env';
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { Resend } from 'resend';

@@ -7,16 +7,16 @@ import { db } from "./db"
 import { users, accounts, sessions, verifications, twoFactors, passkeys } from "./db/schema"
 import { config } from "@/config/env"
 import { oneTap, admin as adminPlugin } from "better-auth/plugins";
-import { twoFactorPlugins } from "@/lib/two-factor"
+import { twoFactorPlugins } from "@/lib/auth/two-factor"
 import { passkey } from "@better-auth/passkey";
 import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/api"
-import { logActivity, type ActivityLogger } from "@/lib/activity-logger"
-import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/request-info"
-import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/cookie-names"
-import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/lib/auth-throttle"
-import { MAX_IP } from "@/lib/auth-throttle-limits"
-import { getEffectiveAuthFlags } from "@/lib/settings-queries"
-import { getResend, EMAIL_FROM } from "@/lib/resend"
+import { logActivity, type ActivityLogger } from "@/lib/security/activity-logger"
+import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/utils/request-info"
+import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/security/cookie-names"
+import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/lib/auth/throttle"
+import { MAX_IP } from "@/lib/auth/throttle-limits"
+import { getEffectiveAuthFlags } from "@/lib/db/queries/settings"
+import { getResend, EMAIL_FROM } from "@/lib/email/resend"
 // Email templates are imported lazily where they're sent, so
 // @react-email/components only loads when an email goes out.
 
@@ -121,7 +121,7 @@ async function notifyPasskeyChange(
 
     if (!config.RESEND_API_KEY) return
 
-    const { EmailTemplatePasskeyChange } = await import("@/components/email/email-template-passkey-change")
+    const { EmailTemplatePasskeyChange } = await import("@/components/email/security/passkey-changed")
     await (await getResend()).emails.send({
       from: EMAIL_FROM,
       to: [user.email],
@@ -319,7 +319,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
       // callbackURL) — see app/(auth)/forgot-password and reset-password for
       // the pages this points at.
       async sendResetPassword({ user, url }) {
-        const { EmailTemplateResetPassword } = await import("@/components/email/email-template-reset-password")
+        const { EmailTemplateResetPassword } = await import("@/components/email/auth/reset-password")
         await (await getResend()).emails.send({
           from: EMAIL_FROM,
           to: [user.email],
@@ -340,7 +340,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
         await promoteFirstAdmin(user)
       },
       async sendVerificationEmail({ user, url }) {
-        const { EmailTemplateVerifyEmail } = await import("@/components/email/email-template-verify-email")
+        const { EmailTemplateVerifyEmail } = await import("@/components/email/auth/verify-email")
         await (await getResend()).emails.send({
           from: EMAIL_FROM,
           to: [user.email],

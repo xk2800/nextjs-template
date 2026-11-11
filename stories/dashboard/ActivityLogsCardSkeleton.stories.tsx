@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import ActivityLogsCardSkeleton from "../../components/dashboard/activityLogsCardSkeleton"
+import ActivityLogsCardSkeleton from "../../components/dashboard/settings/skeletons/activity-logs-card-skeleton"
 
 const meta = {
   title: "Dashboard/ActivityLogsCardSkeleton",

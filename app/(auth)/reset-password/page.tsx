@@ -1,10 +1,10 @@
 import Link from 'next/link'
-import { AuthShell } from '@/components/auth/authShell'
-import ResetPasswordForm from '@/components/auth/resetPasswordForm'
+import { AuthShell } from '@/components/auth/layout/auth-shell'
+import ResetPasswordForm from '@/components/auth/recovery/reset-password-form'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import SocialLogin from '@/components/auth/socialLogin'
-import { getEffectiveAuthFlags } from '@/lib/settings-queries'
+import SocialLogin from '@/components/auth/methods/social-login'
+import { getEffectiveAuthFlags } from '@/lib/db/queries/settings'
 
 const BULLETS = [
   "Google OAuth and email sign-in out of the box",

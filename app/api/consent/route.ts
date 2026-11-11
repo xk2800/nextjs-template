@@ -4,7 +4,7 @@ import { headers } from "next/headers"
 import { db } from "@/server/db"
 import { consentLog } from "@/server/db/schema"
 import { desc, eq } from "drizzle-orm"
-import { CONSENT_VERSION, isValidConsent } from "@/lib/cookie-names"
+import { CONSENT_VERSION, isValidConsent } from "@/lib/security/cookie-names"
 
 // Proof of consent (GDPR Art. 7(1)). components/site/cookie-banner.tsx posts
 // the signed-in user's current cookie_consent value here. Signed-in only: a

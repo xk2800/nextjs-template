@@ -1,4 +1,4 @@
-import { requireRole } from "@/lib/auth-helpers"
+import { requireRole } from "@/lib/auth/helpers"
 
 export default async function AdminActivityLogsLayout({
   children,

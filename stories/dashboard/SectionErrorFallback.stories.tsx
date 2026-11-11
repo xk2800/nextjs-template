@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import SectionErrorFallback from "../../components/dashboard/sectionErrorFallback"
+import SectionErrorFallback from "../../components/dashboard/common/section-error-fallback"
 
 const meta = {
   title: "Dashboard/SectionErrorFallback",

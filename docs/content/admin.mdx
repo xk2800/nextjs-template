@@ -49,7 +49,7 @@ Stored in the `system_settings` single-row table and cached in-process for **10 
 
 The admin user page lists every device the account has signed in from (`device_fingerprint` rows): device, location, IP and first-seen time. Expanding a device shows its `visitorId` and the FingerprintJS signals behind it: platform, screen, fonts, languages, time zone, CPU cores, memory, WebGL and more.
 
-- **Accessibility signals are never collected.** `reducedMotion`, `reducedTransparency`, `contrast`, `forcedColors`, `invertedColors`, `monochrome` and `colorGamut` can hint at a disability, which GDPR treats as health data. They're dropped in the browser and again on the server (`EXCLUDED_SIGNALS` in `lib/cookie-names.ts`).
+- **Accessibility signals are never collected.** `reducedMotion`, `reducedTransparency`, `contrast`, `forcedColors`, `invertedColors`, `monochrome` and `colorGamut` can hint at a disability, which GDPR treats as health data. They're dropped in the browser and again on the server (`EXCLUDED_SIGNALS` in `lib/security/cookie-names.ts`).
 - **Large values are stored as hashes.** Anything over 500 characters, such as canvas images and WebGL details, is stored as `{ hash }`. That's enough to compare devices.
 - **Signals are refreshed** each browser session, so they show the device's latest state. Devices recorded before signals existed say "No signals yet" until they next sign in.
 
@@ -65,7 +65,7 @@ If the database can't be reached, settings **fail open**: maintenance is off and
 
 What stays reachable:
 
-| Always open (hardcoded in `lib/maintenance.ts`) | Default exempt list (editable) |
+| Always open (hardcoded in `lib/config/maintenance.ts`) | Default exempt list (editable) |
 |---|---|
 | `/maintenance`, `/login` (incl. `/login/2fa`), `/forgot-password`, `/reset-password`, `/api/auth`, `/api/settings/public` | `/`, `/features`, `/changelog`, `/changelog-template`, `/privacy`, `/terms` |
 
@@ -80,7 +80,7 @@ The always-open list exists so an admin can always sign in and turn maintenance 
 `/dashboard/admin/marketing` sends updates through [Resend Broadcasts](https://resend.com/docs/dashboard/broadcasts/introduction) (`POST /api/admin/marketing`). Broadcasts count against Resend's **marketing** plan, which is priced by contacts, not against the transactional daily limit. A newsletter can't use up the quota that password resets and verification emails need.
 
 - **Contacts and segments live in Resend.** Create a segment in the Resend dashboard under Audience. The page lists your segments to pick from. Only add people who agreed to receive marketing email.
-- **Users subscribe themselves.** Set `RESEND_MARKETING_SEGMENT_ID` to a segment ID and the user dashboard shows an **Email updates** card with a "Send me product updates" switch (`PUT /api/marketing/subscription`, `lib/marketing.ts`). Turning it on creates or re-subscribes the user's Resend contact and adds it to that segment. Turning it off marks the contact unsubscribed, the same as the Unsubscribe link in an email. Subscribing needs a verified email address, so nobody can sign up someone else's address; unsubscribing never does. The switch reads its state from Resend, so it also reflects people who unsubscribed from an email. Without the env var the card is hidden, and you add contacts in Resend yourself (one by one or by CSV).
+- **Users subscribe themselves.** Set `RESEND_MARKETING_SEGMENT_ID` to a segment ID and the user dashboard shows an **Email updates** card with a "Send me product updates" switch (`PUT /api/marketing/subscription`, `lib/marketing/marketing.ts`). Turning it on creates or re-subscribes the user's Resend contact and adds it to that segment. Turning it off marks the contact unsubscribed, the same as the Unsubscribe link in an email. Subscribing needs a verified email address, so nobody can sign up someone else's address; unsubscribing never does. The switch reads its state from Resend, so it also reflects people who unsubscribed from an email. Without the env var the card is hidden, and you add contacts in Resend yourself (one by one or by CSV).
 - **Finding the segment ID.** In the Resend dashboard, open **Audience → Segments** and click the segment. The ID is the UUID at the end of the page URL. Or list segments with the API, using a full access key: `curl -s https://api.resend.com/segments -H "Authorization: Bearer $RESEND_BROADCAST_API_KEY"` and copy the `id` field. Restart the dev server after setting the env var.
 - **Needs a full access API key.** It uses `RESEND_BROADCAST_API_KEY`, or `RESEND_API_KEY` if that's blank. A sending-only key can send transactional mail but can't list segments or create broadcasts, so set `RESEND_BROADCAST_API_KEY` to a full access key and keep `RESEND_API_KEY` sending-only. The page tells you if the key is missing or rejected.
 - **Plain-text body.** Blank lines start a new paragraph. The sender is `EMAIL_FROM`. Every broadcast gets an unsubscribe link (`{{{RESEND_UNSUBSCRIBE_URL}}}`), and Resend handles the opt-outs.
@@ -91,4 +91,4 @@ The always-open list exists so an admin can always sign in and turn maintenance 
 
 ## Activity log
 
-The admin activity log shows rows from every user, while each user sees only their own on the dashboard. Login rows carry IP, OS, browser, device type, country, city and referrer. Both lists come from `lib/activity-queries.ts`. To add events, see [Logging activity](/architecture#logging-activity).
+The admin activity log shows rows from every user, while each user sees only their own on the dashboard. Login rows carry IP, OS, browser, device type, country, city and referrer. Both lists come from `lib/db/queries/activity.ts`. To add events, see [Logging activity](/architecture#logging-activity).

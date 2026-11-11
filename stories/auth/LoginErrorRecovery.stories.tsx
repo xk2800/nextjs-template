@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { narrow } from "../_shared"
-import LoginErrorRecovery from "../../components/auth/loginErrorRecovery"
+import LoginErrorRecovery from "../../components/auth/forms/login-error-recovery"
 
 const meta = {
   title: "Auth/LoginErrorRecovery",

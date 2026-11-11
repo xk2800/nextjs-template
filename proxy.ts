@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { auth } from '@/server/auth'
-import { getSystemSettings, isConsentRequired } from '@/lib/settings-queries'
-import { isMaintenanceExempt } from '@/lib/maintenance'
-import { CONSENT_REQUIRED_COOKIE } from '@/lib/cookie-names'
+import { getSystemSettings, isConsentRequired } from '@/lib/db/queries/settings'
+import { isMaintenanceExempt } from '@/lib/config/maintenance'
+import { CONSENT_REQUIRED_COOKIE } from '@/lib/security/cookie-names'
 
 function getSessionCookie(request: NextRequest) {
   // Check for both the standard and the __Secure- prefixed cookie

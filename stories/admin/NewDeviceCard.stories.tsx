@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import NewDeviceCard from "../../components/dashboard/admin/newDeviceCard"
+import NewDeviceCard from "../../components/dashboard/admin/home/new-device-card"
 
 const meta = {
   title: "Admin/NewDeviceCard",

@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import { CookieBanner, CookieSettingsButton } from "../../components/site/cookie-banner"
-import { setCookieConsent } from "../../lib/cookie-consent"
+import { CookieBanner, CookieSettingsButton } from "../../components/site/compliance/cookie-banner"
+import { setCookieConsent } from "../../lib/security/cookie-consent"
 import { ownFrame } from "../_shared"
 
 const meta = {

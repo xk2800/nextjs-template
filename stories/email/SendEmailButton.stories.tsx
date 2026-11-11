@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import { SendEmailButton } from "../../components/email/send-email-button"
+import { SendEmailButton } from "../../components/email/ui/send-email-button"
 
 const meta = {
   title: "Email/SendEmailButton",

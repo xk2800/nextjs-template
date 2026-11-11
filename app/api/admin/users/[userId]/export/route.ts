@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth-helpers"
-import { getUserById, getUserSecurity } from "@/lib/user-queries"
-import { getUserActivityLogs, getUserLoginHistory } from "@/lib/activity-queries"
-import { getUserConsentLog, getUserDevices } from "@/lib/admin-queries"
-import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation, type DeviceType } from "@/lib/request-info"
-import { toCsv } from "@/lib/csv"
-import { unexpectedErrorMessage } from "@/lib/errors"
+import { hasRole } from "@/lib/auth/helpers"
+import { getUserById, getUserSecurity } from "@/lib/db/queries/user"
+import { getUserActivityLogs, getUserLoginHistory } from "@/lib/db/queries/activity"
+import { getUserConsentLog, getUserDevices } from "@/lib/db/queries/admin"
+import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation, type DeviceType } from "@/lib/utils/request-info"
+import { toCsv } from "@/lib/utils/csv"
+import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   const session = await auth.api.getSession({

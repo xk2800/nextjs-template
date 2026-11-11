@@ -2,13 +2,13 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
-import { ModalProvider } from "@/components/Updates/modal-provider";
+import { ModalProvider } from "@/components/updates/modal-provider";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "sonner";
-import OneTap from "@/components/auth/oneTap";
-import DeviceCheck from "@/components/auth/deviceCheck";
-import { CookieBanner } from "@/components/site/cookie-banner";
-import PushSync from "@/components/site/push-sync";
+import OneTap from "@/components/auth/methods/one-tap";
+import DeviceCheck from "@/components/auth/session/device-check";
+import { CookieBanner } from "@/components/site/compliance/cookie-banner";
+import PushSync from "@/components/site/push/push-sync";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

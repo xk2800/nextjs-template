@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton"
-import AdminStatsGridSkeleton from "@/components/dashboard/admin/adminStatsGridSkeleton"
+import AdminStatsGridSkeleton from "@/components/dashboard/admin/home/skeletons/admin-stats-skeleton"
 
 export default function AdminDashboardLoading() {
   return (

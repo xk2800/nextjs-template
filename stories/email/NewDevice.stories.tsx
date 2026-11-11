@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { EmailPreview } from "../_shared"
-import { EmailTemplateNewDevice } from "../../components/email/email-template-new-device"
+import { EmailTemplateNewDevice } from "../../components/email/security/new-device-alert"
 
 const meta = {
   title: "Email/NewDevice",

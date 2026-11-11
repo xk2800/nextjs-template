@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
 import { narrow } from "../_shared"
-import TwoFactorVerifyForm from "../../components/auth/twoFactorVerifyForm"
+import TwoFactorVerifyForm from "../../components/auth/mfa/two-factor-verify-form"
 
 const meta = {
   title: "Auth/TwoFactorVerifyForm",

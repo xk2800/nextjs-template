@@ -4,7 +4,7 @@ import { eq, and } from "drizzle-orm"
 import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { pushSubscriptions } from "@/server/db/schema"
-import { pushEnabled } from "@/lib/push"
+import { pushEnabled } from "@/lib/push/push"
 
 async function userId() {
   const session = await auth.api.getSession({ headers: await headers() })

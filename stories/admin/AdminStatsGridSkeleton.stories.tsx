@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import AdminStatsGridSkeleton from "../../components/dashboard/admin/adminStatsGridSkeleton"
+import AdminStatsGridSkeleton from "../../components/dashboard/admin/home/skeletons/admin-stats-skeleton"
 
 const meta = {
   title: "Admin/AdminStatsGridSkeleton",

@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import SystemSettingsForm from "../../components/dashboard/admin/systemSettingsForm"
+import SystemSettingsForm from "../../components/dashboard/admin/system-settings/system-settings-form"
 import { mockSettings } from "../../.storybook/mocks"
 
 const meta = {

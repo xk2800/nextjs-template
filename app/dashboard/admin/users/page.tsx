@@ -1,9 +1,9 @@
 import { Suspense } from "react"
 import { ErrorBoundary } from "@/components/error-boundary"
-import SectionErrorFallback from "@/components/dashboard/sectionErrorFallback"
-import UsersSection from "@/components/dashboard/admin/usersSection"
-import AdminUsersSkeleton from "@/components/dashboard/admin/adminUsersSkeleton"
-import ImpersonationTab from "@/components/dashboard/admin/impersonationTab"
+import SectionErrorFallback from "@/components/dashboard/common/section-error-fallback"
+import UsersSection from "@/components/dashboard/admin/users/users-section"
+import AdminUsersSkeleton from "@/components/dashboard/admin/users/skeletons/admin-users-skeleton"
+import ImpersonationTab from "@/components/dashboard/admin/users/impersonation-tab"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default async function AdminUsersPage({

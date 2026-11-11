@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import RevokeAllSessionsButton from "../../components/dashboard/admin/revokeAllSessionsButton"
+import RevokeAllSessionsButton from "../../components/dashboard/admin/users/revoke-all-sessions"
 import { mockUser } from "../../.storybook/mocks"
 
 const meta = {

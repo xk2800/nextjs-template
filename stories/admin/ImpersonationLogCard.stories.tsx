@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import ImpersonationLogCard from "../../components/dashboard/admin/impersonationLogCard"
+import ImpersonationLogCard from "../../components/dashboard/admin/users/impersonation-log-card"
 
 const meta = {
   title: "Admin/ImpersonationLogCard",

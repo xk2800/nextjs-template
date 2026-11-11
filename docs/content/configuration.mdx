@@ -94,7 +94,7 @@ In an app that installs the template as a package, mount the route with one line
 export { POST } from "@xk2800/nextjs-template/api/feedback"
 ```
 
-Then render `FeedbackDialog` (from `@xk2800/nextjs-template/components/dashboard/feedbackDialog`) wherever it fits, guarded by the same two variables. Projects scaffolded with `create-nextjs` get the route file already.
+Then render `FeedbackDialog` (from `@xk2800/nextjs-template/components/dashboard/common/feedback-dialog`) wherever it fits, guarded by the same two variables. Projects scaffolded with `create-nextjs` get the route file already.
 
 When a user reports a problem from an error (an app passes the error as `FeedbackDialog`'s `errorDetails`), the error is attached to the report as its own **Error** field, separate from the text they can edit. Turn this off under **Admin → System Settings → Feedback → Attach error details**.
 

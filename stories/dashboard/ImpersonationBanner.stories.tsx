@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite"
-import ImpersonationBanner from "../../components/dashboard/impersonationBanner"
+import ImpersonationBanner from "../../components/dashboard/layout/impersonation-banner"
 import { mockSessions, mockUser } from "../../.storybook/mocks"
 
 const meta = {

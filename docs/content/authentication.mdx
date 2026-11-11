@@ -68,7 +68,7 @@ Each new session (sign-in) updates `user.lastLoginAt` and writes a `login` activ
 ## Server-side usage
 
 ```ts
-import { getCurrentSession, requireAuth, requireRole, hasRole } from "@/lib/auth-helpers"
+import { getCurrentSession, requireAuth, requireRole, hasRole } from "@/lib/auth/helpers"
 
 const session = await getCurrentSession()   // session or null
 const session = await requireAuth()         // redirects to /login; signs out banned users
@@ -95,7 +95,7 @@ Always pass user-supplied `callbackUrl` values through `normalizeCallbackUrl()` 
 
 ```tsx
 "use client"
-import { authClient, useSession } from "@/lib/auth-client"
+import { authClient, useSession } from "@/lib/auth/client"
 
 const { data: session, isPending } = useSession()
 
@@ -108,7 +108,7 @@ await authClient.signOut()
 The client has the admin, twoFactor and passkey plugins loaded, plus One Tap when it's enabled. So `authClient.admin.*`, `authClient.twoFactor.*` and `authClient.passkey.*` are available.
 
 <Callout type="info">
-If `signIn.email` returns `{ twoFactorRedirect: true }`, send the user to `/login/2fa`. `components/auth/emailPasswordLogin.tsx` already does this.
+If `signIn.email` returns `{ twoFactorRedirect: true }`, send the user to `/login/2fa`. `components/auth/forms/login-form.tsx` already does this.
 </Callout>
 
 ## Roles
