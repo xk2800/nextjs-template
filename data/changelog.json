@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.7.2-beta.4",
+    "date": "2026-11-12",
+    "type": "beta",
+    "title": "refactor: update import paths for components and reorganize directory structure",
+    "changes": [
+      "refactor: update import paths for components and reorganize directory structure",
+      "feat: add control statuses for authentication features with environment variable checks",
+      "feat: implement system settings redesign with maintenance mode, environment variable checks, and save state indicators",
+      "feat: implement admin dashboard redesign and enhancements",
+      "feat: redesign settings page with tab architecture and new components for profile, security, appearance, and notifications",
+      "refactor: remove DataTable component and update related documentation"
+    ]
+  },
+  {
     "version": "0.7.2-beta.3",
     "date": "2026-11-10",
     "type": "beta",
