@@ -58,7 +58,7 @@ export default async function DashboardLayout({
   if (navStyle === "topbar") {
     return (
       <>
-        <TopNav user={user} isAdmin={isAdmin} actions={extras} />
+        <TopNav user={user} isAdmin={isAdmin} brandName={config.APP_NAME} actions={extras} />
         {body}
         <div className="pb-16 md:pb-0">{content}</div>
       </>
@@ -67,7 +67,7 @@ export default async function DashboardLayout({
 
   return (
     <SidebarProvider>
-      <AppSidebar user={user} isAdmin={isAdmin} />
+      <AppSidebar user={user} isAdmin={isAdmin} brandName={config.APP_NAME} />
       <SidebarInset>
         {body}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
