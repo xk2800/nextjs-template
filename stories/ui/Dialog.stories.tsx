@@ -56,3 +56,24 @@ export const WithNestedMenus: Story = {
     </Dialog>
   ),
 }
+
+/** Taller than the screen: the drawer (mobile) or dialog (desktop) content scrolls. */
+export const LongContent: Story = {
+  render: (args) => (
+    <Dialog {...args}>
+      <DialogTrigger asChild><Button>Open long dialog</Button></DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Terms of service</DialogTitle>
+          <DialogDescription>Scroll to read everything.</DialogDescription>
+        </DialogHeader>
+        {Array.from({ length: 20 }, (_, i) => (
+          <p key={i} className="text-sm">
+            {i + 1}. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+          </p>
+        ))}
+        <DialogFooter><Button>Accept</Button></DialogFooter>
+      </DialogContent>
+    </Dialog>
+  ),
+}
