@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.2-beta.6",
+    "date": "2026-11-16",
+    "type": "beta",
+    "title": "feat: implement Drawer component with various subcomponents and stories",
+    "changes": [
+      "feat: implement Drawer component with various subcomponents and stories"
+    ]
+  },
+  {
     "version": "0.7.2-beta.5",
     "date": "2026-11-15",
     "type": "beta",
