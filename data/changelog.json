@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.2-beta.7",
+    "date": "2026-11-16",
+    "type": "beta",
+    "title": "fix: update metadata title and description in RootLayout feat: pass brandName prop to TopNav and AppSidebar components",
+    "changes": [
+      "fix: update metadata title and description in RootLayout feat: pass brandName prop to TopNav and AppSidebar components"
+    ]
+  },
+  {
     "version": "0.7.2-beta.6",
     "date": "2026-11-16",
     "type": "beta",
