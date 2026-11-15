@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.7.2-beta.5",
+    "date": "2026-11-15",
+    "type": "beta",
+    "title": "feat: add mobile support for dialog component and viewport badge",
+    "changes": [
+      "feat: add mobile support for dialog component and viewport badge"
+    ]
+  },
+  {
     "version": "0.7.2-beta.4",
     "date": "2026-11-12",
     "type": "beta",
