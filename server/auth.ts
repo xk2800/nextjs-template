@@ -14,7 +14,7 @@ import { logActivity, type ActivityLogger } from "@/lib/security/activity-logger
 import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/utils/request-info"
 import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/security/cookie-names"
 import { getBaseUrl } from "@/lib/auth/base-url"
-import { wouldRemoveAllAdmins } from "@/lib/auth/pure"
+import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { isDeviceThrottled, recordDeviceAttempt } from "@/lib/auth/throttle"
 import { MAX_IP } from "@/lib/auth/throttle-limits"
 import { getEffectiveAuthFlags } from "@/lib/db/queries/settings"
@@ -498,11 +498,13 @@ export function createAuth(overrides: AuthOverrides = {}) {
           }
           // Deleting the last admin would leave nobody able to reach the admin dashboard.
           if ((current.user as { role?: string }).role === "admin") {
-            const [{ count }] = await db
-              .select({ count: sql<number>`count(*)` })
+            // Same rule as the admin routes: another *active* (unbanned) admin must remain.
+            const [other] = await db
+              .select({ n: sql`1` })
               .from(users)
-              .where(eq(users.role, "admin"))
-            if (wouldRemoveAllAdmins(1, Number(count))) {
+              .where(otherActiveAdminExists([current.user.id]))
+              .limit(1)
+            if (!other) {
               throw new APIError("FORBIDDEN", { message: "You're the only admin. Promote another user to admin first." })
             }
           }
