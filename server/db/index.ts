@@ -10,6 +10,7 @@ import { Pool } from 'pg';
 
 import * as schema from './schema';
 import { config } from '../../config/env';
+import { pgSslOptions } from '../../config/pg-ssl';
 
 // Import the query builder
 import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
@@ -24,7 +25,7 @@ let db: DrizzleNeon | DrizzlePg
 if (config.DB_DRIVER === 'pg') {
   const pool = new Pool({
     connectionString: config.DATABASE_URL!,
-    ssl: config.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
+    ssl: config.DATABASE_SSL ? pgSslOptions() : undefined,
   });
   db = drizzlePg(pool, {
     schema,

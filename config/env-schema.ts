@@ -49,4 +49,9 @@ export const envSchema = z.object({
   // Only relevant when DB_DRIVER=pg — whether the target Postgres server has SSL
   // enabled. Self-hosted Postgres (e.g. via Docker/Dokploy) typically does not.
   DATABASE_SSL: z.string().default('false').transform(val => val === 'true'),
+  // With DATABASE_SSL=true the server certificate is verified. Set the CA (PEM,
+  // "\n" for newlines) for a self-signed or private CA; DATABASE_SSL_INSECURE=true
+  // skips verification (encrypts only). Both are read in config/pg-ssl.ts.
+  DATABASE_SSL_CA: z.string().default(''),
+  DATABASE_SSL_INSECURE: z.string().default('false'),
 });

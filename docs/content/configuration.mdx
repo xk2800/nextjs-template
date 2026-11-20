@@ -20,7 +20,9 @@ All server-side env vars are validated with Zod in `config/env-schema.ts` and ex
 |---|---|---|
 | `DATABASE_URL` | — | Postgres connection string. **Required.** |
 | `DB_DRIVER` | `pg` | `pg` (node-postgres pool) or `neon` (Neon serverless HTTP driver). |
-| `DATABASE_SSL` | `false` | `pg` driver only: connect with SSL. Turn it on for managed Postgres; leave it off for local or Docker Postgres. |
+| `DATABASE_SSL` | `false` | `pg` driver only: connect with SSL and **verify the server certificate**. Turn it on for managed Postgres; leave it off for local or Docker Postgres. |
+| `DATABASE_SSL_CA` | — | PEM of the CA that signed your database's certificate, for a self-signed or provider-private CA (use `\n` for newlines in a one-line env var). Only used with `DATABASE_SSL=true`. |
+| `DATABASE_SSL_INSECURE` | `false` | `true` encrypts the connection but doesn't check who is on the other end, so a man-in-the-middle can read it. Last resort for a self-signed database when you can't supply the CA. |
 | `NODE_ENV` | `development` | `development`, `production` or `test`. |
 | `PORT` | `3000` | Server port. |
 | `APP_NAME` | `Next.js Template` | Shown as the authenticator-app label (2FA issuer), the passkey relying-party name and the installed-app name (`app/manifest.ts`). |

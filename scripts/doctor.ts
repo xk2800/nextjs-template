@@ -12,6 +12,7 @@ import 'dotenv/config';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { envSchema } from '../config/env-schema';
+import { pgSslOptions } from '../config/pg-ssl';
 
 let failed = false;
 const fail = (msg: string) => { console.error(`✗ ${msg}`); failed = true; };
@@ -59,7 +60,7 @@ if (env.success && env.data.DATABASE_URL) {
       const { Pool } = await import('pg');
       const pool = new Pool({
         connectionString: env.data.DATABASE_URL,
-        ssl: env.data.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
+        ssl: env.data.DATABASE_SSL ? pgSslOptions() : undefined,
       });
       query = async (text) => (await pool.query(text)).rows;
       close = () => pool.end();
