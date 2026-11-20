@@ -6,6 +6,7 @@ import { hasRole } from "@/lib/auth/helpers"
 import { endImpersonation } from "@/lib/db/queries/impersonation"
 import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
+import { getClientIp } from "@/lib/utils/request-info"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -29,7 +30,7 @@ export async function POST(request: NextRequest) {
       userId: adminId,
       action: "impersonation_stopped",
       description: `${session.user.email} force-ended impersonation of ${target?.email ?? targetId}`,
-      ipAddress: request.headers.get("x-forwarded-for"),
+      ipAddress: getClientIp(request.headers),
       userAgent: request.headers.get("user-agent"),
       metadata: { impersonatedUserId: targetId, forced: true, endedBy: session.user.id },
     })

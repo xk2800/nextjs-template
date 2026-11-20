@@ -5,6 +5,7 @@ import { hasRole } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
+import { getClientIp } from "@/lib/utils/request-info"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -91,7 +92,7 @@ export async function PATCH(
       userId: session.user.id,
       action: 'role_changed',
       description: `Admin changed role for ${targetUser[0].email} from ${oldRole} to ${role}`,
-      ipAddress: request.headers.get('x-forwarded-for'),
+      ipAddress: getClientIp(request.headers),
       userAgent: request.headers.get('user-agent'),
       metadata: {
         targetUserId: userId,

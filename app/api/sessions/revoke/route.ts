@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { db } from "@/server/db"
 import { sessions } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
+import { getClientIp } from "@/lib/utils/request-info"
 import { logActivity } from "@/lib/security/activity-logger"
 import { getSystemSettings } from "@/lib/db/queries/settings"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
       action: 'session_revoked',
       description: 'User revoked a session',
-      ipAddress: request.headers.get('x-forwarded-for'),
+      ipAddress: getClientIp(request.headers),
       userAgent: request.headers.get('user-agent'),
       metadata: { sessionId },
     })

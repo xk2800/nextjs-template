@@ -9,6 +9,7 @@ import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"
 import { getResend, EMAIL_FROM } from "@/lib/email/resend"
 import { EmailTemplateInvite } from "@/components/email/team/workspace-invite"
+import { getClientIp } from "@/lib/utils/request-info"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
       userId: session.user.id,
       action: "role_changed",
       description: `Admin invited ${email} as ${role}`,
-      ipAddress: request.headers.get("x-forwarded-for"),
+      ipAddress: getClientIp(request.headers),
       userAgent: request.headers.get("user-agent"),
       metadata: { targetUserEmail: email, newRole: role, invited: true },
     })

@@ -5,6 +5,7 @@ import { hasRole } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
+import { getClientIp } from "@/lib/utils/request-info"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -58,7 +59,7 @@ export async function DELETE(
       userId: session.user.id,
       action: 'user_deleted',
       description: `Admin deleted user: ${targetUser[0].email}`,
-      ipAddress: request.headers.get('x-forwarded-for'),
+      ipAddress: getClientIp(request.headers),
       userAgent: request.headers.get('user-agent'),
       metadata: { deletedUserId: userId, deletedUserEmail: targetUser[0].email },
     })

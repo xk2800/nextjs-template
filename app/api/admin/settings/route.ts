@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth/helpers"
 import { config } from "@/config/env"
 import { getSystemSettings, updateSystemSettings } from "@/lib/db/queries/settings"
+import { getClientIp } from "@/lib/utils/request-info"
 import { logActivity } from "@/lib/security/activity-logger"
 import { z } from "zod"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
@@ -68,7 +69,7 @@ export async function PATCH(request: NextRequest) {
       userId: session.user.id,
       action: 'settings_changed',
       description: `Admin updated system settings: ${changedFields.join(', ') || 'no fields'}`,
-      ipAddress: request.headers.get('x-forwarded-for'),
+      ipAddress: getClientIp(request.headers),
       userAgent: request.headers.get('user-agent'),
       metadata: { changed: patch },
     })

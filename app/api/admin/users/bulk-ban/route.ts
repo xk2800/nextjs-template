@@ -5,6 +5,7 @@ import { hasRole } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
 import { eq, inArray } from "drizzle-orm"
+import { getClientIp } from "@/lib/utils/request-info"
 import { logActivity } from "@/lib/security/activity-logger"
 import { sendBanEmail } from "@/lib/email/ban-email"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
@@ -95,7 +96,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         action: 'user_banned',
         description: `Admin bulk-banned ${targetUsers.length} user(s)`,
-        ipAddress: request.headers.get('x-forwarded-for'),
+        ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: {
           bulk: true,
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         action: 'user_unbanned',
         description: `Admin bulk-unbanned ${targetUsers.length} user(s)`,
-        ipAddress: request.headers.get('x-forwarded-for'),
+        ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: {
           bulk: true,
