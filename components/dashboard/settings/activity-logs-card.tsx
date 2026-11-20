@@ -16,7 +16,7 @@ interface ActivityLog {
   deviceLabel?: string
   location?: string
   createdAt: Date | string
-  userId: string
+  userId: string | null
   userName?: string | null
   userEmail?: string | null
 }

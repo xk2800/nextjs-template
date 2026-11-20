@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth/helpers"
+import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
+import { getClientIp } from "@/lib/utils/request-info"
+import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -12,18 +12,8 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  })
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
 
   try {
     const { userId } = await params
@@ -67,31 +57,39 @@ export async function PATCH(
       )
     }
 
-    // Prevent demoting the last remaining admin
+    // Demoting an admin: "another active admin remains" is checked in the same
+    // statement as the write (see lib/auth/last-admin.ts), so concurrent
+    // demotions can't both pass.
     if (oldRole === 'admin' && role !== 'admin') {
-      const admins = await db
-        .select()
-        .from(users)
-        .where(eq(users.role, 'admin'))
+      const updated = await db
+        .update(users)
+        .set({ role })
+        .where(
+          and(
+            eq(users.id, userId),
+            otherActiveAdminExists([userId]),
+          ),
+        )
+        .returning({ id: users.id })
 
-      if (admins.length <= 1) {
+      if (updated.length === 0) {
         return NextResponse.json(
           { error: "Cannot remove the last remaining admin" },
           { status: 400 }
         )
       }
+    } else {
+      await db
+        .update(users)
+        .set({ role })
+        .where(eq(users.id, userId))
     }
-
-    await db
-      .update(users)
-      .set({ role })
-      .where(eq(users.id, userId))
 
     await logActivity({
       userId: session.user.id,
       action: 'role_changed',
       description: `Admin changed role for ${targetUser[0].email} from ${oldRole} to ${role}`,
-      ipAddress: request.headers.get('x-forwarded-for'),
+      ipAddress: getClientIp(request.headers),
       userAgent: request.headers.get('user-agent'),
       metadata: {
         targetUserId: userId,

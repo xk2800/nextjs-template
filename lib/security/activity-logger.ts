@@ -1,4 +1,5 @@
 import "server-only"
+import { sql } from "drizzle-orm"
 import { db } from "../../server/db"
 import { activityLogs } from "../../server/db/schema"
 
@@ -56,6 +57,8 @@ export async function logActivity({
   try {
     await db.insert(activityLogs).values({
       userId,
+      // Snapshot the email at write time; survives deletion of the user row.
+      actorEmail: sql`(select "email" from "user" where "id" = ${userId})`,
       action,
       description,
       ipAddress: ipAddress || null,

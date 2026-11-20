@@ -1,25 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth/helpers"
+import { requireAdminApi } from "@/lib/auth/helpers"
 import { getActivityLogsFiltered, type ActivityActionFilter } from "@/lib/db/queries/activity"
 import { ActivityActionEnum } from "@/server/db/schema"
 import { actionsFor } from "@/lib/security/activity-severity"
+import { clampInt } from "@/lib/utils/pagination"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function GET(request: NextRequest) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  })
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
 
   try {
     const searchParams = request.nextUrl.searchParams
@@ -27,8 +16,8 @@ export async function GET(request: NextRequest) {
     const actionParam = searchParams.get('action') || ''
     const dateFromParam = searchParams.get('dateFrom')
     const dateToParam = searchParams.get('dateTo')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
+    const page = clampInt(searchParams.get('page'), 1, 1, 100_000)
+    const limit = clampInt(searchParams.get('limit'), 20, 1, 100)
 
     const action = (ActivityActionEnum.enumValues as readonly string[]).includes(actionParam)
       ? (actionParam as ActivityActionFilter)

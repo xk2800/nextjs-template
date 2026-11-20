@@ -35,7 +35,7 @@ export async function getAllActivityLogs(limit = 100, offset = 0) {
       createdAt: activityLogs.createdAt,
       userId: activityLogs.userId,
       userName: users.name,
-      userEmail: users.email,
+      userEmail: sql<string | null>`coalesce(${users.email}, ${activityLogs.actorEmail})`,
     })
     .from(activityLogs)
     .leftJoin(users, eq(activityLogs.userId, users.id))
@@ -56,7 +56,7 @@ export async function getRecentImpersonationEvents(limit = 10) {
       createdAt: activityLogs.createdAt,
       adminId: activityLogs.userId,
       adminName: users.name,
-      adminEmail: users.email,
+      adminEmail: sql<string | null>`coalesce(${users.email}, ${activityLogs.actorEmail})`,
       // Resolved from metadata.impersonatedUserId so the UI can show who was
       // impersonated instead of a raw id (null if that account is gone).
       targetName: sql<string | null>`(select t."name" from "user" t where t."id" = ${activityLogs.metadata}::jsonb ->> 'impersonatedUserId')`,
@@ -140,7 +140,7 @@ export async function getActivityLogsFiltered({
         createdAt: activityLogs.createdAt,
         userId: activityLogs.userId,
         userName: users.name,
-        userEmail: users.email,
+        userEmail: sql<string | null>`coalesce(${users.email}, ${activityLogs.actorEmail})`,
       })
       .from(activityLogs)
       .leftJoin(users, eq(activityLogs.userId, users.id))
@@ -191,7 +191,7 @@ export async function getActivityLogsForExport({
       createdAt: activityLogs.createdAt,
       userId: activityLogs.userId,
       userName: users.name,
-      userEmail: users.email,
+      userEmail: sql<string | null>`coalesce(${users.email}, ${activityLogs.actorEmail})`,
     })
     .from(activityLogs)
     .leftJoin(users, eq(activityLogs.userId, users.id))

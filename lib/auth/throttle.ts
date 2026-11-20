@@ -80,11 +80,3 @@ export async function pruneStaleRows(now = new Date()): Promise<void> {
     console.error("auth-throttle prune failed", error)
   }
 }
-
-export async function clearDeviceThrottle(fingerprint: string): Promise<void> {
-  try {
-    await db.delete(authThrottle).where(eq(authThrottle.fingerprint, fingerprint))
-  } catch (error) {
-    console.error("auth-throttle clear failed", error)
-  }
-}

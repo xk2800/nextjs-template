@@ -8,7 +8,7 @@ export type ImpersonationStatus = "active" | "ended" | "revoked"
 export interface ImpersonationSession {
   id: string
   status: ImpersonationStatus
-  adminId: string
+  adminId: string | null
   adminName: string | null
   adminEmail: string | null
   targetId: string | null
@@ -97,7 +97,7 @@ export async function getImpersonationSessions({
     ? new Map((await db.select({ id: users.id, name: users.name, email: users.email }).from(users).where(inArray(users.id, ids))).map((u) => [u.id, u]))
     : new Map<string, { id: string; name: string; email: string }>()
   for (const s of all) {
-    const a = people.get(s.adminId), t = s.targetId ? people.get(s.targetId) : undefined
+    const a = s.adminId ? people.get(s.adminId) : undefined, t = s.targetId ? people.get(s.targetId) : undefined
     s.adminName = a?.name ?? null; s.adminEmail = a?.email ?? null
     s.targetName = t?.name ?? null; s.targetEmail = t?.email ?? null
   }

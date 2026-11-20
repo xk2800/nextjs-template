@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server"
-import { and, eq } from "drizzle-orm"
+import { and, count, eq, max } from "drizzle-orm"
 import { cookies, headers } from "next/headers"
 import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { deviceFingerprints } from "@/server/db/schema"
 import { config } from "@/config/env"
+import { getBaseUrl } from "@/lib/auth/base-url"
 import { getResend, EMAIL_FROM } from "@/lib/email/resend"
 import { getAdminEmails } from "@/lib/db/queries/user"
 import {
@@ -17,6 +18,10 @@ import {
 import { EmailTemplateNewDevice } from "@/components/email/security/new-device-alert"
 import { getSystemSettings, isConsentRequired } from "@/lib/db/queries/settings"
 import { COOKIE_CONSENT_COOKIE, EXCLUDED_SIGNALS, consentAllows } from "@/lib/security/cookie-names"
+
+const MAX_VISITOR_ID_LENGTH = 64
+const MAX_DEVICES_PER_USER = 20
+const ADMIN_ALERT_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 // Client-sent signals: a plain object under 32 KB (the client hashes large
 // values, so real payloads are a few KB), minus the accessibility signals.
@@ -33,14 +38,14 @@ function sanitizeSignals(components: unknown): Record<string, unknown> | null {
 // unrecognized device, and surface it on the admin panel's "New devices" card.
 export async function POST(request: Request) {
   const hdrs = await headers()
-  const session = await auth.api.getSession({ headers: hdrs })
+  const session = await auth.api.getSession({ headers: hdrs, query: { disableCookieCache: true } })
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const { visitorId, components } = await request.json().catch(() => ({}))
-  if (typeof visitorId !== "string" || !visitorId) {
+  if (typeof visitorId !== "string" || !visitorId || visitorId.length > MAX_VISITOR_ID_LENGTH) {
     return NextResponse.json({ error: "visitorId is required" }, { status: 400 })
   }
 
@@ -53,6 +58,16 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: "Consent required" }, { status: 403 })
   }
+
+  // Cap devices per user and rate-limit admin alerts (one per user per day,
+  // judged by the user's newest device row) so a signed-in user can't loop
+  // random visitorIds to flood admins and burn the email quota.
+  const [{ total, latest }] = await db
+    .select({ total: count(), latest: max(deviceFingerprints.createdAt) })
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.userId, session.user.id))
+  if (total >= MAX_DEVICES_PER_USER) return NextResponse.json({ ok: true })
+  const notifyAdmins = !latest || Date.now() - latest.getTime() >= ADMIN_ALERT_INTERVAL_MS
 
   const signals = sanitizeSignals(components)
   const ip = getClientIp(hdrs)
@@ -100,11 +115,7 @@ export async function POST(request: Request) {
   // recorded (and shows on the admin panel), so once RESEND_API_KEY is set the
   // user isn't retro-alerted for devices seen while it was off.
   if (config.RESEND_API_KEY) {
-    const baseUrl =
-      process.env.BETTER_AUTH_URL ||
-      process.env.NEXTAUTH_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      ""
+    const baseUrl = getBaseUrl()
     const deviceLabel = formatDeviceInfo(device)
     const locationLabel = formatLocation(geo)
     const when = new Date().toUTCString()
@@ -145,7 +156,7 @@ export async function POST(request: Request) {
     // small scale; for a large user base gate this behind a system_settings
     // flag like the auth toggles.
     try {
-      const recipients = (await getAdminEmails()).filter((e) => e !== session.user.email)
+      const recipients = (notifyAdmins ? await getAdminEmails() : []).filter((e) => e !== session.user.email)
       if (recipients.length) {
         const resend = await getResend()
         await Promise.allSettled(
@@ -180,14 +191,14 @@ export async function POST(request: Request) {
 // visitorId it stored while consent was given. Scoped to the session's own
 // userId, so a caller can only delete their own rows.
 export async function DELETE(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
   const { visitorId } = await request.json().catch(() => ({}))
-  if (typeof visitorId !== "string" || !visitorId) {
+  if (typeof visitorId !== "string" || !visitorId || visitorId.length > MAX_VISITOR_ID_LENGTH) {
     return NextResponse.json({ error: "visitorId is required" }, { status: 400 })
   }
 

@@ -4,6 +4,7 @@ import { eq, inArray } from 'drizzle-orm'
 import { config } from '@/config/env'
 import { db } from '@/server/db'
 import { pushSubscriptions } from '@/server/db/schema'
+import { isPushEndpointAllowed } from './endpoint'
 
 // Web Push example. Browsers get the public key from NEXT_PUBLIC_VAPID_PUBLIC_KEY.
 export const pushEnabled = !!(
@@ -28,6 +29,11 @@ export async function sendPushToUser(userId: string, payload: PushPayload) {
 
   await Promise.all(
     subs.map(async (s) => {
+      // Rows saved before the host allowlist existed: never call them, drop them.
+      if (!isPushEndpointAllowed(s.endpoint)) {
+        dead.push(s.endpoint)
+        return
+      }
       try {
         await webpush.sendNotification(
           { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },

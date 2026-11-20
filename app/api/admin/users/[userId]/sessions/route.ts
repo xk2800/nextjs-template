@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth/helpers"
+import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { sessions } from "@/server/db/schema"
 import { eq, desc } from "drizzle-orm"
+import { getClientIp } from "@/lib/utils/request-info"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -12,18 +11,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  })
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
 
   try {
     const { userId } = await params
@@ -47,18 +36,8 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  })
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
 
   try {
     const { userId } = await params
@@ -94,7 +73,7 @@ export async function DELETE(
         userId: session.user.id,
         action: 'session_revoked',
         description: `Admin revoked session for user: ${userId}`,
-        ipAddress: request.headers.get('x-forwarded-for'),
+        ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: { targetUserId: userId, sessionId },
       })
@@ -107,7 +86,7 @@ export async function DELETE(
         userId: session.user.id,
         action: 'session_revoked',
         description: `Admin revoked all sessions for user: ${userId}`,
-        ipAddress: request.headers.get('x-forwarded-for'),
+        ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: { targetUserId: userId, allSessions: true },
       })

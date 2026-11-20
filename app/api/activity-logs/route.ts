@@ -4,6 +4,7 @@ import { headers } from "next/headers"
 import { hasRole } from "@/lib/auth/helpers"
 import { getUserActivityLogs, getAllActivityLogs } from "@/lib/db/queries/activity"
 import { parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/utils/request-info"
+import { clampInt } from "@/lib/utils/pagination"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 function withDeviceInfo<T extends { ipAddress: string | null; userAgent: string | null }>(logs: T[]) {
@@ -15,8 +16,10 @@ function withDeviceInfo<T extends { ipAddress: string | null; userAgent: string 
 }
 
 export async function GET(request: NextRequest) {
+  // Fresh role check: this route returns every user's logs to admins.
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   if (!session?.user) {
@@ -24,8 +27,8 @@ export async function GET(request: NextRequest) {
   }
 
   const searchParams = request.nextUrl.searchParams
-  const limit = parseInt(searchParams.get('limit') || '50')
-  const offset = parseInt(searchParams.get('offset') || '0')
+  const limit = clampInt(searchParams.get('limit'), 50, 1, 100)
+  const offset = clampInt(searchParams.get('offset'), 0, 0, 10_000_000)
 
   try {
     const isAdmin = hasRole(session.user.role, 'admin')

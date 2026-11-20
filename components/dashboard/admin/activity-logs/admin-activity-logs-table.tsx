@@ -27,7 +27,7 @@ interface ActivityLog {
   userAgent: string | null
   metadata: string | null
   createdAt: Date | string
-  userId: string
+  userId: string | null
   userName: string | null
   userEmail: string | null
 }

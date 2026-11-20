@@ -22,12 +22,12 @@ const [user] = await db.select().from(users).where(eq(users.email, email)).limit
 ```
 
 <Callout type="info">
-Query logging is on (`logger: true`), so every SQL statement prints to the server console. Turn it off in `server/db/index.ts` if the noise bothers you.
+Query logging is on only when `NODE_ENV=development`, so every SQL statement prints to the console there. It is off in production, because logged parameters include session tokens, reset tokens and password hashes. Change it in `server/db/index.ts` if the noise bothers you.
 </Callout>
 
 ## Tables
 
-Everything is defined in `server/db/schema.ts`. IDs are CUID2 strings. Every user-owned table has `ON DELETE CASCADE` to `user.id`, so deleting a user removes all their rows.
+Everything is defined in `server/db/schema.ts`. IDs are CUID2 strings. Every user-owned table has `ON DELETE CASCADE` to `user.id`, so deleting a user removes all their rows. The exception is `activity_log`: `userId` is `ON DELETE SET NULL` and `actorEmail` keeps the actor's email, so the audit trail survives account deletion.
 
 | Table (export) | Purpose |
 |---|---|
@@ -40,7 +40,7 @@ Everything is defined in `server/db/schema.ts`. IDs are CUID2 strings. Every use
 | `activity_log` (`activityLogs`) | Audit trail. `action` is the `activity_actions` enum. Login rows also store OS, browser, device and geo. |
 | `device_fingerprint` (`deviceFingerprints`) | One row per (user, FingerprintJS visitorId) pair. A missing row means a new device, which triggers an alert. `components` (jsonb) holds the device's latest FingerprintJS signals for the admin **Devices** card. |
 | `auth_throttle` (`authThrottle`) | Fixed-window counters for the sign-in/sign-up throttle, keyed by fingerprint or `ip:<addr>`. Rows untouched for 30 days are deleted automatically. |
-| `push_subscription` (`pushSubscriptions`) | One row per device a user enabled push notifications on (`endpoint` unique, `p256dh`, `auth`, `userAgent`). Deleted when the push service reports the endpoint gone (404/410), and with the account. |
+| `push_subscription` (`pushSubscriptions`) | One row per device a user enabled push notifications on (`endpoint` unique, `p256dh`, `auth`, `userAgent`). Only real push-service hosts are accepted (Google FCM, Mozilla, Apple, Windows), so a user can't make the server call an arbitrary URL. Deleted when the push service reports the endpoint gone (404/410), and with the account. |
 | `consent_log` (`consentLog`) | Proof of cookie consent: one row per choice a signed-in user makes (`choice`, `version`, `createdAt`). `previousId` chains each row to the one before, and `(userId, previousId)` is unique, so several tabs posting at once record a choice only once. Deleted with the account. |
 | `system_settings` (`systemSettings`) | Single row (`id = 'default'`) holding admin-editable settings |
 

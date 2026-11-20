@@ -5,9 +5,10 @@ import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { pushSubscriptions } from "@/server/db/schema"
 import { pushEnabled } from "@/lib/push/push"
+import { isPushEndpointAllowed, isPushKey } from "@/lib/push/endpoint"
 
 async function userId() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
   return session?.user.id
 }
 
@@ -26,7 +27,7 @@ export async function POST(request: Request) {
 
   const sub = await request.json().catch(() => null)
   const { endpoint, keys } = sub ?? {}
-  if (typeof endpoint !== "string" || !endpoint.startsWith("https://") || !keys?.p256dh || !keys?.auth) {
+  if (typeof endpoint !== "string" || !isPushEndpointAllowed(endpoint) || !isPushKey(keys?.p256dh) || !isPushKey(keys?.auth)) {
     return NextResponse.json({ error: "Invalid subscription" }, { status: 400 })
   }
 

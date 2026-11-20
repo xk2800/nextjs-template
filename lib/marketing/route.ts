@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { z } from "zod"
 import { auth } from "../../server/auth"
-import { hasRole } from "../auth/helpers"
+import { requireAdminApi } from "../auth/helpers"
 import { getBroadcastResend, EMAIL_FROM } from "../email/resend"
 import { MARKETING_SEGMENT_ID, setSubscribed } from "./marketing"
 import { textToBroadcastHtml, textToBroadcastText } from "../email/marketing-email"
@@ -16,22 +16,9 @@ import { unexpectedErrorMessage } from "../utils/errors"
 
 type IdParams = { params: Promise<{ id: string }> }
 
-async function getSession() {
-  return auth.api.getSession({ headers: await headers() })
-}
-
 async function requireAdmin() {
-  const session = await getSession()
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
-
-  return null
+  const result = await requireAdminApi()
+  return result instanceof NextResponse ? result : null
 }
 
 const createSchema = z.object({
@@ -155,7 +142,8 @@ const subscriptionSchema = z.object({ subscribed: z.boolean() })
 // The signed-in user opts their own account email in or out of product
 // updates (RESEND_MARKETING_SEGMENT_ID).
 export async function updateSubscriptionPUT(request: NextRequest) {
-  const session = await getSession()
+  // Cookie cache off so a revoked or banned session can't change subscriptions.
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

@@ -2,21 +2,15 @@ import { EmailTemplate } from '@/components/email/layout/base-layout';
 import { EmailTemplate2 } from '@/components/email/marketing/general-announcement';
 import { EmailTemplateWelcome } from '@/components/email/auth/welcome';
 import { getResend, EMAIL_FROM } from '@/lib/email/resend';
-import { auth } from '@/server/auth';
-import { headers } from 'next/headers';
+import { NextResponse } from 'next/server';
+import { requireAdminApi } from '@/lib/auth/helpers';
 import { unexpectedErrorMessage } from '@/lib/utils/errors';
 
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({
-    headers: await headers()
-  });
-
-  if (!session?.user?.email) {
-    return Response.json(
-      { error: 'Unauthorized - Please log in to send emails' },
-      { status: 401 }
-    );
-  }
+  // Demo endpoint: admins only, so users can't burn the Resend quota that
+  // password resets share.
+  const session = await requireAdminApi();
+  if (session instanceof NextResponse) return session;
 
   try {
     const { template = '1' } = await request.json().catch(() => ({}));

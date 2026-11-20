@@ -20,7 +20,9 @@ All server-side env vars are validated with Zod in `config/env-schema.ts` and ex
 |---|---|---|
 | `DATABASE_URL` | — | Postgres connection string. **Required.** |
 | `DB_DRIVER` | `pg` | `pg` (node-postgres pool) or `neon` (Neon serverless HTTP driver). |
-| `DATABASE_SSL` | `false` | `pg` driver only: connect with SSL. Turn it on for managed Postgres; leave it off for local or Docker Postgres. |
+| `DATABASE_SSL` | `false` | `pg` driver only: connect with SSL and **verify the server certificate**. Turn it on for managed Postgres; leave it off for local or Docker Postgres. |
+| `DATABASE_SSL_CA` | — | PEM of the CA that signed your database's certificate, for a self-signed or provider-private CA (use `\n` for newlines in a one-line env var). Only used with `DATABASE_SSL=true`. |
+| `DATABASE_SSL_INSECURE` | `false` | `true` encrypts the connection but doesn't check who is on the other end, so a man-in-the-middle can read it. Last resort for a self-signed database when you can't supply the CA. |
 | `NODE_ENV` | `development` | `development`, `production` or `test`. |
 | `PORT` | `3000` | Server port. |
 | `APP_NAME` | `Next.js Template` | Shown as the authenticator-app label (2FA issuer), the passkey relying-party name and the installed-app name (`app/manifest.ts`). |
@@ -58,7 +60,7 @@ Use a separate pair for production, and set all three variables on your host. Th
 | `BETTER_AUTH_SECRET` *or* `AUTH_SECRET` | — | Signs cookies and tokens. **Required.** Generate with `openssl rand -base64 32`. Either name works. |
 | `ADMIN_EMAIL` | — | Email promoted to admin on first sign-in, but only while no admin exists. Use Google sign-in; email/password works only after the verification link is clicked (needs `RESEND_API_KEY`). Set by `create-nextjs`. Delete it after your first login; it's only needed once. |
 | `BETTER_AUTH_URL` | `http://localhost:3000` | Public base URL of the app. It's used for OAuth callbacks and email links, and it **binds passkeys to this origin**. |
-| `NEXT_PUBLIC_APP_URL` | — | Same origin as above. Used to validate `callbackUrl` redirects. |
+| `NEXT_PUBLIC_APP_URL` | — | Same origin as above. Fallback only: the server uses `BETTER_AUTH_URL` first, then `NEXTAUTH_URL`, then this, then `http://localhost:3000` (one rule, `getBaseUrl()`), for auth callbacks, passkeys, email links and `callbackUrl` validation. Set both to the same value. |
 | `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET` | — | Google OAuth client. `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` are accepted as fallbacks. |
 | `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | — | Same client ID, exposed to the browser. Only needed for One Tap. |
 | `AUTH_ENABLE_GOOGLE` | `true` | `false` removes the Google provider from the server config and hides it in the UI. |
@@ -77,7 +79,7 @@ Changing `BETTER_AUTH_URL` (a new domain, for example) makes every existing pass
 | `RESEND_API_KEY` | — | Resend API key. Without it, password reset and verification emails fail, and security alerts are skipped. |
 | `RESEND_BROADCAST_API_KEY` | — | Full access Resend key for the admin [Marketing email](/admin#marketing-email-beta) page. Blank = use `RESEND_API_KEY`. |
 | `RESEND_MARKETING_SEGMENT_ID` | — | Resend segment users join with the **Email updates** switch on their dashboard. Blank hides the switch. See [Marketing email](/admin#marketing-email-beta). |
-| `EMAIL_FROM` | the template author's address | Sender for every email, e.g. `My App <noreply@myapp.com>`. **Set this.** It must be on a domain verified in *your* Resend account, so the default won't work for you. Leave it out entirely rather than leaving it blank. |
+| `EMAIL_FROM` | `Acme <onboarding@resend.dev>` | Sender for every email, e.g. `My App <noreply@myapp.com>`. **Set this.** The default is Resend's sandbox sender, which only delivers to your own Resend account email. For real use it must be on a domain verified in your Resend account. Leave it out entirely rather than leaving it blank. |
 
 ## Feedback (Beta)
 
@@ -87,6 +89,7 @@ The **Feedback** button in the dashboard header lets signed-in users send a bug 
 |---|---|---|
 | `FEEDBACK_DISCORD_WEBHOOK_URL` | — | A Discord channel webhook (*Channel settings → Integrations → Webhooks → New Webhook → Copy URL*). Each message is posted as an embed showing the type, the message, the user, the page and the user agent. Mentions are disabled, so `@everyone` in a message doesn't ping anyone. You don't need a bot. |
 | `FEEDBACK_EMAIL` | — | One or more addresses (comma-separated) that receive each message through Resend. Needs `RESEND_API_KEY` and `EMAIL_FROM`. Reply-To is set to the user, so replying answers them. |
+| `FEEDBACK_COOLDOWN_SECONDS` | `30` | Minimum seconds between feedback messages from one user (per server instance). `0` turns the limit off. |
 
 In an app that installs the template as a package, mount the route with one line in `app/api/feedback/route.ts`:
 

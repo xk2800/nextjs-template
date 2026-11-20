@@ -12,7 +12,7 @@ import { CONSENT_VERSION, isValidConsent } from "@/lib/security/cookie-names"
 // endpoint closed to anonymous spam. Idempotent — a row is only added when the
 // choice or CONSENT_VERSION differs from the user's latest record.
 export async function POST(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

@@ -20,7 +20,7 @@ The admin area is at `/dashboard/admin`. Its layout calls `requireRole('admin')`
 These are enforced in the API, not just the UI:
 
 - You can't change your own role, ban yourself or delete yourself, and you can't include yourself in a bulk action.
-- You can't demote the last admin, and a bulk ban or bulk delete can't remove every admin.
+- You can't demote, ban or delete the last active admin, one at a time or in bulk. Banned admins don't count, and the check runs inside the write itself, so two admins acting on each other at the same moment can't both succeed. Bulk ban and bulk delete take at most 100 users. If you ever lock yourself out, set `ADMIN_EMAIL` or promote a user in SQL (see Troubleshooting).
 - **Banning** sets `banned`, `bannedAt` and `bannedReason`, then **deletes all of the user's sessions** so they're signed out immediately. A banned user who still has a cookie is signed out by `requireAuth()` and sent to `/login?error=account_banned`.
 - Every action writes an activity row (`role_changed`, `user_banned`, `user_unbanned`, `user_deleted`, `settings_changed`).
 

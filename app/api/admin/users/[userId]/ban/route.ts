@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth/helpers"
+import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
+import { getClientIp } from "@/lib/utils/request-info"
+import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 import { sendBanEmail } from "@/lib/email/ban-email"
@@ -13,18 +13,8 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ userId: string }> }
 ) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  })
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
 
   try {
     const { userId } = await params
@@ -61,8 +51,10 @@ export async function POST(
     }
 
     if (ban) {
-      // Ban the user
-      await db
+      // Ban the user. Banning an active admin needs another active admin to
+      // remain, checked in the same statement (lib/auth/last-admin.ts).
+      const bansAdmin = targetUser[0].role === 'admin' && !targetUser[0].banned
+      const banned = await db
         .update(users)
         .set({
           banned: true,
@@ -70,7 +62,12 @@ export async function POST(
           bannedReason: reason || null,
           bannedBy: session.user.email,
         })
-        .where(eq(users.id, userId))
+        .where(and(eq(users.id, userId), bansAdmin ? otherActiveAdminExists([userId]) : undefined))
+        .returning({ id: users.id })
+
+      if (banned.length === 0) {
+        return NextResponse.json({ error: "Cannot ban the last active admin" }, { status: 400 })
+      }
 
       // Revoke all sessions
       await db.delete(sessions).where(eq(sessions.userId, userId))
@@ -82,7 +79,7 @@ export async function POST(
         userId: session.user.id,
         action: 'user_banned',
         description: `Admin banned user: ${targetUser[0].email}`,
-        ipAddress: request.headers.get('x-forwarded-for'),
+        ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: {
           bannedUserId: userId,
@@ -107,7 +104,7 @@ export async function POST(
         userId: session.user.id,
         action: 'user_unbanned',
         description: `Admin unbanned user: ${targetUser[0].email}`,
-        ipAddress: request.headers.get('x-forwarded-for'),
+        ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: {
           unbannedUserId: userId,

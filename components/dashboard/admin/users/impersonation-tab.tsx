@@ -26,7 +26,7 @@ import { formatDateTime } from '../../../../lib/utils/formatters'
 interface Row {
   id: string
   status: 'active' | 'ended' | 'revoked'
-  adminId: string
+  adminId: string | null
   adminName: string | null
   adminEmail: string | null
   targetId: string | null

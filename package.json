@@ -323,7 +323,7 @@
     "build": "npm run build:lib && next build",
     "start": "next start",
     "lint": "next lint",
-    "test": "bun lib/utils/__tests__/recalculate-columns.test.ts && bun lib/auth/__tests__/two-factor.test.ts && bun lib/auth/__tests__/auth-throttle-limits.test.ts && bun lib/security/__tests__/shared-devices.test.ts && bun lib/config/__tests__/maintenance.test.ts && bun lib/utils/__tests__/install-target.test.ts && bun lib/utils/__tests__/file-upload-accept.test.ts && bun lib/security/__tests__/cookie-names.test.ts && bun lib/email/__tests__/marketing-email.test.ts && bun scripts/bump-version.test.ts",
+    "test": "bun scripts/run-tests.ts",
     "build:lib": "tsup",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

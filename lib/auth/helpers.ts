@@ -3,20 +3,28 @@ import { cache } from "react"
 import { auth } from "../../server/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
+import { NextResponse } from "next/server"
 import { db } from "../../server/db"
 import { users } from "../../server/db/schema"
 import { eq } from "drizzle-orm"
+import { hasRole, normalizeCallbackUrl } from "./pure"
+
+// Pure helpers live in ./pure so tests can import them without server-only/db.
+export { hasRole, normalizeCallbackUrl }
 
 /**
  * Get current session (server-side only)
  * Returns session data or null if not authenticated
  *
- * Wrapped in React's cache() so the layout and page (both of which call
- * requireAuth per request) share one auth.api.getSession call instead of two.
+ * Reads the session with the cookie cache off, so a revoked or banned session
+ * stops working at once instead of after the 5-minute cache. Wrapped in
+ * React's cache() so the layout and page (both of which call requireAuth per
+ * request) share one auth.api.getSession call instead of two.
  */
 export const getCurrentSession = cache(async () => {
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   return session
@@ -51,25 +59,10 @@ export const requireAuth = cache(async () => {
     redirect('/login?error=account_banned')
   }
 
-  // The session cookie caches the user for 5 minutes, so a role changed after
-  // sign-in (first-admin promotion, admin demotion) lags behind. We already have
-  // the fresh row here, so take the role from it.
+  // Take the role from the fresh row we just read (cheap, and keeps it correct
+  // even if the session's own user snapshot is older).
   return { ...session, user: { ...session.user, role: user[0]?.role ?? session.user.role } }
 })
-
-/**
- * Check if user has specific role
- */
-export function hasRole(userRole: string | null | undefined, requiredRole: 'user' | 'admin'): boolean {
-  if (!userRole) return false
-
-  if (requiredRole === 'admin') {
-    return userRole === 'admin'
-  }
-
-  // 'user' role check - every role ('user', 'admin', 'tester') has access
-  return userRole === 'user' || userRole === 'admin' || userRole === 'tester'
-}
 
 /**
  * Require specific role - throw error if user doesn't have it
@@ -85,27 +78,16 @@ export async function requireRole(requiredRole: 'user' | 'admin') {
 }
 
 /**
- * Normalize a callbackUrl query param to a same-origin path before it's ever
- * passed to redirect() or an auth form's callbackURL. Guards against open
- * redirects (e.g. /login?callbackUrl=https://evil.com) — anything that
- * doesn't resolve to this app's own origin falls back to /dashboard.
+ * Admin gate for API routes: returns the session, or a 401/403 NextResponse to
+ * return as is. Reads the session with the cookie cache off so a demoted or
+ * banned admin loses access at once.
+ *
+ *   const session = await requireAdminApi()
+ *   if (session instanceof NextResponse) return session
  */
-export function normalizeCallbackUrl(value?: string | string[]): string {
-  if (typeof value !== 'string' || !value.trim()) return '/dashboard'
-
-  const candidate = value.trim()
-
-  try {
-    const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000').origin
-    const callbackUrl = new URL(candidate, appOrigin)
-
-    if (callbackUrl.origin !== appOrigin) {
-      return '/dashboard'
-    }
-
-    return `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}` || '/dashboard'
-  } catch {
-    return '/dashboard'
-  }
+export async function requireAdminApi() {
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!hasRole(session.user.role, 'admin')) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  return session
 }
-

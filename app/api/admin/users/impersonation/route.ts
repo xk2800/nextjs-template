@@ -1,22 +1,19 @@
 import { NextRequest, NextResponse } from "next/server"
-import { headers } from "next/headers"
-import { auth } from "@/server/auth"
-import { hasRole } from "@/lib/auth/helpers"
+import { requireAdminApi } from "@/lib/auth/helpers"
 import { getImpersonationSessions } from "@/lib/db/queries/impersonation"
+import { clampInt } from "@/lib/utils/pagination"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function GET(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  if (!hasRole(session.user.role, "admin")) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
   try {
     const sp = request.nextUrl.searchParams
     return NextResponse.json(
       await getImpersonationSessions({
         search: sp.get("search") || "",
         status: sp.get("status") || undefined,
-        page: Math.max(1, parseInt(sp.get("page") || "1")),
+        page: clampInt(sp.get("page"), 1, 1, 100_000),
       })
     )
   } catch (error) {

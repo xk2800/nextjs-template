@@ -17,7 +17,9 @@ export const envSchema = z.object({
   RESEND_MARKETING_SEGMENT_ID: z.string().default(''),
   // Sender for every transactional email. Must be on a domain verified in
   // your Resend account.
-  EMAIL_FROM: z.string().default('Acme <onboarding@xavierkhew.xyz>'),
+  // Resend's shared sandbox sender: works without a verified domain but only
+  // delivers to your own Resend account email. Set your verified domain for real use.
+  EMAIL_FROM: z.string().default('Acme <onboarding@resend.dev>'),
   // Display name for this deployment — shown as the authenticator-app label
   // (2FA issuer) and the passkey relying-party name. Consuming projects set
   // this in their own .env; defaults to the template name.
@@ -27,6 +29,9 @@ export const envSchema = z.object({
   // a comma-separated list and sends through Resend (needs RESEND_API_KEY).
   FEEDBACK_DISCORD_WEBHOOK_URL: z.string().default(''),
   FEEDBACK_EMAIL: z.string().default(''),
+  // Seconds between feedback messages per user (default 30, 0 = off). Read
+  // straight from process.env in lib/feedback/route.ts; listed here for docs.
+  FEEDBACK_COOLDOWN_SECONDS: z.string().default('30'),
   // Web Push (example, see lib/push.ts). Generate keys with
   // `bunx web-push generate-vapid-keys`. Blank = the notifications card is hidden.
   // The public key is also read in the browser as NEXT_PUBLIC_VAPID_PUBLIC_KEY.
@@ -44,4 +49,9 @@ export const envSchema = z.object({
   // Only relevant when DB_DRIVER=pg — whether the target Postgres server has SSL
   // enabled. Self-hosted Postgres (e.g. via Docker/Dokploy) typically does not.
   DATABASE_SSL: z.string().default('false').transform(val => val === 'true'),
+  // With DATABASE_SSL=true the server certificate is verified. Set the CA (PEM,
+  // "\n" for newlines) for a self-signed or private CA; DATABASE_SSL_INSECURE=true
+  // skips verification (encrypts only). Both are read in config/pg-ssl.ts.
+  DATABASE_SSL_CA: z.string().default(''),
+  DATABASE_SSL_INSECURE: z.string().default('false'),
 });

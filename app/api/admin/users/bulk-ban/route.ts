@@ -1,35 +1,25 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth/helpers"
+import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
-import { eq, inArray } from "drizzle-orm"
+import { and, inArray } from "drizzle-orm"
+import { getClientIp } from "@/lib/utils/request-info"
+import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { logActivity } from "@/lib/security/activity-logger"
 import { sendBanEmail } from "@/lib/email/ban-email"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  })
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
 
   try {
     const body = await request.json()
     const { userIds, ban, reason } = body
 
-    if (!Array.isArray(userIds) || userIds.length === 0 || !userIds.every((id) => typeof id === 'string')) {
+    if (!Array.isArray(userIds) || userIds.length === 0 || userIds.length > 100 || !userIds.every((id) => typeof id === 'string')) {
       return NextResponse.json(
-        { error: "userIds must be a non-empty array of strings" },
+        { error: "userIds must be an array of 1-100 strings" },
         { status: 400 }
       )
     }
@@ -62,21 +52,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (ban) {
-      // Prevent banning every remaining admin
-      const allAdmins = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.role, 'admin'))
-
-      const targetAdminCount = targetUsers.filter((u) => u.role === 'admin').length
-      if (targetAdminCount > 0 && targetAdminCount >= allAdmins.length) {
-        return NextResponse.json(
-          { error: "Cannot ban all admin accounts" },
-          { status: 400 }
-        )
-      }
-
-      await db
+      // Banning admins: the "another active admin remains" check is part of
+      // the write (lib/auth/last-admin.ts), so concurrent bans can't both pass.
+      const bansAdmin = targetUsers.some((u) => u.role === 'admin' && !u.banned)
+      const banned = await db
         .update(users)
         .set({
           banned: true,
@@ -84,18 +63,26 @@ export async function POST(request: NextRequest) {
           bannedReason: reason || null,
           bannedBy: session.user.email,
         })
-        .where(inArray(users.id, userIds))
+        .where(and(inArray(users.id, userIds), bansAdmin ? otherActiveAdminExists(userIds) : undefined))
+        .returning({ id: users.id })
+
+      if (banned.length === 0) {
+        return NextResponse.json(
+          { error: "Cannot ban all admin accounts" },
+          { status: 400 }
+        )
+      }
+
+      // Revoke sessions before the slow email fan-out so bans bite at once.
+      await db.delete(sessions).where(inArray(sessions.userId, userIds))
 
       await Promise.all(targetUsers.map((u) => sendBanEmail(u, reason || null)))
-
-      // Revoke all sessions for the banned users
-      await db.delete(sessions).where(inArray(sessions.userId, userIds))
 
       await logActivity({
         userId: session.user.id,
         action: 'user_banned',
         description: `Admin bulk-banned ${targetUsers.length} user(s)`,
-        ipAddress: request.headers.get('x-forwarded-for'),
+        ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: {
           bulk: true,
@@ -120,7 +107,7 @@ export async function POST(request: NextRequest) {
         userId: session.user.id,
         action: 'user_unbanned',
         description: `Admin bulk-unbanned ${targetUsers.length} user(s)`,
-        ipAddress: request.headers.get('x-forwarded-for'),
+        ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: {
           bulk: true,

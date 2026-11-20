@@ -10,38 +10,32 @@ import { Pool } from 'pg';
 
 import * as schema from './schema';
 import { config } from '../../config/env';
+import { pgSslOptions } from '../../config/pg-ssl';
 
-// Import the query builder
-import { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
-import { NeonHttpDatabase } from 'drizzle-orm/neon-http';
+import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 
-type DrizzleNeon = NeonHttpDatabase<typeof schema>;
-type DrizzlePg = PostgresJsDatabase<typeof schema>;
-
-let db: DrizzleNeon | DrizzlePg
-
+// Both drivers are PgDatabase; typing as the shared base keeps query-builder
+// calls (e.g. .returning(...)) well-typed instead of a driver union.
+let db: PgDatabase<PgQueryResultHKT, typeof schema>
 
 if (config.DB_DRIVER === 'pg') {
   const pool = new Pool({
     connectionString: config.DATABASE_URL!,
-    ssl: config.DATABASE_SSL ? { rejectUnauthorized: false } : undefined,
+    ssl: config.DATABASE_SSL ? pgSslOptions() : undefined,
   });
   db = drizzlePg(pool, {
     schema,
-    logger: true,
+    logger: process.env.NODE_ENV === 'development',
   });
 
   console.log('🟡 Using PostgreSQL (pg) driver');
 
-} else if (config.DB_DRIVER === 'neon') {
+} else {
   const sql = neon(config.DATABASE_URL!);
-  db = drizzle(sql, { schema, logger: true });
+  db = drizzle(sql, { schema, logger: process.env.NODE_ENV === 'development' });
 
   console.log('🟢 Using Neon (HTTP) driver');
-
-} else {
-  console.log('Database connection not established, unknown DB_DRIVER:', config.DB_DRIVER);
 }
-// Note: In production, you might want to disable logging or use a more sophisticated logger.
+// Query logging prints parameters (session/reset tokens, hashes): development only.
 
 export { db }
