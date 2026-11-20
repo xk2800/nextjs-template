@@ -22,6 +22,9 @@ if (config.DB_DRIVER === 'pg') {
   const pool = new Pool({
     connectionString: config.DATABASE_URL!,
     ssl: config.DATABASE_SSL ? pgSslOptions() : undefined,
+    // pg waits forever by default; a hung DB would otherwise freeze every request (proxy reads settings).
+    connectionTimeoutMillis: 5000,
+    query_timeout: 5000,
   });
   db = drizzlePg(pool, {
     schema,

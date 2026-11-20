@@ -11,6 +11,7 @@ const SETTINGS_ROW_ID = "default"
 // that isn't the one who just saved (invalidateSystemSettingsCache() makes
 // it instant for that request's own process).
 const CACHE_TTL_MS = 10_000
+const FAILURE_CACHE_TTL_MS = 5_000
 
 export type SystemSettings = typeof systemSettings.$inferSelect
 
@@ -82,7 +83,10 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     return value
   } catch (error) {
     console.error("Failed to load system settings, failing open:", error)
-    return fallbackSettings() // not cached — retry next request
+    // Cache the fallback briefly so a down DB isn't retried (and waited on) by every request.
+    const value = fallbackSettings()
+    cached = { value, expiresAt: now + FAILURE_CACHE_TTL_MS }
+    return value
   }
 }
 
