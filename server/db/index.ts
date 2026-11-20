@@ -34,10 +34,10 @@ if (config.DB_DRIVER === 'pg') {
   console.log('🟡 Using PostgreSQL (pg) driver');
 
 } else {
-  // Fresh 5s signal per request (a static signal passed to neon() would expire for good).
+  // Fresh 15s signal (same as pg query_timeout) per request (a static signal passed to neon() would expire for good).
   // Global-only option, fine here: this is the only Neon client in the app.
   neonConfig.fetchFunction = (url: string, init?: RequestInit) =>
-    fetch(url, { ...init, signal: AbortSignal.timeout(5000) });
+    fetch(url, { ...init, signal: AbortSignal.timeout(15_000) });
   const sql = neon(config.DATABASE_URL!);
   db = drizzle(sql, { schema, logger: process.env.NODE_ENV === 'development' });
 
