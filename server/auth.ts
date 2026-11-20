@@ -13,6 +13,7 @@ import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/a
 import { logActivity, type ActivityLogger } from "@/lib/security/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/utils/request-info"
 import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/security/cookie-names"
+import { getBaseUrl } from "@/lib/auth/base-url"
 import { wouldRemoveAllAdmins } from "@/lib/auth/pure"
 import { isDeviceThrottled, recordDeviceAttempt } from "@/lib/auth/throttle"
 import { MAX_IP } from "@/lib/auth/throttle-limits"
@@ -134,7 +135,7 @@ async function notifyPasskeyChange(
         location: formatLocation(lookupGeoLocation(ip)),
         ipAddress: ip || "Unknown",
         when: new Date().toUTCString(),
-        manageUrl: `${process.env.BETTER_AUTH_URL || process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || ""}/dashboard/settings`,
+        manageUrl: `${getBaseUrl()}/dashboard/settings`,
       }),
     })
   } catch (error) {
@@ -267,7 +268,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
   // Shared by the `baseURL` field below and the passkey plugin's rpID/origin
   // — WebAuthn credentials are bound to this exact origin, so it must never
   // fall back to better-auth's own "localhost" passkey default in production.
-  const baseURL = process.env.NEXTAUTH_URL || process.env.BETTER_AUTH_URL || "http://localhost:3000"
+  const baseURL = getBaseUrl()
 
   const log = overrides.logActivity ?? logActivity
 

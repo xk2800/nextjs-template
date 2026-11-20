@@ -5,6 +5,7 @@ import { auth } from "@/server/auth"
 import { db } from "@/server/db"
 import { deviceFingerprints } from "@/server/db/schema"
 import { config } from "@/config/env"
+import { getBaseUrl } from "@/lib/auth/base-url"
 import { getResend, EMAIL_FROM } from "@/lib/email/resend"
 import { getAdminEmails } from "@/lib/db/queries/user"
 import {
@@ -114,11 +115,7 @@ export async function POST(request: Request) {
   // recorded (and shows on the admin panel), so once RESEND_API_KEY is set the
   // user isn't retro-alerted for devices seen while it was off.
   if (config.RESEND_API_KEY) {
-    const baseUrl =
-      process.env.BETTER_AUTH_URL ||
-      process.env.NEXTAUTH_URL ||
-      process.env.NEXT_PUBLIC_APP_URL ||
-      ""
+    const baseUrl = getBaseUrl()
     const deviceLabel = formatDeviceInfo(device)
     const locationLabel = formatLocation(geo)
     const when = new Date().toUTCString()

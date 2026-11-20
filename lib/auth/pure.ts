@@ -1,4 +1,6 @@
 // No server-only/db imports: safe to unit test.
+import { getBaseUrl } from './base-url'
+
 /**
  * Check if user has specific role
  */
@@ -25,7 +27,7 @@ export function normalizeCallbackUrl(value?: string | string[]): string {
   const candidate = value.trim()
 
   try {
-    const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000').origin
+    const appOrigin = new URL(getBaseUrl()).origin
     const callbackUrl = new URL(candidate, appOrigin)
 
     if (callbackUrl.origin !== appOrigin) {
