@@ -1,7 +1,8 @@
 import "server-only"
 import { db } from "../../../server/db"
+import { containsPattern } from "../../utils/like"
 import { users, activityLogs, accounts, passkeys, RoleEnum } from "../../../server/db/schema"
-import { like, desc, or, eq, and, min, sql, getTableColumns, type SQL } from "drizzle-orm"
+import { ilike, desc, or, eq, and, min, sql, getTableColumns, type SQL } from "drizzle-orm"
 
 export async function getUserById(id: string) {
   const result = await db
@@ -83,7 +84,7 @@ type UsersFilter = { search?: string; role?: string; status?: string }
 
 function buildUsersWhere({ search = "", role, status }: UsersFilter): SQL | undefined {
   const conds: (SQL | undefined)[] = [
-    search.trim() ? or(like(users.name, `%${search}%`), like(users.email, `%${search}%`)) : undefined,
+    search.trim() ? or(ilike(users.name, containsPattern(search)), ilike(users.email, containsPattern(search))) : undefined,
     role && (RoleEnum.enumValues as readonly string[]).includes(role) ? eq(users.role, role as (typeof RoleEnum.enumValues)[number]) : undefined,
     status === "banned" ? eq(users.banned, true) : undefined,
     status === "invited" ? and(eq(users.banned, false), isInvitedSql) : undefined,

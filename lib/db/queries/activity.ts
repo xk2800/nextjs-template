@@ -1,7 +1,8 @@
 import "server-only"
 import { db } from "../../../server/db"
+import { containsPattern } from "../../utils/like"
 import { activityLogs, users, ActivityActionEnum } from "../../../server/db/schema"
-import { eq, desc, and, or, like, gte, lte, sql, inArray, type SQL } from "drizzle-orm"
+import { eq, desc, and, or, ilike, gte, lte, sql, inArray, type SQL } from "drizzle-orm"
 
 export async function getUserActivityLogs(userId: string, limit = 50) {
   return await db
@@ -93,9 +94,9 @@ function buildActivityLogsWhere({
   if (search.trim()) {
     conditions.push(
       or(
-        like(users.name, `%${search}%`),
-        like(users.email, `%${search}%`),
-        like(activityLogs.ipAddress, `%${search}%`)
+        ilike(users.name, containsPattern(search)),
+        ilike(users.email, containsPattern(search)),
+        ilike(activityLogs.ipAddress, containsPattern(search))
       ) as SQL
     )
   }
