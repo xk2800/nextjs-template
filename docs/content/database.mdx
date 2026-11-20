@@ -22,7 +22,7 @@ const [user] = await db.select().from(users).where(eq(users.email, email)).limit
 ```
 
 <Callout type="info">
-Query logging is on (`logger: true`), so every SQL statement prints to the server console. Turn it off in `server/db/index.ts` if the noise bothers you.
+Query logging is on only when `NODE_ENV=development`, so every SQL statement prints to the console there. It is off in production, because logged parameters include session tokens, reset tokens and password hashes. Change it in `server/db/index.ts` if the noise bothers you.
 </Callout>
 
 ## Tables

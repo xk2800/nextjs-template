@@ -28,20 +28,20 @@ if (config.DB_DRIVER === 'pg') {
   });
   db = drizzlePg(pool, {
     schema,
-    logger: true,
+    logger: process.env.NODE_ENV === 'development',
   });
 
   console.log('🟡 Using PostgreSQL (pg) driver');
 
 } else if (config.DB_DRIVER === 'neon') {
   const sql = neon(config.DATABASE_URL!);
-  db = drizzle(sql, { schema, logger: true });
+  db = drizzle(sql, { schema, logger: process.env.NODE_ENV === 'development' });
 
   console.log('🟢 Using Neon (HTTP) driver');
 
 } else {
   console.log('Database connection not established, unknown DB_DRIVER:', config.DB_DRIVER);
 }
-// Note: In production, you might want to disable logging or use a more sophisticated logger.
+// Query logging prints parameters (session/reset tokens, hashes): development only.
 
 export { db }
