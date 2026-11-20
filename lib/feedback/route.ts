@@ -20,8 +20,11 @@ const feedbackSchema = z.object({
   error: z.string().max(2000).optional(),
 })
 
-// const COOLDOWN_MS = 30_000
-const COOLDOWN_MS = 0
+// Read from process.env (not config) so scaffolded apps, whose local
+// env-schema predates this key, still get the 30s default after upgrading.
+// 0 disables the cooldown.
+const parsedCooldown = Number(process.env.FEEDBACK_COOLDOWN_SECONDS || 30)
+const COOLDOWN_MS = (Number.isFinite(parsedCooldown) && parsedCooldown >= 0 ? parsedCooldown : 30) * 1000
 // ponytail: in-memory, per instance; move to a DB/Redis counter if one user
 // spamming across instances ever matters.
 const lastSentAt = new Map<string, number>()
@@ -50,6 +53,8 @@ export async function POST(request: NextRequest) {
       { status: 429 }
     )
   }
+  // Drop expired entries so the map can't grow with every user ever seen.
+  for (const [id, at] of lastSentAt) if (now - at >= COOLDOWN_MS) lastSentAt.delete(id)
   lastSentAt.set(session.user.id, now)
 
   const { type, message, page } = parsed.data

@@ -87,6 +87,7 @@ The **Feedback** button in the dashboard header lets signed-in users send a bug 
 |---|---|---|
 | `FEEDBACK_DISCORD_WEBHOOK_URL` | — | A Discord channel webhook (*Channel settings → Integrations → Webhooks → New Webhook → Copy URL*). Each message is posted as an embed showing the type, the message, the user, the page and the user agent. Mentions are disabled, so `@everyone` in a message doesn't ping anyone. You don't need a bot. |
 | `FEEDBACK_EMAIL` | — | One or more addresses (comma-separated) that receive each message through Resend. Needs `RESEND_API_KEY` and `EMAIL_FROM`. Reply-To is set to the user, so replying answers them. |
+| `FEEDBACK_COOLDOWN_SECONDS` | `30` | Minimum seconds between feedback messages from one user (per server instance). `0` turns the limit off. |
 
 In an app that installs the template as a package, mount the route with one line in `app/api/feedback/route.ts`:
 

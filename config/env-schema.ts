@@ -27,6 +27,9 @@ export const envSchema = z.object({
   // a comma-separated list and sends through Resend (needs RESEND_API_KEY).
   FEEDBACK_DISCORD_WEBHOOK_URL: z.string().default(''),
   FEEDBACK_EMAIL: z.string().default(''),
+  // Seconds between feedback messages per user (default 30, 0 = off). Read
+  // straight from process.env in lib/feedback/route.ts; listed here for docs.
+  FEEDBACK_COOLDOWN_SECONDS: z.string().default('30'),
   // Web Push (example, see lib/push.ts). Generate keys with
   // `bunx web-push generate-vapid-keys`. Blank = the notifications card is hidden.
   // The public key is also read in the browser as NEXT_PUBLIC_VAPID_PUBLIC_KEY.
