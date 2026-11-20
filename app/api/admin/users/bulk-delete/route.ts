@@ -26,9 +26,9 @@ export async function DELETE(request: NextRequest) {
     const body = await request.json()
     const { userIds } = body
 
-    if (!Array.isArray(userIds) || userIds.length === 0 || !userIds.every((id) => typeof id === 'string')) {
+    if (!Array.isArray(userIds) || userIds.length === 0 || userIds.length > 100 || !userIds.every((id) => typeof id === 'string')) {
       return NextResponse.json(
-        { error: "userIds must be a non-empty array of strings" },
+        { error: "userIds must be an array of 1-100 strings" },
         { status: 400 }
       )
     }

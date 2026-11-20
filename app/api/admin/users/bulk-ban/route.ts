@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { userIds, ban, reason } = body
 
-    if (!Array.isArray(userIds) || userIds.length === 0 || !userIds.every((id) => typeof id === 'string')) {
+    if (!Array.isArray(userIds) || userIds.length === 0 || userIds.length > 100 || !userIds.every((id) => typeof id === 'string')) {
       return NextResponse.json(
-        { error: "userIds must be a non-empty array of strings" },
+        { error: "userIds must be an array of 1-100 strings" },
         { status: 400 }
       )
     }
@@ -86,10 +86,10 @@ export async function POST(request: NextRequest) {
         })
         .where(inArray(users.id, userIds))
 
-      await Promise.all(targetUsers.map((u) => sendBanEmail(u, reason || null)))
-
-      // Revoke all sessions for the banned users
+      // Revoke sessions before the slow email fan-out so bans bite at once.
       await db.delete(sessions).where(inArray(sessions.userId, userIds))
+
+      await Promise.all(targetUsers.map((u) => sendBanEmail(u, reason || null)))
 
       await logActivity({
         userId: session.user.id,
