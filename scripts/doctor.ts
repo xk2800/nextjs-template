@@ -45,6 +45,10 @@ if (!process.env.BETTER_AUTH_URL) {
   ok(`BETTER_AUTH_URL=${process.env.BETTER_AUTH_URL}`);
 }
 
+if (process.env.RESEND_API_KEY && !process.env.EMAIL_FROM) {
+  warn('EMAIL_FROM not set — using onboarding@resend.dev, which only delivers to your own Resend account email. Set a sender on your verified domain.');
+}
+
 console.log('\n--- database ---');
 if (env.success && env.data.DATABASE_URL) {
   try {

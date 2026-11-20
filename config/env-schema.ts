@@ -17,7 +17,9 @@ export const envSchema = z.object({
   RESEND_MARKETING_SEGMENT_ID: z.string().default(''),
   // Sender for every transactional email. Must be on a domain verified in
   // your Resend account.
-  EMAIL_FROM: z.string().default('Acme <onboarding@xavierkhew.xyz>'),
+  // Resend's shared sandbox sender: works without a verified domain but only
+  // delivers to your own Resend account email. Set your verified domain for real use.
+  EMAIL_FROM: z.string().default('Acme <onboarding@resend.dev>'),
   // Display name for this deployment — shown as the authenticator-app label
   // (2FA issuer) and the passkey relying-party name. Consuming projects set
   // this in their own .env; defaults to the template name.
