@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation'
 const ForgotPasswordPage = async () => {
   const session = await auth.api.getSession({
     headers: await headers(),
+    query: { disableCookieCache: true },
   })
   if (session?.user) {
     redirect('/dashboard')

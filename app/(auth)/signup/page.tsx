@@ -14,7 +14,8 @@ const SignupPage = async ({
 }) => {
   // If already logged in, redirect to dashboard or callback URL
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   const params = await searchParams
