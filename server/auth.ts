@@ -470,6 +470,19 @@ export function createAuth(overrides: AuthOverrides = {}) {
           return
         }
 
+        // The plugin's other /admin/* endpoints (set-user-password, set-role, ban-user,
+        // remove-user, create-user...) would bypass our audit log and last-admin guard.
+        // Block them over HTTP only (ctx.request is unset for server-side auth.api calls,
+        // e.g. the invite route's createUser).
+        if (
+          ctx.request &&
+          ctx.path?.startsWith("/admin/") &&
+          ctx.path !== "/admin/impersonate-user" &&
+          ctx.path !== "/admin/stop-impersonating"
+        ) {
+          throw new APIError("FORBIDDEN", { message: "Use the dashboard to manage users." })
+        }
+
         // The admin plugin stays registered either way (dropping it changes the
         // inferred session type); with impersonation off, its endpoint is closed here.
         if (ctx.path === "/admin/impersonate-user" && overrides.impersonation === false) {
