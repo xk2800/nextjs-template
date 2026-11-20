@@ -24,7 +24,7 @@ if (config.DB_DRIVER === 'pg') {
     ssl: config.DATABASE_SSL ? pgSslOptions() : undefined,
     // pg waits forever by default; a hung DB would otherwise freeze every request (proxy reads settings).
     connectionTimeoutMillis: 5000,
-    query_timeout: 5000,
+    query_timeout: 15000, // roomy enough for the 10k-row exports
   });
   db = drizzlePg(pool, {
     schema,
