@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
   if (!parsed.success) return NextResponse.json({ error: "Valid email and role required" }, { status: 400 })
   const { email, name, role } = parsed.data
 
+  let createdUserId: string | null = null
   try {
     const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)
     if (existing) return NextResponse.json({ error: "A user with this email already exists" }, { status: 409 })
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
       headers: reqHeaders,
       body: { email, name: name || email.split("@")[0], password: randomBytes(24).toString("hex"), role: role as "user" | "admin", data: { emailVerified: true } }, // plugin types omit "tester"; runtime accepts any role
     })
+    createdUserId = user.id
     // Same token the reset flow uses, minted here so the email can be the invite one.
     const token = randomBytes(18).toString("base64url")
     const { baseURL, internalAdapter } = await auth.$context
@@ -53,12 +55,14 @@ export async function POST(request: NextRequest) {
       expiresAt: new Date(Date.now() + INVITE_TTL_MS),
     })
     const url = `${baseURL}/reset-password/${token}?callbackURL=${encodeURIComponent("/reset-password?invite=1")}`
-    await (await getResend()).emails.send({
+    // Resend returns API failures as { error } instead of throwing.
+    const { error: sendError } = await (await getResend()).emails.send({
       from: EMAIL_FROM,
       to: [email],
       subject: "You've been invited",
       react: EmailTemplateInvite({ firstName: user.name || "there", url }),
     })
+    if (sendError) throw new Error(sendError.message)
 
     await logActivity({
       userId: session.user.id,
@@ -70,6 +74,9 @@ export async function POST(request: NextRequest) {
     })
     return NextResponse.json({ success: true })
   } catch (error) {
+    // Don't leave an account nobody can use (random password, invite never
+    // delivered); deleting it lets the admin simply retry.
+    if (createdUserId) await db.delete(users).where(eq(users.id, createdUserId)).catch(() => {})
     return NextResponse.json({ error: unexpectedErrorMessage(error, "Failed to invite user") }, { status: 500 })
   }
 }
