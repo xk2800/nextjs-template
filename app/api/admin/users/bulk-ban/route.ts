@@ -4,9 +4,9 @@ import { headers } from "next/headers"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
-import { eq, inArray } from "drizzle-orm"
+import { and, inArray } from "drizzle-orm"
 import { getClientIp } from "@/lib/utils/request-info"
-import { wouldRemoveAllAdmins } from "@/lib/auth/pure"
+import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { logActivity } from "@/lib/security/activity-logger"
 import { sendBanEmail } from "@/lib/email/ban-email"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
@@ -54,21 +54,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (ban) {
-      // Prevent banning every remaining admin
-      const allAdmins = await db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.role, 'admin'))
-
-      const targetAdminCount = targetUsers.filter((u) => u.role === 'admin').length
-      if (wouldRemoveAllAdmins(targetAdminCount, allAdmins.length)) {
-        return NextResponse.json(
-          { error: "Cannot ban all admin accounts" },
-          { status: 400 }
-        )
-      }
-
-      await db
+      // Banning admins: the "another active admin remains" check is part of
+      // the write (lib/auth/last-admin.ts), so concurrent bans can't both pass.
+      const bansAdmin = targetUsers.some((u) => u.role === 'admin' && !u.banned)
+      const banned = await db
         .update(users)
         .set({
           banned: true,
@@ -76,7 +65,15 @@ export async function POST(request: NextRequest) {
           bannedReason: reason || null,
           bannedBy: session.user.email,
         })
-        .where(inArray(users.id, userIds))
+        .where(and(inArray(users.id, userIds), bansAdmin ? otherActiveAdminExists(userIds) : undefined))
+        .returning({ id: users.id })
+
+      if (banned.length === 0) {
+        return NextResponse.json(
+          { error: "Cannot ban all admin accounts" },
+          { status: 400 }
+        )
+      }
 
       // Revoke sessions before the slow email fan-out so bans bite at once.
       await db.delete(sessions).where(inArray(sessions.userId, userIds))

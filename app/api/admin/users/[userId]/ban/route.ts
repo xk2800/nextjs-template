@@ -4,8 +4,9 @@ import { headers } from "next/headers"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { getClientIp } from "@/lib/utils/request-info"
+import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 import { sendBanEmail } from "@/lib/email/ban-email"
@@ -52,8 +53,10 @@ export async function POST(
     }
 
     if (ban) {
-      // Ban the user
-      await db
+      // Ban the user. Banning an active admin needs another active admin to
+      // remain, checked in the same statement (lib/auth/last-admin.ts).
+      const bansAdmin = targetUser[0].role === 'admin' && !targetUser[0].banned
+      const banned = await db
         .update(users)
         .set({
           banned: true,
@@ -61,7 +64,12 @@ export async function POST(
           bannedReason: reason || null,
           bannedBy: session.user.email,
         })
-        .where(eq(users.id, userId))
+        .where(and(eq(users.id, userId), bansAdmin ? otherActiveAdminExists([userId]) : undefined))
+        .returning({ id: users.id })
+
+      if (banned.length === 0) {
+        return NextResponse.json({ error: "Cannot ban the last active admin" }, { status: 400 })
+      }
 
       // Revoke all sessions
       await db.delete(sessions).where(eq(sessions.userId, userId))

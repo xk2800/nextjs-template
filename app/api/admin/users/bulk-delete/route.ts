@@ -4,9 +4,9 @@ import { headers } from "next/headers"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
-import { eq, inArray } from "drizzle-orm"
+import { and, inArray } from "drizzle-orm"
 import { getClientIp } from "@/lib/utils/request-info"
-import { wouldRemoveAllAdmins } from "@/lib/auth/pure"
+import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -45,22 +45,20 @@ export async function DELETE(request: NextRequest) {
       )
     }
 
-    // Prevent deleting every remaining admin
-    const allAdmins = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.role, 'admin'))
+    // Deleting admins: the "another active admin remains" check is part of the
+    // write (lib/auth/last-admin.ts). Cascading delete handles sessions and accounts.
+    const deletesAdmin = targetUsers.some((u) => u.role === 'admin' && !u.banned)
+    const deleted = await db
+      .delete(users)
+      .where(and(inArray(users.id, userIds), deletesAdmin ? otherActiveAdminExists(userIds) : undefined))
+      .returning({ id: users.id })
 
-    const targetAdminCount = targetUsers.filter((u) => u.role === 'admin').length
-    if (wouldRemoveAllAdmins(targetAdminCount, allAdmins.length)) {
+    if (deleted.length === 0) {
       return NextResponse.json(
         { error: "Cannot delete all admin accounts" },
         { status: 400 }
       )
     }
-
-    // Delete the users (cascading delete will handle sessions and accounts)
-    await db.delete(users).where(inArray(users.id, userIds))
 
     await logActivity({
       userId: session.user.id,

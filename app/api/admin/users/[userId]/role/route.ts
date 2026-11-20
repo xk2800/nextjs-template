@@ -4,8 +4,9 @@ import { headers } from "next/headers"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq } from "drizzle-orm"
 import { getClientIp } from "@/lib/utils/request-info"
+import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -58,11 +59,9 @@ export async function PATCH(
       )
     }
 
-    // Demoting an admin: the "at least one other admin" check and the write
-    // are one statement, and the subquery row-locks every admin row. Two admins
-    // demoting each other at once therefore serialize (the second re-reads the
-    // roles after the first commits) instead of both passing a stale count.
-    // A single statement also works on the neon-http driver (no transactions).
+    // Demoting an admin: "another active admin remains" is checked in the same
+    // statement as the write (see lib/auth/last-admin.ts), so concurrent
+    // demotions can't both pass.
     if (oldRole === 'admin' && role !== 'admin') {
       const updated = await db
         .update(users)
@@ -70,7 +69,7 @@ export async function PATCH(
         .where(
           and(
             eq(users.id, userId),
-            sql`(select count(*) from (select 1 from ${users} where ${users.role} = 'admin' for update) a) > 1`,
+            otherActiveAdminExists([userId]),
           ),
         )
         .returning({ id: users.id })
