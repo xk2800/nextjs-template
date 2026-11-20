@@ -68,7 +68,7 @@ Dashboard → Settings → **Danger zone** lets users delete their own account, 
 
 - Credential users confirm with their password. OAuth-only users need a session less than 24 hours old, otherwise they're asked to sign in again.
 - It's blocked while an admin is impersonating the user, and for the last remaining admin.
-- All of the user's rows cascade-delete.
+- The user's rows cascade-delete, except `activity_log`. Those rows are kept as an audit trail with `userId` set to null and the account's email saved in `actorEmail`, so a deleted admin's bans, role changes and settings changes remain visible. If you must erase a person's activity on request (GDPR erasure), delete or anonymize those rows yourself, for example `UPDATE activity_log SET "actorEmail" = NULL, "ipAddress" = NULL, "userAgent" = NULL WHERE "userId" IS NULL AND "actorEmail" = '...'`.
 
 ## Cookie consent
 

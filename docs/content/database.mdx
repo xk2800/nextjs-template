@@ -27,7 +27,7 @@ Query logging is on (`logger: true`), so every SQL statement prints to the serve
 
 ## Tables
 
-Everything is defined in `server/db/schema.ts`. IDs are CUID2 strings. Every user-owned table has `ON DELETE CASCADE` to `user.id`, so deleting a user removes all their rows.
+Everything is defined in `server/db/schema.ts`. IDs are CUID2 strings. Every user-owned table has `ON DELETE CASCADE` to `user.id`, so deleting a user removes all their rows. The exception is `activity_log`: `userId` is `ON DELETE SET NULL` and `actorEmail` keeps the actor's email, so the audit trail survives account deletion.
 
 | Table (export) | Purpose |
 |---|---|

@@ -131,9 +131,10 @@ export const verifications = pgTable("verification", {
 
 export const activityLogs = pgTable("activity_log", {
   id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
-  userId: text("userId")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
+  // SET NULL, not cascade: deleting an admin must not erase the audit trail of
+  // what they did. actorEmail keeps who it was once the user row is gone.
+  userId: text("userId").references(() => users.id, { onDelete: "set null" }),
+  actorEmail: text("actorEmail"),
   action: ActivityActionEnum('action').notNull(),
   description: text('description').notNull(),
   ipAddress: text('ipAddress'),
