@@ -1,7 +1,7 @@
 import 'server-only';
 
 // neon-http driver for production
-import { neon } from '@neondatabase/serverless';
+import { neon, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-http';
 
 // postgres driver for local development
@@ -34,6 +34,10 @@ if (config.DB_DRIVER === 'pg') {
   console.log('🟡 Using PostgreSQL (pg) driver');
 
 } else {
+  // Fresh 5s signal per request (a static signal passed to neon() would expire for good).
+  // Global-only option, fine here: this is the only Neon client in the app.
+  neonConfig.fetchFunction = (url: string, init?: RequestInit) =>
+    fetch(url, { ...init, signal: AbortSignal.timeout(5000) });
   const sql = neon(config.DATABASE_URL!);
   db = drizzle(sql, { schema, logger: process.env.NODE_ENV === 'development' });
 
