@@ -13,6 +13,7 @@ import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/a
 import { logActivity, type ActivityLogger } from "@/lib/security/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/utils/request-info"
 import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/security/cookie-names"
+import { wouldRemoveAllAdmins } from "@/lib/auth/pure"
 import { isDeviceThrottled, recordDeviceAttempt } from "@/lib/auth/throttle"
 import { MAX_IP } from "@/lib/auth/throttle-limits"
 import { getEffectiveAuthFlags } from "@/lib/db/queries/settings"
@@ -487,7 +488,7 @@ export function createAuth(overrides: AuthOverrides = {}) {
               .select({ count: sql<number>`count(*)` })
               .from(users)
               .where(eq(users.role, "admin"))
-            if (Number(count) <= 1) {
+            if (wouldRemoveAllAdmins(1, Number(count))) {
               throw new APIError("FORBIDDEN", { message: "You're the only admin. Promote another user to admin first." })
             }
           }

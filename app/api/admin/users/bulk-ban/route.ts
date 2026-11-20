@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
 import { eq, inArray } from "drizzle-orm"
 import { getClientIp } from "@/lib/utils/request-info"
+import { wouldRemoveAllAdmins } from "@/lib/auth/pure"
 import { logActivity } from "@/lib/security/activity-logger"
 import { sendBanEmail } from "@/lib/email/ban-email"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
@@ -70,7 +71,7 @@ export async function POST(request: NextRequest) {
         .where(eq(users.role, 'admin'))
 
       const targetAdminCount = targetUsers.filter((u) => u.role === 'admin').length
-      if (targetAdminCount > 0 && targetAdminCount >= allAdmins.length) {
+      if (wouldRemoveAllAdmins(targetAdminCount, allAdmins.length)) {
         return NextResponse.json(
           { error: "Cannot ban all admin accounts" },
           { status: 400 }

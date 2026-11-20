@@ -6,6 +6,10 @@ import { redirect } from "next/navigation"
 import { db } from "../../server/db"
 import { users } from "../../server/db/schema"
 import { eq } from "drizzle-orm"
+import { hasRole, normalizeCallbackUrl } from "./pure"
+
+// Pure helpers live in ./pure so tests can import them without server-only/db.
+export { hasRole, normalizeCallbackUrl }
 
 /**
  * Get current session (server-side only)
@@ -58,20 +62,6 @@ export const requireAuth = cache(async () => {
 })
 
 /**
- * Check if user has specific role
- */
-export function hasRole(userRole: string | null | undefined, requiredRole: 'user' | 'admin'): boolean {
-  if (!userRole) return false
-
-  if (requiredRole === 'admin') {
-    return userRole === 'admin'
-  }
-
-  // 'user' role check - every role ('user', 'admin', 'tester') has access
-  return userRole === 'user' || userRole === 'admin' || userRole === 'tester'
-}
-
-/**
  * Require specific role - throw error if user doesn't have it
  */
 export async function requireRole(requiredRole: 'user' | 'admin') {
@@ -83,29 +73,3 @@ export async function requireRole(requiredRole: 'user' | 'admin') {
 
   return session
 }
-
-/**
- * Normalize a callbackUrl query param to a same-origin path before it's ever
- * passed to redirect() or an auth form's callbackURL. Guards against open
- * redirects (e.g. /login?callbackUrl=https://evil.com) — anything that
- * doesn't resolve to this app's own origin falls back to /dashboard.
- */
-export function normalizeCallbackUrl(value?: string | string[]): string {
-  if (typeof value !== 'string' || !value.trim()) return '/dashboard'
-
-  const candidate = value.trim()
-
-  try {
-    const appOrigin = new URL(process.env.NEXT_PUBLIC_APP_URL || process.env.BETTER_AUTH_URL || 'http://localhost:3000').origin
-    const callbackUrl = new URL(candidate, appOrigin)
-
-    if (callbackUrl.origin !== appOrigin) {
-      return '/dashboard'
-    }
-
-    return `${callbackUrl.pathname}${callbackUrl.search}${callbackUrl.hash}` || '/dashboard'
-  } catch {
-    return '/dashboard'
-  }
-}
-

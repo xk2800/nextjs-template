@@ -6,6 +6,7 @@ import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"
 import { eq } from "drizzle-orm"
 import { getClientIp } from "@/lib/utils/request-info"
+import { wouldRemoveAllAdmins } from "@/lib/auth/pure"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -75,7 +76,7 @@ export async function PATCH(
         .from(users)
         .where(eq(users.role, 'admin'))
 
-      if (admins.length <= 1) {
+      if (wouldRemoveAllAdmins(1, admins.length)) {
         return NextResponse.json(
           { error: "Cannot remove the last remaining admin" },
           { status: 400 }
