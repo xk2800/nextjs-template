@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
-import { and, inArray } from "drizzle-orm"
+import { and, eq, inArray } from "drizzle-orm"
 import { getClientIp } from "@/lib/utils/request-info"
 import { otherActiveAdminExists } from "@/lib/auth/last-admin"
 import { logActivity } from "@/lib/security/activity-logger"
@@ -63,9 +63,14 @@ export async function POST(request: NextRequest) {
           bannedReason: reason || null,
           bannedBy: session.user.email,
         })
-        .where(and(inArray(users.id, userIds), bansAdmin ? otherActiveAdminExists(userIds) : undefined))
-        .returning({ id: users.id })
+        .where(and(inArray(users.id, userIds), eq(users.banned, false), bansAdmin ? otherActiveAdminExists(userIds) : undefined))
+        .returning()
 
+      // Only freshly banned rows below: already-banned users keep their ban
+      // history and aren't re-emailed.
+      if (banned.length === 0 && targetUsers.every((u) => u.banned)) {
+        return NextResponse.json({ success: true, count: 0 })
+      }
       if (banned.length === 0) {
         return NextResponse.json(
           { error: "Cannot ban all admin accounts" },
@@ -74,21 +79,22 @@ export async function POST(request: NextRequest) {
       }
 
       // Revoke sessions before the slow email fan-out so bans bite at once.
-      await db.delete(sessions).where(inArray(sessions.userId, userIds))
+      await db.delete(sessions).where(inArray(sessions.userId, banned.map((u) => u.id)))
 
-      await Promise.all(targetUsers.map((u) => sendBanEmail(u, reason || null)))
+      // One at a time: Resend's default limit is ~2 req/s, a parallel burst would mostly fail.
+      for (const u of banned) await sendBanEmail(u, reason || null)
 
       await logActivity({
         userId: session.user.id,
         action: 'user_banned',
-        description: `Admin bulk-banned ${targetUsers.length} user(s)`,
+        description: `Admin bulk-banned ${banned.length} user(s)`,
         ipAddress: getClientIp(request.headers),
         userAgent: request.headers.get('user-agent'),
         metadata: {
           bulk: true,
-          count: targetUsers.length,
-          userIds: targetUsers.map((u) => u.id),
-          emails: targetUsers.map((u) => u.email),
+          count: banned.length,
+          userIds: banned.map((u) => u.id),
+          emails: banned.map((u) => u.email),
           reason: reason || null,
         },
       })

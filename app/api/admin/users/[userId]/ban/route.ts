@@ -62,9 +62,13 @@ export async function POST(
           bannedReason: reason || null,
           bannedBy: session.user.email,
         })
-        .where(and(eq(users.id, userId), bansAdmin ? otherActiveAdminExists([userId]) : undefined))
+        .where(and(eq(users.id, userId), eq(users.banned, false), bansAdmin ? otherActiveAdminExists([userId]) : undefined))
         .returning({ id: users.id })
 
+      // Already banned: keep the original ban history and don't re-email.
+      if (banned.length === 0 && targetUser[0].banned) {
+        return NextResponse.json({ success: true })
+      }
       if (banned.length === 0) {
         return NextResponse.json({ error: "Cannot ban the last active admin" }, { status: 400 })
       }
