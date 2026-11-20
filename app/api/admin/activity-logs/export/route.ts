@@ -31,7 +31,11 @@ export async function GET(request: NextRequest) {
     // Treat dateTo as inclusive of the whole day
     const dateTo = dateToParam ? new Date(`${dateToParam}T23:59:59.999`) : undefined
 
-    const logs = await getActivityLogsForExport({ search, action, actions, dateFrom, dateTo })
+    if ((dateFrom && Number.isNaN(dateFrom.getTime())) || (dateTo && Number.isNaN(dateTo.getTime()))) {
+      return NextResponse.json({ error: "Invalid dateFrom or dateTo" }, { status: 400 })
+    }
+
+    const { rows: logs, truncated, limit } = await getActivityLogsForExport({ search, action, actions, dateFrom, dateTo })
 
     const csv = toCsv(
       ['Action', 'User Name', 'User Email', 'Description', 'IP Address', 'User Agent', 'Time'],
@@ -43,13 +47,14 @@ export async function GET(request: NextRequest) {
         log.ipAddress,
         log.userAgent,
         new Date(log.createdAt).toISOString(),
-      ])
+      ]).concat(truncated ? [[`TRUNCATED: export limited to the newest ${limit} rows`]] : [])
     )
 
     return new NextResponse(csv, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="activity-logs-${new Date().toISOString().slice(0, 10)}.csv"`,
+        ...(truncated && { 'X-Export-Truncated': 'true' }),
       },
     })
   } catch (error) {

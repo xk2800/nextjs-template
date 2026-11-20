@@ -137,10 +137,12 @@ const EXPORT_ROW_LIMIT = 10_000
 export async function getUsersForExport({ search = "", role, status }: UserExportFilters) {
   const where = buildUsersWhere({ search, role, status })
 
-  return db
+  // Fetch one extra row so the caller can tell the export was cut off.
+  const rows = await db
     .select()
     .from(users)
     .where(where)
     .orderBy(desc(users.createdAt))
-    .limit(EXPORT_ROW_LIMIT)
+    .limit(EXPORT_ROW_LIMIT + 1)
+  return { rows: rows.slice(0, EXPORT_ROW_LIMIT), truncated: rows.length > EXPORT_ROW_LIMIT, limit: EXPORT_ROW_LIMIT }
 }

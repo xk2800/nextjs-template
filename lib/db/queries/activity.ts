@@ -180,7 +180,8 @@ export async function getActivityLogsForExport({
 }: ActivityLogExportFilters) {
   const where = buildActivityLogsWhere({ search, action, actions, dateFrom, dateTo })
 
-  return await db
+  // Fetch one extra row so the caller can tell the export was cut off.
+  const rows = await db
     .select({
       id: activityLogs.id,
       action: activityLogs.action,
@@ -197,5 +198,6 @@ export async function getActivityLogsForExport({
     .leftJoin(users, eq(activityLogs.userId, users.id))
     .where(where)
     .orderBy(desc(activityLogs.createdAt))
-    .limit(EXPORT_ROW_LIMIT)
+    .limit(EXPORT_ROW_LIMIT + 1)
+  return { rows: rows.slice(0, EXPORT_ROW_LIMIT), truncated: rows.length > EXPORT_ROW_LIMIT, limit: EXPORT_ROW_LIMIT }
 }

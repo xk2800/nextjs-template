@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
   try {
     const search = request.nextUrl.searchParams.get('search') || ''
 
-    const usersList = await getUsersForExport({ search, role: request.nextUrl.searchParams.get('role') || undefined, status: request.nextUrl.searchParams.get('status') || undefined })
+    const { rows: usersList, truncated, limit } = await getUsersForExport({ search, role: request.nextUrl.searchParams.get('role') || undefined, status: request.nextUrl.searchParams.get('status') || undefined })
 
     const csv = toCsv(
       ['Name', 'Email', 'Role', 'Status', 'Banned Reason', 'Last Login', 'Last Active', 'Joined'],
@@ -24,13 +24,14 @@ export async function GET(request: NextRequest) {
         user.lastLoginAt ? new Date(user.lastLoginAt).toISOString() : '',
         user.lastActiveAt ? new Date(user.lastActiveAt).toISOString() : '',
         new Date(user.createdAt).toISOString(),
-      ])
+      ]).concat(truncated ? [[`TRUNCATED: export limited to the newest ${limit} rows`]] : [])
     )
 
     return new NextResponse(csv, {
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
         'Content-Disposition': `attachment; filename="users-${new Date().toISOString().slice(0, 10)}.csv"`,
+        ...(truncated && { 'X-Export-Truncated': 'true' }),
       },
     })
   } catch (error) {
