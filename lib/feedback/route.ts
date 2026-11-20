@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Feedback is not configured" }, { status: 503 })
   }
 
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
@@ -144,7 +144,7 @@ export async function testErrorPOST(request: NextRequest) {
   if (process.env.NODE_ENV !== "development") {
     return NextResponse.json({ error: "Not found" }, { status: 404 })
   }
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }

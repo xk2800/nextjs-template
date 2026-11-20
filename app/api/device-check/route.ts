@@ -38,7 +38,7 @@ function sanitizeSignals(components: unknown): Record<string, unknown> | null {
 // unrecognized device, and surface it on the admin panel's "New devices" card.
 export async function POST(request: Request) {
   const hdrs = await headers()
-  const session = await auth.api.getSession({ headers: hdrs })
+  const session = await auth.api.getSession({ headers: hdrs, query: { disableCookieCache: true } })
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -191,7 +191,7 @@ export async function POST(request: Request) {
 // visitorId it stored while consent was given. Scoped to the session's own
 // userId, so a caller can only delete their own rows.
 export async function DELETE(request: Request) {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
 
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })

@@ -7,7 +7,8 @@ import { eq } from "drizzle-orm"
 
 export async function POST() {
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   if (!session?.user) {

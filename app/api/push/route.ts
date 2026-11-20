@@ -8,7 +8,7 @@ import { pushEnabled } from "@/lib/push/push"
 import { isPushEndpointAllowed, isPushKey } from "@/lib/push/endpoint"
 
 async function userId() {
-  const session = await auth.api.getSession({ headers: await headers() })
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
   return session?.user.id
 }
 

@@ -16,12 +16,15 @@ export { hasRole, normalizeCallbackUrl }
  * Get current session (server-side only)
  * Returns session data or null if not authenticated
  *
- * Wrapped in React's cache() so the layout and page (both of which call
- * requireAuth per request) share one auth.api.getSession call instead of two.
+ * Reads the session with the cookie cache off, so a revoked or banned session
+ * stops working at once instead of after the 5-minute cache. Wrapped in
+ * React's cache() so the layout and page (both of which call requireAuth per
+ * request) share one auth.api.getSession call instead of two.
  */
 export const getCurrentSession = cache(async () => {
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   return session
@@ -56,9 +59,8 @@ export const requireAuth = cache(async () => {
     redirect('/login?error=account_banned')
   }
 
-  // The session cookie caches the user for 5 minutes, so a role changed after
-  // sign-in (first-admin promotion, admin demotion) lags behind. We already have
-  // the fresh row here, so take the role from it.
+  // Take the role from the fresh row we just read (cheap, and keeps it correct
+  // even if the session's own user snapshot is older).
   return { ...session, user: { ...session.user, role: user[0]?.role ?? session.user.role } }
 })
 

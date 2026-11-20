@@ -66,15 +66,15 @@ The account is banned. An admin can unban it from `/dashboard/admin/users`.
 **Toggling a sign-in method in System Settings does nothing**
 Its env flag is `false`. The admin toggle can only turn off methods the env has turned on. See [Env vs. System Settings](/configuration#env-vs-system-settings).
 
-**A revoked session still works for a few minutes**
-The session cookie is cached for 5 minutes. This is expected.
+**A revoked session still works for a moment**
+The dashboard and API routes check the database on every request, so a revoked session stops working on its next request. Only display-only reads, such as the header, use the 5-minute cookie cache.
 
 **I'm not an admin / can't reach `/dashboard/admin`**
 Set `ADMIN_EMAIL` before your first sign-in (see [Configuration](/configuration)), or promote yourself in SQL:
 ```sql
 UPDATE "user" SET roles = 'admin' WHERE email = 'you@example.com';
 ```
-Dashboard pages pick the new role up on the next request. API routes read the cached session cookie, so they can lag up to 5 minutes; sign out and back in to skip the wait.
+Dashboard pages and API routes pick the new role up on the next request.
 
 ## Email
 
