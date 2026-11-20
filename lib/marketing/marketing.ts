@@ -24,8 +24,8 @@ export interface MarketingBroadcast {
 export interface MarketingContact {
   id: string
   email: string
-  first_name?: string
-  last_name?: string
+  first_name?: string | null
+  last_name?: string | null
   unsubscribed: boolean
   created_at: string
 }
