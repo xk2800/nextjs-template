@@ -66,7 +66,10 @@ export const sessions = pgTable("session", {
   // Set by better-auth's admin plugin while this session is an admin
   // impersonating another user; holds the impersonating admin's user id.
   impersonatedBy: text("impersonatedBy"),
-});
+}, (table) => [
+  // Read by userId on every login (session count), ban/delete and the admin sessions view.
+  index("session_user_idx").on(table.userId),
+]);
 
 export const accounts = pgTable("account", {
   id: text("id").notNull().primaryKey().$defaultFn(() => createId()),
@@ -150,7 +153,11 @@ export const activityLogs = pgTable("activity_log", {
   country: text('country'),
   city: text('city'),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
-});
+}, (table) => [
+  // Per-user history, and the admin log's newest-first ordering.
+  index("activity_log_user_created_idx").on(table.userId, table.createdAt),
+  index("activity_log_created_idx").on(table.createdAt),
+]);
 
 // One row per (user, device fingerprint) pair. Its only job is to answer
 // "has this account signed in from this device before?" — no matching row ⇒

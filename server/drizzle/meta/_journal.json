@@ -183,6 +183,13 @@
       "when": 1795148054221,
       "tag": "0025_left_marvel_apes",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795197412334,
+      "tag": "0026_log_session_indexes",
+      "breakpoints": true
     }
   ]
 }
