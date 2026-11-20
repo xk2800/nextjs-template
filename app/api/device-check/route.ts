@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { and, eq } from "drizzle-orm"
+import { and, count, eq, max } from "drizzle-orm"
 import { cookies, headers } from "next/headers"
 import { auth } from "@/server/auth"
 import { db } from "@/server/db"
@@ -17,6 +17,10 @@ import {
 import { EmailTemplateNewDevice } from "@/components/email/security/new-device-alert"
 import { getSystemSettings, isConsentRequired } from "@/lib/db/queries/settings"
 import { COOKIE_CONSENT_COOKIE, EXCLUDED_SIGNALS, consentAllows } from "@/lib/security/cookie-names"
+
+const MAX_VISITOR_ID_LENGTH = 64
+const MAX_DEVICES_PER_USER = 20
+const ADMIN_ALERT_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 // Client-sent signals: a plain object under 32 KB (the client hashes large
 // values, so real payloads are a few KB), minus the accessibility signals.
@@ -40,7 +44,7 @@ export async function POST(request: Request) {
   }
 
   const { visitorId, components } = await request.json().catch(() => ({}))
-  if (typeof visitorId !== "string" || !visitorId) {
+  if (typeof visitorId !== "string" || !visitorId || visitorId.length > MAX_VISITOR_ID_LENGTH) {
     return NextResponse.json({ error: "visitorId is required" }, { status: 400 })
   }
 
@@ -53,6 +57,16 @@ export async function POST(request: Request) {
   ) {
     return NextResponse.json({ error: "Consent required" }, { status: 403 })
   }
+
+  // Cap devices per user and rate-limit admin alerts (one per user per day,
+  // judged by the user's newest device row) so a signed-in user can't loop
+  // random visitorIds to flood admins and burn the email quota.
+  const [{ total, latest }] = await db
+    .select({ total: count(), latest: max(deviceFingerprints.createdAt) })
+    .from(deviceFingerprints)
+    .where(eq(deviceFingerprints.userId, session.user.id))
+  if (total >= MAX_DEVICES_PER_USER) return NextResponse.json({ ok: true })
+  const notifyAdmins = !latest || Date.now() - latest.getTime() >= ADMIN_ALERT_INTERVAL_MS
 
   const signals = sanitizeSignals(components)
   const ip = getClientIp(hdrs)
@@ -145,7 +159,7 @@ export async function POST(request: Request) {
     // small scale; for a large user base gate this behind a system_settings
     // flag like the auth toggles.
     try {
-      const recipients = (await getAdminEmails()).filter((e) => e !== session.user.email)
+      const recipients = (notifyAdmins ? await getAdminEmails() : []).filter((e) => e !== session.user.email)
       if (recipients.length) {
         const resend = await getResend()
         await Promise.allSettled(
@@ -187,7 +201,7 @@ export async function DELETE(request: Request) {
   }
 
   const { visitorId } = await request.json().catch(() => ({}))
-  if (typeof visitorId !== "string" || !visitorId) {
+  if (typeof visitorId !== "string" || !visitorId || visitorId.length > MAX_VISITOR_ID_LENGTH) {
     return NextResponse.json({ error: "visitorId is required" }, { status: 400 })
   }
 
