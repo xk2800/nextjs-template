@@ -46,8 +46,8 @@ if (!process.env.BETTER_AUTH_URL) {
   ok(`BETTER_AUTH_URL=${process.env.BETTER_AUTH_URL}`);
 }
 
-if (process.env.RESEND_API_KEY && !process.env.EMAIL_FROM) {
-  warn('EMAIL_FROM not set — using onboarding@resend.dev, which only delivers to your own Resend account email. Set a sender on your verified domain.');
+if (process.env.RESEND_API_KEY && (!process.env.EMAIL_FROM || process.env.EMAIL_FROM.includes('@resend.dev'))) {
+  warn('EMAIL_FROM is unset or still @resend.dev (the sandbox sender only delivers to your own Resend account email, so new-device emails fail and the device is not recorded). Set a sender on your verified domain.');
 }
 
 console.log('\n--- database ---');
