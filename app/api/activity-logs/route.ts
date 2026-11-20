@@ -15,8 +15,10 @@ function withDeviceInfo<T extends { ipAddress: string | null; userAgent: string 
 }
 
 export async function GET(request: NextRequest) {
+  // Fresh role check: this route returns every user's logs to admins.
   const session = await auth.api.getSession({
-    headers: await headers()
+    headers: await headers(),
+    query: { disableCookieCache: true },
   })
 
   if (!session?.user) {

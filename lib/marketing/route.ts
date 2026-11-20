@@ -17,7 +17,8 @@ import { unexpectedErrorMessage } from "../utils/errors"
 type IdParams = { params: Promise<{ id: string }> }
 
 async function getSession() {
-  return auth.api.getSession({ headers: await headers() })
+  // Skip the 5-minute cookie cache so a demoted/banned admin loses access at once.
+  return auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
 }
 
 async function requireAdmin() {
