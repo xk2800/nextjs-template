@@ -1,7 +1,7 @@
 import "server-only"
 import { db } from "../../../server/db"
 import { users, sessions, authThrottle, deviceFingerprints, consentLog } from "../../../server/db/schema"
-import { sql, gte, eq, desc } from "drizzle-orm"
+import { sql, gt, gte, eq, desc } from "drizzle-orm"
 import { parseUserAgent, lookupGeoLocation, formatDeviceInfo } from "../../utils/request-info"
 import { WINDOW_MS, isOverLimit } from "../../auth/throttle-limits"
 import { groupSharedDevices } from "../../security/shared-devices"
@@ -22,7 +22,7 @@ export async function getAdminDashboardStats() {
     db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(sessions)
-      .where(sql`${sessions.expiresAt} > ${now}`),
+      .where(gt(sessions.expiresAt, now)),
     db
       .select({ count: sql<number>`cast(count(*) as integer)` })
       .from(users)
@@ -47,7 +47,7 @@ export async function getAdminStats() {
   const activeSessionsResult = await db
     .select({ count: sql<number>`cast(count(*) as integer)` })
     .from(sessions)
-    .where(sql`${sessions.expiresAt} > ${now}`)
+    .where(gt(sessions.expiresAt, now))
   const activeSessions = activeSessionsResult[0]?.count || 0
 
   const adminCountResult = await db

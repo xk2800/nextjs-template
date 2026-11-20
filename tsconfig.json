@@ -41,6 +41,8 @@
     "docs",
     "stories",
     ".storybook",
-    "storybook-static"
+    "storybook-static",
+    "cypress",
+    "cypress.config.ts"
   ]
 }

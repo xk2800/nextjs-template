@@ -51,8 +51,10 @@ export async function recordDeviceAttempt(fingerprint: string, meta: AttemptMeta
       .onConflictDoUpdate({
         target: authThrottle.fingerprint,
         set: {
-          count: sql`case when ${authThrottle.windowStart} < ${cutoff} then 1 else ${authThrottle.count} + 1 end`,
-          windowStart: sql`case when ${authThrottle.windowStart} < ${cutoff} then ${now} else ${authThrottle.windowStart} end`,
+          // ISO strings, not Dates: pg sends a raw Date as server-local time, which a
+          // tz-less `timestamp` column (stored as UTC) misreads on any non-UTC host.
+          count: sql`case when ${authThrottle.windowStart} < ${cutoff.toISOString()} then 1 else ${authThrottle.count} + 1 end`,
+          windowStart: sql`case when ${authThrottle.windowStart} < ${cutoff.toISOString()} then ${now.toISOString()} else ${authThrottle.windowStart} end`,
           ...seen,
         },
       })
