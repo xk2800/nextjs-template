@@ -17,8 +17,6 @@ export function prepareBrowser() {
       JSON.stringify({ version: Cypress.expose("APP_VERSION"), closed: true }),
     )
   })
-  // Headless Electron has no WebAuthn; something on the landing page probes it and rejects.
-  cy.on("uncaught:exception", (err) => !err.message.includes("does not support public key credentials"))
 }
 
 /** POST to better-auth directly. Origin is required by its CSRF check. */
