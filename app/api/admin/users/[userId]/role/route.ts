@@ -4,9 +4,8 @@ import { headers } from "next/headers"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"
-import { eq } from "drizzle-orm"
+import { and, eq, sql } from "drizzle-orm"
 import { getClientIp } from "@/lib/utils/request-info"
-import { wouldRemoveAllAdmins } from "@/lib/auth/pure"
 import { logActivity } from "@/lib/security/activity-logger"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
@@ -59,25 +58,35 @@ export async function PATCH(
       )
     }
 
-    // Prevent demoting the last remaining admin
+    // Demoting an admin: the "at least one other admin" check and the write
+    // are one statement, and the subquery row-locks every admin row. Two admins
+    // demoting each other at once therefore serialize (the second re-reads the
+    // roles after the first commits) instead of both passing a stale count.
+    // A single statement also works on the neon-http driver (no transactions).
     if (oldRole === 'admin' && role !== 'admin') {
-      const admins = await db
-        .select()
-        .from(users)
-        .where(eq(users.role, 'admin'))
+      const updated = await db
+        .update(users)
+        .set({ role })
+        .where(
+          and(
+            eq(users.id, userId),
+            sql`(select count(*) from (select 1 from ${users} where ${users.role} = 'admin' for update) a) > 1`,
+          ),
+        )
+        .returning({ id: users.id })
 
-      if (wouldRemoveAllAdmins(1, admins.length)) {
+      if (updated.length === 0) {
         return NextResponse.json(
           { error: "Cannot remove the last remaining admin" },
           { status: 400 }
         )
       }
+    } else {
+      await db
+        .update(users)
+        .set({ role })
+        .where(eq(users.id, userId))
     }
-
-    await db
-      .update(users)
-      .set({ role })
-      .where(eq(users.id, userId))
 
     await logActivity({
       userId: session.user.id,
