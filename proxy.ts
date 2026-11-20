@@ -17,7 +17,8 @@ function getSessionCookie(request: NextRequest) {
 // can keep working and reach /dashboard/admin/settings to turn it off.
 async function canBypassMaintenance(request: NextRequest) {
   if (!getSessionCookie(request)) return false
-  const session = await auth.api.getSession({ headers: request.headers })
+  // Skip the 5-min cookie cache so a demoted/banned admin loses the bypass at once.
+  const session = await auth.api.getSession({ headers: request.headers, query: { disableCookieCache: true } })
   return session?.user.role === 'admin' || !!session?.session.impersonatedBy
 }
 
