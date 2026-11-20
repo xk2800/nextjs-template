@@ -18,12 +18,16 @@ export interface GeoInfo {
 }
 
 /**
- * First address in X-Forwarded-For is the original client — everything after
- * is intermediate proxies. Falls back to null (e.g. local dev with no proxy).
+ * Proxies append the address they saw to X-Forwarded-For, so the LAST entry
+ * is the one our own proxy added; earlier entries are caller-supplied and
+ * spoofable (they'd let an attacker dodge or frame an IP in the throttle).
+ * Falls back to x-real-ip, then null (local dev with no proxy).
+ * shortcut: assumes exactly one trusted proxy hop, so behind a CDN plus a
+ * proxy the last entry is the CDN's address; revisit if you stack proxies.
  */
 export function getClientIp(headers: Headers | undefined | null): string | null {
   const forwardedFor = headers?.get("x-forwarded-for")
-  if (forwardedFor) return forwardedFor.split(",")[0].trim()
+  if (forwardedFor) return forwardedFor.split(",").at(-1)!.trim()
 
   return headers?.get("x-real-ip") ?? null
 }

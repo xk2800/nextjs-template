@@ -47,7 +47,7 @@ The check only runs after the visitor allows the security fingerprint (when cons
 | FingerprintJS visitor ID (`x-device-fingerprint` header) | 10 | 15 min |
 | Client IP (backstop, for when the header is missing or spoofed) | 30 | 15 min |
 
-- **Sign-in:** failures count toward the limit, and a successful sign-in resets it.
+- **Sign-in:** failures count toward the limit, and a successful sign-in does not reset it (the count expires with the window).
 - **Sign-up:** every attempt counts, because mass sign-ups are the abuse being limited.
 - Over the limit, the endpoint returns `429` with "Too many attempts from this device".
 - **Retention:** each row stores the last IP, user agent and email typed, often for people without an account. Rows untouched for 30 days are deleted. The sweep runs on the sign-in path, at most hourly per server instance, so no cron is needed. On a site with no sign-in attempts, old rows stay until the next attempt; if you need a hard guarantee, call `pruneStaleRows()` from `lib/auth/throttle.ts` on a schedule.
@@ -55,7 +55,7 @@ The check only runs after the visitor allows the security fingerprint (when cons
 The limits (`WINDOW_MS`, `MAX`, `RETENTION_MS`) are fixed inside the package's auth. Editing your local `lib/auth/throttle-limits.ts` has no effect unless you also use your own `server/auth.ts` (see [Customizing package code](/architecture#customizing-package-code)). Throttled devices appear on the admin **Device throttle** card.
 
 <Callout type="info">
-The client IP comes from `x-forwarded-for` (first entry), falling back to `x-real-ip`. Behind your own reverse proxy, make sure it sets one of these. Otherwise every request shares one IP, and the IP cap throttles everyone at once.
+The client IP comes from the **last** `x-forwarded-for` entry (the one your own proxy appended; earlier entries are caller-supplied), falling back to `x-real-ip`. This assumes a single trusted proxy hop. Behind your own reverse proxy, make sure it sets one of these. Otherwise every request shares one IP, and the IP cap throttles everyone at once.
 </Callout>
 
 ## Shared-device detection

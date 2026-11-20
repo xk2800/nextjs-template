@@ -13,7 +13,7 @@ import { createAuthMiddleware, getSessionFromCtx, APIError } from "better-auth/a
 import { logActivity, type ActivityLogger } from "@/lib/security/activity-logger"
 import { getClientIp, parseUserAgent, lookupGeoLocation, formatDeviceInfo, formatLocation } from "@/lib/utils/request-info"
 import { LOGIN_REFERRER_COOKIE, DEVICE_FINGERPRINT_HEADER } from "@/lib/security/cookie-names"
-import { isDeviceThrottled, recordDeviceAttempt, clearDeviceThrottle } from "@/lib/auth/throttle"
+import { isDeviceThrottled, recordDeviceAttempt } from "@/lib/auth/throttle"
 import { MAX_IP } from "@/lib/auth/throttle-limits"
 import { getEffectiveAuthFlags } from "@/lib/db/queries/settings"
 import { getResend, EMAIL_FROM } from "@/lib/email/resend"
@@ -550,15 +550,12 @@ export function createAuth(overrides: AuthOverrides = {}) {
           return
         }
 
-        // /sign-in/email: count failures; a success clears the counter.
-        // ponytail: a successful sign-in wipes the device's failure budget, so
-        // a credential-stuffing hit resets itself — per-outcome counters if
-        // that ceiling ever bites.
+        // /sign-in/email: count failures. A success does NOT clear the
+        // counter (an attacker with their own account could log in between
+        // guesses to reset it); it expires with the window.
         if (failed) {
           await Promise.all(keys.map((key) => recordDeviceAttempt(key, { ...meta, kind: "signin" })))
           await logFailedLogin(ctx, log)
-        } else {
-          await Promise.all(keys.map((key) => clearDeviceThrottle(key)))
         }
       }),
     },
