@@ -42,7 +42,7 @@ export async function proxy(request: NextRequest) {
   // Optimistic dashboard gate — full session validation happens in
   // app/dashboard/layout.tsx.
   if (pathname.startsWith('/dashboard') && !getSessionCookie(request)) {
-    const callbackUrl = encodeURIComponent(pathname)
+    const callbackUrl = encodeURIComponent(pathname + request.nextUrl.search)
     return NextResponse.redirect(
       new URL(`/login?callbackUrl=${callbackUrl}`, origin)
     )
