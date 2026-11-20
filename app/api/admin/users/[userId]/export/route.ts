@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { auth } from "@/server/auth"
 import { headers } from "next/headers"
-import { hasRole } from "@/lib/auth/helpers"
+import { requireAdminApi } from "@/lib/auth/helpers"
 import { getUserById, getUserSecurity } from "@/lib/db/queries/user"
 import { getUserActivityLogs, getUserLoginHistory } from "@/lib/db/queries/activity"
 import { getUserConsentLog, getUserDevices } from "@/lib/db/queries/admin"
@@ -10,18 +10,8 @@ import { toCsv } from "@/lib/utils/csv"
 import { unexpectedErrorMessage } from "@/lib/utils/errors"
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-    query: { disableCookieCache: true },
-  })
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
 
   try {
     const { userId } = await params

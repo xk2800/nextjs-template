@@ -8,7 +8,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { z } from "zod"
 import { auth } from "../../server/auth"
-import { hasRole } from "../auth/helpers"
+import { requireAdminApi } from "../auth/helpers"
 import { getBroadcastResend, EMAIL_FROM } from "../email/resend"
 import { MARKETING_SEGMENT_ID, setSubscribed } from "./marketing"
 import { textToBroadcastHtml, textToBroadcastText } from "../email/marketing-email"
@@ -22,17 +22,8 @@ async function getSession() {
 }
 
 async function requireAdmin() {
-  const session = await getSession()
-
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  }
-
-  if (!hasRole(session.user.role, 'admin')) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-  }
-
-  return null
+  const result = await requireAdminApi()
+  return result instanceof NextResponse ? result : null
 }
 
 const createSchema = z.object({

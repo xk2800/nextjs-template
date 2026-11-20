@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { headers } from "next/headers"
 import { eq } from "drizzle-orm"
 import { auth } from "@/server/auth"
-import { hasRole } from "@/lib/auth/helpers"
+import { requireAdminApi } from "@/lib/auth/helpers"
 import { endImpersonation } from "@/lib/db/queries/impersonation"
 import { db } from "@/server/db"
 import { users } from "@/server/db/schema"
@@ -13,10 +13,8 @@ import { unexpectedErrorMessage } from "@/lib/utils/errors"
 // Force-ends an active impersonation by deleting its session(s). The stop
 // event is logged with metadata.forced so the table can show it as Revoked.
 export async function POST(request: NextRequest) {
-  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
-  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-  if (!hasRole(session.user.role, "admin")) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-
+  const session = await requireAdminApi()
+  if (session instanceof NextResponse) return session
   try {
     const { adminId, targetId } = await request.json().catch(() => ({}))
     if (typeof adminId !== "string" || typeof targetId !== "string") {

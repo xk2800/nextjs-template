@@ -3,6 +3,7 @@ import { cache } from "react"
 import { auth } from "../../server/auth"
 import { headers } from "next/headers"
 import { redirect } from "next/navigation"
+import { NextResponse } from "next/server"
 import { db } from "../../server/db"
 import { users } from "../../server/db/schema"
 import { eq } from "drizzle-orm"
@@ -71,5 +72,20 @@ export async function requireRole(requiredRole: 'user' | 'admin') {
     redirect('/dashboard')
   }
 
+  return session
+}
+
+/**
+ * Admin gate for API routes: returns the session, or a 401/403 NextResponse to
+ * return as is. Reads the session with the cookie cache off so a demoted or
+ * banned admin loses access at once.
+ *
+ *   const session = await requireAdminApi()
+ *   if (session instanceof NextResponse) return session
+ */
+export async function requireAdminApi() {
+  const session = await auth.api.getSession({ headers: await headers(), query: { disableCookieCache: true } })
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  if (!hasRole(session.user.role, 'admin')) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   return session
 }
