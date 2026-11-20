@@ -87,7 +87,10 @@ const EmailPasswordSignup = ({ callbackUrl }: Props) => {
 
       if (error) {
         toast.error(error.message || 'Failed to sign up')
+        return
       }
+      // signUp.email returns no redirect (unlike signIn.email), so callbackURL is not followed client-side.
+      window.location.href = callbackUrl || '/dashboard'
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to sign up')
     } finally {
