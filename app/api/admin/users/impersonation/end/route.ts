@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { headers } from "next/headers"
 import { eq } from "drizzle-orm"
-import { auth } from "@/server/auth"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { endImpersonation } from "@/lib/db/queries/impersonation"
 import { db } from "@/server/db"

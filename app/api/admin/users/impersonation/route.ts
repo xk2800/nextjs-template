@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { headers } from "next/headers"
-import { auth } from "@/server/auth"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { getImpersonationSessions } from "@/lib/db/queries/impersonation"
 import { clampInt } from "@/lib/utils/pagination"

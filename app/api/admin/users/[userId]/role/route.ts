@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, RoleEnum } from "@/server/db/schema"

@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { getActivityLogsForExport, type ActivityActionFilter } from "@/lib/db/queries/activity"
 import { ActivityActionEnum } from "@/server/db/schema"

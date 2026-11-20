@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { auth } from "@/server/auth"
-import { headers } from "next/headers"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { getUserById, getUserSecurity } from "@/lib/db/queries/user"
 import { getUserActivityLogs, getUserLoginHistory } from "@/lib/db/queries/activity"
