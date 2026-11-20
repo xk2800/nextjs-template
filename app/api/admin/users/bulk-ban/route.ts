@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server"
+import { after, NextRequest, NextResponse } from "next/server"
 import { requireAdminApi } from "@/lib/auth/helpers"
 import { db } from "@/server/db"
 import { users, sessions } from "@/server/db/schema"
@@ -81,8 +81,12 @@ export async function POST(request: NextRequest) {
       // Revoke sessions before the slow email fan-out so bans bite at once.
       await db.delete(sessions).where(inArray(sessions.userId, banned.map((u) => u.id)))
 
-      // One at a time: Resend's default limit is ~2 req/s, a parallel burst would mostly fail.
-      for (const u of banned) await sendBanEmail(u, reason || null)
+      // After the response, one at a time: Resend's default limit is ~2 req/s (a parallel
+      // burst would mostly fail) and 100 sends would otherwise hold the request ~30s.
+      // sendBanEmail never throws, so the loop can't abort midway.
+      after(async () => {
+        for (const u of banned) await sendBanEmail(u, reason || null)
+      })
 
       await logActivity({
         userId: session.user.id,
