@@ -15,13 +15,17 @@ import MobileNav, { type MobileNavAction, type MobileNavVariant } from "@/compon
 import LogoutButtons from "@/components/auth/session/logout-buttons"
 import { applyNavDemo } from "@/components/demo/nav-demo" // @demo
 
-// Bottom navigation on phones (below `md`):
-//   "tabs" — plain bar along the bottom edge, top-bar layout only (sidebar layout uses its menu button)
-//   "dock" — floating rounded bar, in both layouts, with an optional raised centre button.
-//            It is then the only mobile navigation: the sidebar layout's menu button is hidden
-//            below `md` and a Log out button takes its place in the header.
+// Bottom navigation on phones (below `md`), chosen separately for each layout:
+//   "tabs" — plain bar along the bottom edge
+//   "dock" — floating rounded bar, with an optional raised centre button
 //   "off"  — no bottom bar
-const MOBILE_NAV: MobileNavVariant = "tabs"
+// In the sidebar layout, a bottom bar ("tabs" or "dock") replaces the menu button that opens the
+// sidebar on phones, and a Log out button takes its place in the header. With "off" the sidebar
+// layout keeps its menu button and drawer. Desktop is not affected either way.
+const MOBILE_NAV: Record<"topbar" | "sidebar", MobileNavVariant> = {
+  topbar: "tabs",
+  sidebar: "off",
+}
 // Centre button for "dock", e.g. { href: "/dashboard/scan", label: "Scan", icon: <ScanLine /> }
 const MOBILE_NAV_ACTION: MobileNavAction | undefined = undefined
 
@@ -44,9 +48,9 @@ export default async function DashboardLayout({
 
   const cookieStore = await cookies()
   const navStyle = cookieStore.get("nav-style")?.value === "topbar" ? "topbar" : "sidebar"
-  let mobileNav: MobileNavVariant = MOBILE_NAV
+  let mobileNav: MobileNavVariant = MOBILE_NAV[navStyle]
   let demoMenu: React.ReactNode = null // @demo
-  ;({ mobileNav, demoMenu } = applyNavDemo(MOBILE_NAV, cookieStore)) // @demo: template demo site only, removed by create-nextjs
+    ; ({ mobileNav, demoMenu } = applyNavDemo(MOBILE_NAV[navStyle], cookieStore)) // @demo: template demo site only, removed by create-nextjs
   const user = {
     name: session.user.name,
     email: session.user.email,
@@ -71,14 +75,9 @@ export default async function DashboardLayout({
   const content = (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">{children}</div>
   )
-  const dock = mobileNav === "dock"
-  // Room under the content so the last row isn't hidden behind the fixed bar
-  // ("tabs" only shows in the top-bar layout).
-  const mobilePad = dock
-    ? "pb-28 md:pb-0"
-    : mobileNav === "tabs" && navStyle === "topbar"
-      ? "pb-16 md:pb-0"
-      : ""
+  const bottomBar = mobileNav !== "off"
+  // Room under the content so the last row isn't hidden behind the fixed bar.
+  const mobilePad = mobileNav === "dock" ? "pb-28 md:pb-0" : bottomBar ? "pb-16 md:pb-0" : ""
 
   if (navStyle === "topbar") {
     return (
@@ -103,16 +102,16 @@ export default async function DashboardLayout({
       <SidebarInset>
         {body}
         <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-          <SidebarTrigger className={dock ? "-ml-1 max-md:hidden" : "-ml-1"} />
-          <Separator orientation="vertical" className={dock ? "mr-2 h-4 max-md:hidden" : "mr-2 h-4"} />
+          <SidebarTrigger className={bottomBar ? "-ml-1 max-md:hidden" : "-ml-1"} />
+          <Separator orientation="vertical" className={bottomBar ? "mr-2 h-4 max-md:hidden" : "mr-2 h-4"} />
           <div className="flex-1" />
           {extras}
-          {/* The sidebar's footer holds Log out; the dock replaces the sidebar on phones. */}
-          {dock && <div className="md:hidden"><LogoutButtons /></div>}
+          {/* The sidebar's footer holds Log out; the bottom bar replaces the sidebar on phones. */}
+          {bottomBar && <div className="md:hidden"><LogoutButtons /></div>}
         </header>
-        {dock ? <div className={mobilePad}>{content}</div> : content}
+        {bottomBar ? <div className={mobilePad}>{content}</div> : content}
       </SidebarInset>
-      {dock && <MobileNav isAdmin={isAdmin} variant="dock" action={MOBILE_NAV_ACTION} />}
+      {bottomBar && <MobileNav isAdmin={isAdmin} variant={mobileNav} action={MOBILE_NAV_ACTION} />}
     </SidebarProvider>
   )
 }

@@ -35,10 +35,15 @@ describe("demo site: visitor-chosen mobile navigation", () => {
     cy.get(nav).should("not.exist")
   })
 
-  it("sidebar layout: Off brings the menu button back, Dock hides it", () => {
+  it("sidebar layout: Tabs and Dock replace the menu button, Off brings it back", () => {
     cy.setCookie("nav-style", "sidebar")
     cy.visit("/dashboard")
+    pick("Tabs")
+    cy.get(nav).should("be.visible").and("not.have.class", "rounded-3xl")
+    cy.get('[data-sidebar="trigger"]').should("not.be.visible")
+    cy.contains("button", "Logout").should("be.visible")
     pick("Dock")
+    cy.get(nav).should("have.class", "rounded-3xl")
     cy.get('[data-sidebar="trigger"]').should("not.be.visible")
     pick("Off")
     cy.get(nav).should("not.exist")

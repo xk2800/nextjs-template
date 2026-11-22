@@ -79,7 +79,7 @@ These are presentational components. Fetch data with the query helpers in a serv
 |---|---|
 | `dashboardHeader`, `appSidebar` | Navigation. `dashboardHeader` takes optional `brandName`, `brandHref` and `navLinks`. |
 | `topNav`, `navStyleToggle` | Second dashboard navigation style. A header with the links, avatar and log-out. Below `md` the links move to a fixed bottom tab bar, which turns into the admin sub-menu (Admin home, Users, Audit logs, System settings, plus an **Exit** tab to `/dashboard`) while the user is inside `/dashboard/admin`. `navStyleToggle` is the header button that switches between sidebar and top bar. The choice is a per-browser `nav-style` cookie (`sidebar` default, or `topbar`) that `app/dashboard/layout.tsx` reads. It is not stored in the DB. |
-| `mobileNav` (Beta) | The bottom navigation below `md`. `variant="tabs"` (default) is the plain bar along the bottom edge. `variant="dock"` is a floating rounded bar, and takes an optional `action` (`{ href, label, icon }`) shown as a raised centre button, e.g. Scan or New. Same tabs and admin sub-menu as above. Pick it in code with the `MOBILE_NAV` and `MOBILE_NAV_ACTION` constants at the top of `app/dashboard/layout.tsx`. `variant="off"` renders nothing. On a demo site, `NAV_DEMO_CONTROLS=true` lets each visitor override `MOBILE_NAV` from a header menu (`components/demo/`, not part of the package). `tabs` shows only in the top-bar layout; `dock` shows in both layouts. With `dock` it is the only mobile navigation: in the sidebar layout the menu button that opens the sidebar is hidden below `md` and a **Logout** button appears in the header instead (the sidebar footer was the only place for it on phones). `topNav` takes the same values as `mobileNav` and `mobileAction` props. |
+| `mobileNav` (Beta) | The bottom navigation below `md`. `variant="tabs"` is a plain bar along the bottom edge. `variant="dock"` is a floating rounded bar, and takes an optional `action` (`{ href, label, icon }`) shown as a raised centre button, e.g. Scan or New. `variant="off"` renders nothing. Same tabs and admin sub-menu as above. Set it per layout with the `MOBILE_NAV` object at the top of `app/dashboard/layout.tsx`: `{ topbar: "tabs", sidebar: "off" }` by default, so the top-bar layout has a bottom bar on phones and the sidebar layout keeps its menu button and drawer. A project that uses the sidebar on desktop can set `sidebar` to `"tabs"` or `"dock"` to get a bottom bar on phones too (desktop is unaffected). In the sidebar layout a bottom bar replaces the menu button below `md` and a **Logout** button appears in the header instead (the sidebar footer was the only place for it on phones). `MOBILE_NAV_ACTION` sets the dock's centre button. `topNav` takes the same values as `mobileNav` and `mobileAction` props. On a demo site, `NAV_DEMO_CONTROLS=true` lets each visitor override the current layout's value from a header menu (`components/demo/`, not part of the package). |
 | `profileCard`, `accountDetailsCard`, `verifyEmailButton` | Profile |
 | `sessionsCard` / `sessionsSection` | Active sessions with revoke |
 | `activityLogsCard` / `activityLogsSection` | Personal activity |
@@ -91,6 +91,20 @@ These are presentational components. Fetch data with the query helpers in a serv
 | `admin/*` | Admin stats, users table, user detail cards, device cards, settings form |
 
 `*Section` components are async server components that fetch data and render the matching `*Card`. The page wraps each one in `<ErrorBoundary fallback={<SectionErrorFallback />}>` and `<Suspense fallback={<…Skeleton />}>`, so one slow or failing widget doesn't block the rest. `app/dashboard/page.tsx` shows the pattern to copy.
+
+### Mobile bottom navigation: tabs or dock (Beta)
+
+`mobileNav` is the bottom bar shown on phones (below `md`). `tabs` and `dock` are the same navigation, with the same links, and differ only in how the bar looks and whether it can have a centre button.
+
+| | `tabs` | `dock` |
+|---|---|---|
+| Shape | Flat bar across the full width, against the bottom edge | Rounded bar that floats above the bottom edge, inset from the sides, with a shadow |
+| Look | A thin top border | Rounded corners, a border, a slight blur behind it and a gap below it |
+| Icons and labels | Smaller (20px icon, 11px text) | Larger (24px icon, 12px text) |
+| Centre button | Not supported | Optional raised button in the middle (`MOBILE_NAV_ACTION`) |
+| Space reserved under the page | Smaller | Larger, so the floating bar never covers the last row |
+
+Links are the same in both: Overview and Settings, plus Admin for admins. Inside `/dashboard/admin` they switch to the admin links and an Exit tab. Pick `tabs` for a conventional bar and `dock` for the floating style, or `off` for no bottom bar. Set it per layout with `MOBILE_NAV` in `app/dashboard/layout.tsx` (see the `mobileNav` row above).
 
 ## Site (`components/site/`)
 

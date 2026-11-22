@@ -621,15 +621,15 @@ Set `RESEND_MARKETING_SEGMENT_ID` to a segment's ID (from Resend â†’ Audience â†
 
 ## Mobile navigation dock (Beta)
 
-`components/dashboard/layout/mobile-nav.tsx`, set by `MOBILE_NAV` / `MOBILE_NAV_ACTION` in `app/dashboard/layout.tsx`.
+`components/dashboard/layout/mobile-nav.tsx`, set per layout by `MOBILE_NAV = { topbar, sidebar }` / `MOBILE_NAV_ACTION` in `app/dashboard/layout.tsx`.
 
 ### 1. In the browser (phone width, or devtools < 768px)
 
-1. Set `MOBILE_NAV = "dock"` and `MOBILE_NAV_ACTION = { href: "/dashboard/settings", label: "Scan", icon: <ScanLine /> }` (import `ScanLine` from `lucide-react`).
+1. Set `MOBILE_NAV = { topbar: "dock", sidebar: "dock" }` and `MOBILE_NAV_ACTION = { href: "/dashboard/settings", label: "Scan", icon: <ScanLine /> }` (import `ScanLine` from `lucide-react`).
 2. `/dashboard` in the sidebar layout and in the top-bar layout (header toggle): a floating rounded bar sits above the bottom edge, the centre button is in the middle, and the current tab is highlighted.
 3. Scroll to the bottom: the last card isn't hidden behind the bar.
 4. As an admin, open `/dashboard/admin`: the dock switches to the admin links plus Exit, with the centre button still in the middle.
-5. Set `MOBILE_NAV_ACTION = undefined`: the dock shows only the tabs. Set `MOBILE_NAV = "tabs"`: the plain bar is back in the top-bar layout, and the sidebar layout has no bottom bar.
+5. Set `MOBILE_NAV_ACTION = undefined`: the dock shows only the tabs. Set `MOBILE_NAV = { topbar: "tabs", sidebar: "off" }` (the default): the plain bar shows in the top-bar layout, and the sidebar layout has no bottom bar and keeps its menu button and drawer. Try `sidebar: "tabs"` too: a plain bar appears in the sidebar layout and the menu button is replaced by a Logout button.
 6. At 768px and wider no bottom bar shows in any mode.
 7. Sidebar layout with `dock` at phone width: no menu button in the header, a Logout button instead (it signs you out). At 768px and wider the menu button is back and the header Logout is gone.
 

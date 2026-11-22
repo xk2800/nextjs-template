@@ -1,6 +1,6 @@
 import { createUser, expectPath, prepareBrowser, uniqueEmail } from "../support/auth"
 
-// Passes for MOBILE_NAV = "tabs" or "dock" (app/dashboard/layout.tsx); the top-bar layout shows both.
+// Passes for any MOBILE_NAV setting with a bottom bar in the top-bar layout (app/dashboard/layout.tsx); the sidebar test adapts to what is shown.
 describe("mobile navigation", () => {
   const nav = 'nav[aria-label="Primary"]'
 
