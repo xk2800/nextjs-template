@@ -2,13 +2,14 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ArrowLeft, LogOut } from "lucide-react"
+import { LogOut } from "lucide-react"
 
 import { authClient } from "../../../lib/auth/client"
 import { cn } from "../../../lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "../../ui/avatar"
 import { Button } from "../../ui/button"
 import { adminLinks, workspaceLinks, type AppSidebarProps } from "./app-sidebar"
+import MobileNav, { type MobileNavAction, type MobileNavVariant } from "./mobile-nav"
 
 export default function TopNav({
   user,
@@ -16,21 +17,17 @@ export default function TopNav({
   brandName = "Template",
   brandHref = "/",
   actions,
-}: AppSidebarProps & { actions?: React.ReactNode }) {
+  mobileNav = "tabs",
+  mobileAction,
+}: AppSidebarProps & {
+  actions?: React.ReactNode
+  /** Bottom navigation style below `md`. */
+  mobileNav?: MobileNavVariant
+  /** Optional centre button for the "dock" style. */
+  mobileAction?: MobileNavAction
+}) {
   const pathname = usePathname()
   const links = isAdmin ? [...workspaceLinks, ...adminLinks] : workspaceLinks
-  const inAdmin = isAdmin && pathname.startsWith("/dashboard/admin")
-  const tabs = inAdmin
-    ? [...adminLinks, { href: "/dashboard", label: "Exit", icon: ArrowLeft, exit: true }]
-    : isAdmin
-      ? [...workspaceLinks, { ...adminLinks[0], label: "Admin" }]
-      : workspaceLinks
-  const tabActive = (href: string, exit?: boolean) =>
-    !exit &&
-    (href === "/dashboard" || href === adminLinks[0].href
-      ? pathname === href
-      : pathname.startsWith(href))
-
   return (
     <>
     <header className="sticky top-0 z-20 border-b bg-background">
@@ -72,24 +69,7 @@ export default function TopNav({
         </Button>
       </div>
     </header>
-    <nav
-      aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-20 flex border-t bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
-    >
-      {tabs.map(({ href, label, icon: Icon, ...rest }) => (
-        <Link
-          key={href}
-          href={href}
-          className={cn(
-            "flex min-w-0 flex-1 flex-col items-center justify-start gap-0.5 px-1 py-2 text-center text-[11px] leading-tight text-muted-foreground",
-            tabActive(href, "exit" in rest) && "font-medium text-foreground"
-          )}
-        >
-          <Icon className="size-5" />
-          <span className="w-full text-center">{label}</span>
-        </Link>
-      ))}
-    </nav>
+    <MobileNav isAdmin={isAdmin} variant={mobileNav} action={mobileAction} />
     </>
   )
 }

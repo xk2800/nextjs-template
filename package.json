@@ -184,6 +184,7 @@
     "./components/dashboard/installAppCard": "./components/dashboard/overview/install-app-card.tsx",
     "./components/dashboard/marketingUpdatesCard": "./components/dashboard/settings/marketing-updates-card.tsx",
     "./components/dashboard/marketingUpdatesSection": "./components/dashboard/settings/marketing-updates-section.tsx",
+    "./components/dashboard/mobileNav": "./components/dashboard/layout/mobile-nav.tsx",
     "./components/dashboard/navStyleToggle": "./components/dashboard/layout/nav-style-toggle.tsx",
     "./components/dashboard/passkeysCard": "./components/dashboard/settings/passkeys-card.tsx",
     "./components/dashboard/profileCard": "./components/dashboard/settings/profile-card.tsx",
