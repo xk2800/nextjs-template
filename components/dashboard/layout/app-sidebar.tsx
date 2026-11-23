@@ -34,14 +34,18 @@ export interface AppSidebarUser {
   image?: string | null
 }
 
+export type NavLink = { href: string; label: string; icon: React.ComponentType<{ className?: string }> }
+
 export interface AppSidebarProps {
   user: AppSidebarUser
   isAdmin: boolean
+  /** Workspace links. Defaults to Overview and Settings (`workspaceLinks`). The admin links are unaffected. */
+  links?: NavLink[]
   brandName?: React.ReactNode
   brandHref?: string
 }
 
-export const workspaceLinks = [
+export const workspaceLinks: NavLink[] = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/settings", label: "Settings", icon: Settings },
 ]
@@ -67,6 +71,7 @@ export default function AppSidebar({
   isAdmin,
   brandName = "Template",
   brandHref = "/",
+  links = workspaceLinks,
 }: AppSidebarProps) {
   const pathname = usePathname()
 
@@ -99,7 +104,7 @@ export default function AppSidebar({
           <SidebarGroupLabel>Workspace</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {workspaceLinks.map((link) => (
+              {links.map((link) => (
                 <SidebarMenuItem key={link.href}>
                   <SidebarMenuButton
                     asChild

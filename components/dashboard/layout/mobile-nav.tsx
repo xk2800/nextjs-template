@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { ArrowLeft } from "lucide-react"
 
 import { cn } from "../../../lib/utils"
-import { adminLinks, workspaceLinks } from "./app-sidebar"
+import { adminLinks, workspaceLinks, type NavLink } from "./app-sidebar"
 
 /** "tabs": plain bar fixed to the bottom edge. "dock": floating rounded bar, with an optional raised centre button. "off": no bottom bar. */
 export type MobileNavVariant = "tabs" | "dock" | "off"
@@ -22,8 +22,11 @@ export default function MobileNav({
   isAdmin,
   variant = "tabs",
   action,
+  links = workspaceLinks,
 }: {
   isAdmin: boolean
+  /** Workspace tabs. Defaults to Overview and Settings. */
+  links?: NavLink[]
   variant?: MobileNavVariant
   action?: MobileNavAction
 }) {
@@ -32,8 +35,8 @@ export default function MobileNav({
   const tabs = inAdmin
     ? [...adminLinks, { href: "/dashboard", label: "Exit", icon: ArrowLeft, exit: true }]
     : isAdmin
-      ? [...workspaceLinks, { ...adminLinks[0], label: "Admin" }]
-      : workspaceLinks
+      ? [...links, { ...adminLinks[0], label: "Admin" }]
+      : links
   const tabActive = (href: string, exit?: boolean) =>
     !exit &&
     (href === "/dashboard" || href === adminLinks[0].href

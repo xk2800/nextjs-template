@@ -16,6 +16,7 @@ export default function TopNav({
   isAdmin,
   brandName = "Template",
   brandHref = "/",
+  links: workspace = workspaceLinks,
   actions,
   mobileNav = "tabs",
   mobileAction,
@@ -27,7 +28,7 @@ export default function TopNav({
   mobileAction?: MobileNavAction
 }) {
   const pathname = usePathname()
-  const links = isAdmin ? [...workspaceLinks, ...adminLinks] : workspaceLinks
+  const links = isAdmin ? [...workspace, ...adminLinks] : workspace
   return (
     <>
     <header className="sticky top-0 z-20 border-b bg-background">
@@ -69,7 +70,7 @@ export default function TopNav({
         </Button>
       </div>
     </header>
-    <MobileNav isAdmin={isAdmin} variant={mobileNav} action={mobileAction} />
+    <MobileNav isAdmin={isAdmin} links={workspace} variant={mobileNav} action={mobileAction} />
     </>
   )
 }
